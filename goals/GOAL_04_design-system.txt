@@ -1,0 +1,48 @@
+ENGINE & MODE: Opus 5 . xhigh effort . ultracode . maximum parallelism . worktrees where write-sets are disjoint.
+OBJECTIVE
+  Write docs/05 B DesignSystem/DESIGN-SYSTEM.md - the binding UX standard, as tokens.
+  The PRD's UX section will cite this, so it comes first.
+
+CONTEXT
+  CLAUDE.md . docs/00 SourceOfTruth/SRC-001 S9 (the frontend clauses, especially S9.4)
+  docs/02 BRD/SpendWise_BRD.md
+  SRC-001 S9.4 verbatim: paper and pine green, not the default blue SaaS dashboard.
+  Instrument Serif for display, Instrument Sans for body, IBM Plex Mono for every number.
+  Tabular figures so columns of money line up. Works down to phone width, keyboard focus
+  visible, reduced motion respected.
+
+WRITE-SET
+  docs/05 B DesignSystem/DESIGN-SYSTEM.md      (new)
+  docs/05 B DesignSystem/tokens.css            (new - real CSS custom properties)
+  docs/01 ADR/ADR_DECISION_RELEASE_LEDGER.tsv  (included_in_* only if a row lands here)
+  PROGRESS.md . handoffs/
+
+DELIVERABLES
+  1. DESIGN-SYSTEM.md
+     - Colour: the paper and pine-green ramp as named tokens with hex values. Every
+       token states its intended use. Include the semantic layer (surface, ink, accent,
+       positive, warning, danger, border) so components never reference a raw hex.
+     - Type: the three families, a scale, weights, and the tabular-figures rule for
+       every number. State the fallback stack.
+     - Space, radius, shadow, motion: one scale each.
+     - Components with all five states (default, hover, focus, disabled, error/empty):
+       button, input, select, card, table row, chip, panel, the category ribbon.
+     - Accessibility floor: contrast ratios stated per pair and CHECKED, visible focus
+       ring, reduced-motion behaviour, minimum hit target.
+     - Fonts are SELF-HOSTED, not fetched from Google Fonts - SW-ADR-020's single-origin
+       reasoning applies to them too.
+  2. tokens.css - the same tokens as real, valid CSS custom properties. This file is
+     lifted into the client build later; it is code, not illustration.
+
+DEFINITION OF DONE - binary
+  [ ] every colour pair used for text states its measured contrast ratio and meets
+      WCAG AA. Compute them, print the table. Any pair that fails is changed, not noted.
+  [ ] tokens.css parses - run a CSS parser or a browser-less validator and paste the result
+  [ ] no raw hex appears in any component spec; components reference semantic tokens only.
+      Prove it with a grep.
+  [ ] every claim in DESIGN-SYSTEM.md traces to SRC-001 S9 or is tagged [JUDGEMENT]
+  [ ] PROGRESS.md appended; handoff written
+
+GUARDRAILS - full set in CLAUDE.md.
+  - This binds front-end engineering only. It is NOT a schema source.
+  - Do not invent brand content. Where SRC-001 is silent, tag [JUDGEMENT] and move on.

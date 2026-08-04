@@ -20,6 +20,39 @@ build                  the session works the goal until its Definition of Done i
 Next session — **any machine, any Claude account** — starts with `/ss` and is fully oriented from
 the repo alone. Nothing lives in a chat history.
 
+## The execution order — run these one at a time
+
+Twelve goals take SpendWise from a frozen requirements document to a ledger the build loop
+runs off. **Each one depends on the ones above it**, so they are executed in this order and
+the full document is read before the next begins.
+
+| # | Goal file | Produces | Why it sits here |
+|---|---|---|---|
+| 1 | `GOAL_01_source-of-truth.txt` | `00 SourceOfTruth/SRC-002` | 13 ADRs currently cite a conversation, not a file. Fix the provenance before anything is built on it. |
+| 2 | `GOAL_02_adr-completion.txt` | `01 ADR/` new records | Find every decision the BRD and PRD will need. Rule what is rulable; raise the rest. |
+| 3 | `GOAL_03_brd.txt` | `02 BRD/` | What and why, in business language. 2–4 pages. |
+| 4 | `GOAL_04_design-system.txt` | `05 B DesignSystem/` | Before the PRD, because the PRD's UX section binds to it. |
+| 5 | `GOAL_05_prd.txt` | `03 PRD/` | **The document the code is written from.** The largest artifact here. |
+| 6 | `GOAL_06_journeys.txt` | `11 Journeys/` | Finds what a per-screen spec misses: the seams between screens. |
+| 7 | `GOAL_07_bible.txt` | `05 Bible/` | The scope arbiter. After this, no scope exists beyond an `AcceptanceCriteria` cell. |
+| 8 | `GOAL_08_datamodel.txt` | `06 DataModel/` | A package, not a document. Real SQL. The last artifact before code. |
+| 9 | `GOAL_09_architecture.txt` | `07 Architecture/` | Two audiences: `for_llm/` to orient a session, `for_humans/` to decide from. |
+| 10 | `GOAL_10_sit.txt` | `08 SIT/` | Positive cases, written before the code exists. |
+| 11 | `GOAL_11_negative-testing.txt` | `09 NegativeTesting/` | The cases that try to break it. Weighted at user B seeing user A's money. |
+| 12 | `GOAL_12_engineering-ledger.txt` | `10 EngineeringLedger/` | What `/ss` reads to report the frontier. Makes cold resumption real. |
+
+Every goal is set to **Opus 5 · xhigh effort · ultracode · maximum parallelism**, and every
+one carries a Definition of Done whose lines are binary and name the command that proves them.
+
+Several close on a **fresh zero-context session** grading the output — a session that never
+saw the work being made. That is deliberate: the writer never verifies its own work, and where
+no second human exists, a session with no inherited context is the substitute.
+
+Two goals are designed to be **failed on the first attempt**: `GOAL_05` (the PRD) does not
+close until a fresh session reports fewer than 5 places it would have to guess, and `GOAL_06`
+(journeys) treats "found zero defects" as a suspicious result requiring explanation rather
+than a good one.
+
 ## Writing a good goal
 
 The template asks for six things. Two of them are what make it work:

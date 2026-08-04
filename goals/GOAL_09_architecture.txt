@@ -1,0 +1,54 @@
+ENGINE & MODE: Opus 5 . xhigh effort . ultracode . maximum parallelism . worktrees where write-sets are disjoint.
+OBJECTIVE
+  Write docs/07 Architecture/ - two audiences, two folders. for_llm/ is what a coding
+  session loads to orient. for_humans/ is what the client reads to decide.
+
+CONTEXT
+  CLAUDE.md . docs/03 PRD . docs/06 DataModel . docs/01 ADR/ (esp. 014 016 017 018 020)
+  docs/30 Deployment/AWS_PREP_QUEUE.md
+
+WRITE-SET
+  docs/07 Architecture/for_llm/*.md . docs/07 Architecture/for_humans/*.md
+  PROGRESS.md . handoffs/
+
+DELIVERABLES - for_llm/ (precise, dense, diagram-first)
+  01_system_context.md      what SpendWise is, what it talks to, what it deliberately
+                            does not talk to
+  02_container.md           the one image: FastAPI + StaticFiles + the React build;
+                            RDS; S3; SSM. Why there is no CloudFront and no CORS.
+  03_security_isolation.md  the two enforcement layers, the two DB roles, the request
+                            lifecycle showing where SET LOCAL happens
+  04_deployment.md          ECS on EC2, no ALB, no NAT, public subnet, the two IAM roles.
+                            State plainly which parts are REASONED, not observed.
+  05_surface_route_map.md   every route, its persona, its guard
+  06_summary_sequence.md    the dashboard's single round trip, end to end, including the
+                            expenses-service-calls-categories-service crossing of SW-ADR-017
+  07_state_machines.md      session lifecycle; expense lifecycle; password-reset lifecycle
+  08_failure_modes.md       what breaks, what the user sees, what the log says
+
+DELIVERABLES - for_humans/
+  01_executive_overview.md  what is being built, in plain language, one page
+  02_decisions_owed.md      every OPEN row from CONSTITUTION.md Art X, with options,
+                            costs and a recommendation - readable in five minutes
+  03_the_deliberate_gaps.md the weaknesses this design ACCEPTED and why: no TLS in the
+                            deployed environment, per-process rate limiting, no shared
+                            limiter, single-approver governance. Each with its trigger
+                            condition for revisiting.
+
+RULES
+  - Diagrams as mermaid or clean ASCII, inline. No external image files.
+  - Architecture is an ANSWER KEY, never scope authority. Where it disagrees with the PRD
+    or the Bible, they win and the architecture doc is corrected.
+  - Every AWS statement is labelled REASONED unless the client has reported observing it.
+
+DEFINITION OF DONE - binary
+  [ ] every route in 05_surface_route_map.md exists in the PRD, and vice versa. Two-way
+      table printed, both directions zero.
+  [ ] every table in 03_security_isolation.md exists in docs/06 DataModel. Assert it.
+  [ ] every mermaid block parses. Render or lint each one. Paste the result.
+  [ ] 02_decisions_owed.md covers 100% of Art X's OPEN rows. Count both, print both.
+  [ ] no AWS claim is stated as observed. Grep for the labels and paste the count.
+  [ ] PROGRESS.md appended; handoff written
+
+GUARDRAILS - full set in CLAUDE.md. This goal creates nothing in AWS and writes no
+infrastructure code.

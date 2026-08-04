@@ -1,0 +1,49 @@
+ENGINE & MODE: Opus 5 . xhigh effort . ultracode . maximum parallelism . worktrees where write-sets are disjoint.
+OBJECTIVE
+  Generate docs/10 EngineeringLedger/engineering_ledger.tsv - one row per unit of work,
+  derived from the Bible. This is what /ss reads to report the frontier, so it is the file
+  that makes "any Claude account picks up where I left off" actually work.
+
+CONTEXT
+  CLAUDE.md . docs/05 Bible/SpendWise_Bible.csv (the source - the ledger is DERIVED)
+  docs/03 PRD . docs/06 DataModel . docs/08 SIT . docs/09 NegativeTesting
+  docs/07 Architecture/for_llm/05_surface_route_map.md
+  ~/.claude/hooks/ss-autocontext.js - read how it discovers a ledger, so the columns match
+  what it looks for. It anchors to header NAMES, never positions.
+
+WRITE-SET
+  docs/10 EngineeringLedger/engineering_ledger.tsv
+  docs/10 EngineeringLedger/LEDGER_COLUMN_DICTIONARY.md
+  docs/10 EngineeringLedger/generate_ledger.py   (the deriver - the ledger is regenerated,
+                                                  never hand-authored)
+  CLAUDE.md (one line only, pointing sessions at the ledger)
+  PROGRESS.md . handoffs/
+
+DELIVERABLES
+  1. engineering_ledger.tsv. MUST include columns named exactly Milestone and Status - the
+     /ss hook keys on both. Plus: Type,ID,ParentID,Title,AcceptanceCriteria,Priority,
+     Estimate,DependsOn,Labels,Persona,SurfaceType,Route,OwnedPaths,Wave,
+     TestTrustLevel,SITCaseIDs,NegativeCaseIDs,EvidencePath,SourceRef,GoalRef
+     - OwnedPaths is the write-set for that story. Two stories whose OwnedPaths overlap
+       must never run at the same time; that column is what makes parallel work safe.
+     - Wave groups stories that CAN run together because their OwnedPaths are disjoint.
+     - Status starts Backlog everywhere. During the build only Status is hand-edited.
+  2. LEDGER_COLUMN_DICTIONARY.md - what each column means, who fills it, and when.
+  3. generate_ledger.py - regenerates the TSV from the Bible. Editing the ledger's derived
+     columns by hand is forbidden; you edit the Bible and regenerate.
+
+DEFINITION OF DONE - binary
+  [ ] generate_ledger.py runs and produces the TSV. Run it. Paste the output.
+  [ ] running it twice produces a byte-identical file. Prove it with a hash of both runs.
+  [ ] every Bible story appears exactly once. Count both, print both.
+  [ ] every DependsOn resolves; no cycles. Assert and print.
+  [ ] no two stories in the same Wave have overlapping OwnedPaths. Assert and print.
+  [ ] every story cites at least one SIT case and, where it touches user data, at least
+      one negative case. Print the uncovered list.
+  [ ] THE REAL TEST: run the /ss hook and confirm it discovers this ledger and prints the
+      milestone x status matrix. Paste the hook's actual output. If it does not find the
+      file, the column names are wrong - fix them, do not fix the hook.
+  [ ] PROGRESS.md appended; handoff written
+
+GUARDRAILS - full set in CLAUDE.md. The ledger is DERIVED. If it disagrees with the
+Bible, the Bible wins and the ledger is regenerated.

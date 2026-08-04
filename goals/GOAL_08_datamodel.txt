@@ -1,0 +1,59 @@
+ENGINE & MODE: Opus 5 . xhigh effort . ultracode . maximum parallelism . worktrees where write-sets are disjoint.
+OBJECTIVE
+  Build docs/06 DataModel/ as a PACKAGE, not a document: real SQL a machine runs, plus the
+  contract every coding agent loads. This is the last artifact before code.
+
+CONTEXT
+  CLAUDE.md . CONSTITUTION.md (Art IV isolation floors; Art V money)
+  docs/00 SourceOfTruth/SRC-001 S6 (the tables) and S10 (the rules)
+  docs/03 PRD (every P-row that touches data) . docs/05 Bible . docs/01 ADR/
+  SW-ADR-018 is the load-bearing one: isolation enforced twice, two DB roles, FORCE RLS.
+
+WRITE-SET
+  docs/06 DataModel/** (new)
+  docs/01 ADR/ADR_DECISION_RELEASE_LEDGER.tsv (included_in_datamodel ONLY)
+  PROGRESS.md . handoffs/
+
+DELIVERABLES
+  datamodel.json      the spec of record, hand-maintained. Tables, columns, types,
+                      nullability, defaults, constraints, indexes, enums, state machines.
+  schema.sql          the full schema
+  migrations/         Alembic-shaped, each with a TESTED down-migration. The baseline
+                      migration is never edited later; consumers extend.
+  security.sql        RLS policies + FORCE ROW LEVEL SECURITY on every protected table +
+                      the two roles: an owner that runs migrations, and a runtime role
+                      that does NOT own tables, is NOT superuser, has NO BYPASSRLS.
+  permissions.tsv     persona x entity x action x grant x source x status
+  TRACEABILITY.tsv    object -> source_id -> status. EVERY table and column traces to a
+                      P-row, a SRC-001 clause, or an ADR. Anything untraceable is ASSUMED
+                      and must be resolved before this goal closes.
+  AGENT_CONTRACT.md   the binding one-pager every coding agent loads, in-package because
+                      some agents never read CLAUDE.md. State the never-guess rule, the
+                      authority order, DDL-from-migrations-only, and the escalation path.
+  seed/               at least TWO users with known amounts, including the exact fixture
+                      SW-ADR-010's 75810 paise is computed from.
+  fixtures + checks/  a runnable verifier for the invariants below.
+
+INVARIANTS THAT MUST BE ENCODED IN SQL, NOT PROSE
+  - every user-owned table carries user_id and an RLS policy
+  - money is BIGINT minor units with a currency column beside it (SW-ADR-013)
+  - amount_cents > 0 as a CHECK constraint
+  - all timestamps carry a timezone
+  - deleting a user cascades to categories/expenses/sessions and NEVER to the audit log
+  - email uniqueness is case-insensitive
+
+DEFINITION OF DONE - binary
+  [ ] schema.sql applies to an EMPTY database, cleanly. Run it. Paste the output.
+  [ ] migrate down then up again, cleanly. Run it. Paste the output.
+  [ ] seed runs twice from empty and produces identical counts. Print both.
+  [ ] as the RUNTIME role, selecting user A's row with context set to B returns ZERO rows.
+      Then RED-PROOF it: disable the policy, watch the same query return the row, revert,
+      verify the revert. Paste all four outputs. A gate nobody has watched fail is decoration.
+  [ ] catalog check, not assumption: the runtime role does not own the tables, is not
+      superuser, has no BYPASSRLS, and forced RLS is on. Query pg_roles/pg_class. Paste it.
+  [ ] TRACEABILITY.tsv has zero rows with an unresolved source
+  [ ] included_in_datamodel flipped for every ADR that landed
+  [ ] PROGRESS.md appended; handoff written
+
+GUARDRAILS - full set in CLAUDE.md. Create NOTHING in AWS. If a step needs an RDS
+resource, add it to docs/30 Deployment/AWS_PREP_QUEUE.md and say so in chat.

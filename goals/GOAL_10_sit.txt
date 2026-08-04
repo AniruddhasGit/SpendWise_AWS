@@ -1,0 +1,50 @@
+ENGINE & MODE: Opus 5 . xhigh effort . ultracode . maximum parallelism . worktrees where write-sets are disjoint.
+OBJECTIVE
+  Write docs/08 SIT/ - the positive test cases, as rows, each traced to a Bible story.
+  Written BEFORE the code, so the code is built to pass a test that already exists.
+
+CONTEXT
+  CLAUDE.md . docs/05 Bible (every story + its AcceptanceCriteria) . docs/03 PRD
+  docs/11 Journeys . docs/06 DataModel/seed (the fixtures cases run against)
+
+METHOD - fan out by epic, then a merge pass that hunts for AC with no case and cases with
+no AC. The merge pass is where the value is; a per-epic pass alone always leaves holes.
+
+WRITE-SET
+  docs/08 SIT/SIT_TestCases.tsv        (story cases)
+  docs/08 SIT/SIT_JourneyCases.tsv     (end-to-end cases)
+  docs/08 SIT/SIT_COLUMN_DICTIONARY.md
+  docs/08 SIT/harness/README.md        (how a case becomes a runnable test)
+  PROGRESS.md . handoffs/
+
+DELIVERABLES
+  1. SIT_TestCases.tsv - one row per positive case. Columns:
+     case_id,bible_story,epic,title,case_type,persona,env,fixtures,preconditions,steps,
+     expected,evidence_required,status
+     - steps are numbered and unambiguous; expected is a single checkable outcome
+     - fixtures name the exact seed rows the case depends on
+     - evidence_required states what proves it: browser, API response, DB row, or audit row
+  2. SIT_JourneyCases.tsv - one row per journey from docs/11, each listing the story cases
+     it chains together.
+  3. harness/README.md - how these rows become executable tests, and the rule that a case
+     which cannot be run is a FAILURE, not an omission.
+
+RULES
+  - Every case cites a Bible story. A case with no story is scope creep wearing a test's
+    clothing; delete it or raise the missing story.
+  - Never assert on a fixture. Every case must exercise the application.
+  - Expected values are derived from the sources, not from what the code happens to do.
+  - The day-one proof gets its own cases, including the RLS red-proof.
+
+DEFINITION OF DONE - binary
+  [ ] every Bible AcceptanceCriteria has at least one case. Print the uncovered list; it
+      must be empty.
+  [ ] every case's bible_story resolves to a real ID. Assert it.
+  [ ] no case asserts expected == a value read from the same fixture it is testing. Grep
+      for the pattern and paste the result - 191 of 191 such fixtures once passed whatever
+      the system did, on the project this method came from.
+  [ ] a FRESH zero-context session picks 15 random cases and answers "could you execute
+      this exactly as written, without asking anything?" Paste the verdict.
+  [ ] PROGRESS.md appended; handoff written
+
+GUARDRAILS - full set in CLAUDE.md. No new scope. A missing spec is an OPEN row.

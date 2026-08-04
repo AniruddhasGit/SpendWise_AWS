@@ -1,0 +1,50 @@
+ENGINE & MODE: Opus 5 . xhigh effort . ultracode . maximum parallelism . worktrees where write-sets are disjoint.
+OBJECTIVE
+  Make the ADR pack complete enough that the BRD and PRD can be written without inventing
+  anything. Find every decision those documents will need, rule what is rulable, and raise
+  the rest as OPEN rows.
+
+CONTEXT
+  CLAUDE.md . CONSTITUTION.md (Art III governance + status law; Art X the OPEN register)
+  docs/00 SourceOfTruth/SRC-001 (all 66 sub-clauses) + SRC-002
+  docs/01 ADR/all-ADRs/*.md (all 22) + the ledger
+
+METHOD - fan out, this is what parallelism is for
+  Sweep SRC-001 clause by clause. For each, ask: does building this require a choice the
+  sources do not settle? Run the sweep as several independent passes with different lenses
+  - data shape, security, money, UX behaviour, operations, error paths - then merge and
+  dedupe. A single pass will miss things; that is the point of the fan-out.
+
+WRITE-SET
+  docs/01 ADR/all-ADRs/SW-ADR-023.md onwards (new records only)
+  docs/01 ADR/ADR_DECISION_RELEASE_LEDGER.tsv
+  CONSTITUTION.md (Article X only)
+  PROGRESS.md . handoffs/
+  Never edit an existing ADR's decision. Reversal is a new superseding record.
+
+DELIVERABLES
+  1. New ADRs for every decision that is genuinely rulable by the build session under
+     SW-ADR-015 - technical, reversible, or the stricter of two options.
+  2. OPEN rows in CONSTITUTION.md Art X for everything reserved: money, secrets, legal,
+     product identity, scope, or waiving a check. Each carries options and a
+     recommendation, so the client can rule in under five minutes.
+  3. Known candidates already identified, at minimum: OPEN-SESSION-01 (token lifetime),
+     OPEN-TZ-01 (whose calendar resolves "this month"), OPEN-UNCAT-01 (the Uncategorised
+     bucket), OPEN-DEACT-01 (does deactivation revoke sessions), OPEN-DELETE-01 (orphaned
+     S3 objects). Rule or raise each. Do not leave them merely listed.
+
+DEFINITION OF DONE - binary
+  [ ] every new ADR cites SRC-001 Sn, SRC-002 Sn, or an existing ADR - zero dangling refs,
+      proved by re-running the citation checker from GOAL_01
+  [ ] ledger row count == file count in all-ADRs/ (assert it, paste the numbers)
+  [ ] every ledger row is one of the five legal decision_status values
+  [ ] every OPEN row in Art X carries a class, an owner, and either options+recommendation
+      or an explicit "no recommendation, and why"
+  [ ] a fresh zero-context session reads SRC-001 + the ADR pack and reports what it would
+      still have to GUESS. Record the count. Under 10 to pass this goal.
+  [ ] PROGRESS.md appended; handoff written
+
+GUARDRAILS - full set in CLAUDE.md.
+  - Adopting the stricter option is not a waiver and needs no signature. Choosing the
+    looser one IS a waiver and is reserved to the client.
+  - Fail-closed: a new ADR the build session cannot rule starts NOT_DECIDED.

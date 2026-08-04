@@ -1,0 +1,44 @@
+ENGINE & MODE: Opus 5 . xhigh effort . ultracode . maximum parallelism . worktrees where write-sets are disjoint.
+OBJECTIVE
+  Close the dangling-citation defect: 13 of 22 ADRs cite "Client statement, 2026-08-05",
+  which resolves to nothing on disk. Freeze the client's session rulings as SRC-002 and
+  re-point every one of those ADRs at a real clause.
+
+CONTEXT - read first, in this order
+  CLAUDE.md . CONSTITUTION.md (Art II Authority & Sources; Art III status law)
+  docs/00 SourceOfTruth/SRC-001_requirements_2026-08-05.md   <- the shape to copy exactly
+  docs/00 SourceOfTruth/fingerprints.json
+  docs/01 ADR/ADR_DECISION_RELEASE_LEDGER.tsv + all-ADRs/*.md
+  The client's words survive only in the ADRs' Context/Decision fields. Reconstruct from
+  those. Anything you cannot source word-for-word is [PARAPHRASE], never a quote.
+
+WRITE-SET
+  docs/00 SourceOfTruth/SRC-002_client_rulings_2026-08-05.md   (new)
+  docs/00 SourceOfTruth/fingerprints.json                      (regenerate)
+  docs/01 ADR/all-ADRs/SW-ADR-*.md                             (Sources row ONLY)
+  docs/01 ADR/ADR_DECISION_RELEASE_LEDGER.tsv                  (last_updated ONLY)
+  PROGRESS.md . handoffs/
+  Nothing else. SRC-001 is FROZEN.
+
+DELIVERABLES
+  1. SRC-002 - the client's rulings, clause-numbered S1..Sn, carrying the same header
+     block and FROZEN banner as SRC-001. One clause per ruling: what was asked, what was
+     answered, and a [VERBATIM] or [PARAPHRASE] tag on the wording.
+     Include the framing statements (personal project; the client will practise the
+     DevOps role; the app will use RDS/ECR/ECS/S3, Route53 maybe, IAM) and the standing
+     delegation instruction that SW-ADR-015 rests on entirely.
+  2. Every ADR that cited "Client statement, 2026-08-05" now cites `SRC-002 Sn`.
+  3. fingerprints.json carrying both sources with fresh SHA-256.
+
+DEFINITION OF DONE - binary, each with the command that proves it
+  [ ] grep -rl "Client statement" "docs/01 ADR/all-ADRs" returns ZERO files
+  [ ] every `SRC-002 Sn` cited anywhere resolves to a real clause - write a throwaway
+      checker, RUN it, paste its output into the handoff
+  [ ] fingerprints.json hashes match a fresh recomputation for BOTH files
+  [ ] SRC-001 still hashes to 19bc8eb7bca5b8812457e597e78448e7f99d6ea98fbc9ee444df545285812b71
+  [ ] PROGRESS.md appended; handoff written
+
+GUARDRAILS - full set in CLAUDE.md. Specific to this goal:
+  - A ruling you cannot source becomes an OPEN row in CONSTITUTION.md Art X. Never a guess.
+  - This goal moves CITATIONS, not rulings. Do not re-open a single decision.
+  - SRC-001 changes only by an appended, clearly-marked ERRATUM block.

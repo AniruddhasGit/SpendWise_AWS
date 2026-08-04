@@ -1,0 +1,55 @@
+ENGINE & MODE: Opus 5 . xhigh effort . ultracode . maximum parallelism . worktrees where write-sets are disjoint.
+OBJECTIVE
+  Write docs/09 NegativeTesting/ - the cases that try to BREAK SpendWise. Weighted hard at
+  one thing: user B seeing user A's money. That is the bug that ends this app.
+
+CONTEXT
+  CLAUDE.md . CONSTITUTION.md (Art IV isolation; Art VI privacy)
+  docs/03 PRD (every error path) . docs/05 Bible . docs/06 DataModel/security.sql
+  docs/08 SIT (the positive cases these mirror)
+
+METHOD - fan out by attack surface, and give each lane a DIFFERENT lens: direct object
+references . list and filter manipulation . the admin surface . background paths .
+input boundaries . auth and session lifecycle. Redundant lanes find the same bugs;
+diverse lanes find different ones.
+
+WRITE-SET
+  docs/09 NegativeTesting/SIT_NegativeCases.tsv
+  docs/09 NegativeTesting/ISOLATION_ATTACK_PLAN.md
+  PROGRESS.md . handoffs/
+
+DELIVERABLES
+  1. SIT_NegativeCases.tsv - same columns as SIT_TestCases.tsv plus attack_class and
+     severity. Every case states the exact request, the expected status, and the expected
+     BODY - because a 200 with an empty list is a PASS and a 500 is a FINDING.
+  2. ISOLATION_ATTACK_PLAN.md - the cross-user adversary's brief. It must attack, at
+     minimum: direct object ids in URLs and bodies . list endpoints with manipulated
+     filters, sorts and cursors . the summary endpoint's date range and category filter .
+     search . any endpoint taking an id array . receipt download links and S3 key prefixes
+     . error messages that echo data . the admin surface . anything cached . the audit log.
+     For each: the exact request, the response status, and the response body.
+     A 200 with an empty list PASSES. A 500 is a FINDING. Anything returning A's data is
+     SEVERITY ONE - stop and report immediately.
+
+ALSO COVER
+  - auth: expired token, revoked session, replayed cookie after logout, token for a
+    deactivated user, admin token after demotion
+  - money: negative amount, zero, absurdly large, non-numeric, float precision attacks,
+    forged amount in the request body
+  - roles: a user hitting every admin endpoint; an admin trying to read amounts
+  - reset: reused token, expired token, another user's token
+  - rate limits: the N+1 attempt on login and on reset
+  - receipts: mismatched key prefix, oversized file, wrong content type, expired URL
+
+DEFINITION OF DONE - binary
+  [ ] every endpoint in the PRD's API contract has at least one negative case AND at least
+      one cross-user case. Print the uncovered list; it must be empty.
+  [ ] every "must NOT happen" statement anywhere in the PRD has a case proving it. Extract
+      them, count them, match them, print the table.
+  [ ] every case's expected status AND body are specified. No case says only "fails".
+  [ ] the RLS red-proof has its own case: disable the policy, the isolation case MUST go
+      red, revert, verify. Written as steps, not prose.
+  [ ] PROGRESS.md appended; handoff written
+
+GUARDRAILS - full set in CLAUDE.md. Cases are written; nothing is executed against any
+live system in this goal.

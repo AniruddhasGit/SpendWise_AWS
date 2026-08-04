@@ -1,0 +1,52 @@
+ENGINE & MODE: Opus 5 . xhigh effort . ultracode . maximum parallelism . worktrees where write-sets are disjoint.
+OBJECTIVE
+  Write docs/05 Bible/SpendWise_Bible.csv - the buildable decomposition. Epics to stories
+  to tasks, each with BINARY acceptance criteria. This is the scope arbiter: after this,
+  no scope exists beyond an AcceptanceCriteria cell.
+
+CONTEXT
+  CLAUDE.md . CONSTITUTION.md (Art IX quality) . docs/03 PRD (every P-row)
+  docs/02 BRD . docs/11 Journeys . docs/01 ADR/ . docs/05 B DesignSystem
+
+WRITE-SET
+  docs/05 Bible/SpendWise_Bible.csv            (new)
+  docs/05 Bible/BIBLE_COLUMN_DICTIONARY.md     (new)
+  docs/01 ADR/ADR_DECISION_RELEASE_LEDGER.tsv  (included_in_bible column ONLY)
+  PROGRESS.md . handoffs/
+
+DELIVERABLES
+  1. The Bible as a CSV, one row per Epic / Story / Task, columns:
+     Type,ID,ParentID,Title,Description,AcceptanceCriteria,Priority,Estimate,Milestone,
+     Labels,Status,DependsOn,Blocks,SourceRef
+     - AcceptanceCriteria is pipe-separated, and EVERY criterion is binary. "The dashboard
+       works" fails this goal. "GET /api/summary for the seeded fixture returns
+       daily_average_paise=75810" passes.
+     - SourceRef cites the P-row(s) the story implements.
+     - Milestones: M0 spine and the day-one proof . M1 auth and sessions .
+       M2 categories, expenses, summary . M3 dashboard UI . M4 admin . M5 receipts .
+       M6 hardening. Status starts Backlog for all.
+     - DependsOn is real: the day-one proof depends on nothing; everything else depends
+       on the spine.
+  2. BIBLE_COLUMN_DICTIONARY.md - what each column means and who may write it.
+
+RULES
+  - M0's first story IS the day-one proof of SW-ADR-009/010, decomposed into tasks, with
+    the RLS red-proof as its own task. It is never waivable and it comes first.
+  - A story whose AC cannot be checked by running something is not a story yet. Split it.
+  - Every task inside a story follows the TDD triad: failing test, implementation,
+    edge/negative.
+
+DEFINITION OF DONE - binary
+  [ ] the CSV parses; every ParentID and DependsOn resolves to a real ID. Assert it, paste
+      the output.
+  [ ] two-way coverage against the PRD: no-gap (every P-row has a story) and no-creep
+      (every story cites a P-row). Both tables printed, both zero.
+  [ ] every AcceptanceCriteria cell is machine-checkable. Have a FRESH zero-context
+      session grade a random sample of 20 rows on "could you write a failing test from
+      this alone, without asking anyone anything?" Paste its verdict and the sample.
+  [ ] no dependency cycles - detect and print
+  [ ] included_in_bible flipped for every ADR that landed
+  [ ] PROGRESS.md appended; handoff written
+
+GUARDRAILS - full set in CLAUDE.md. No scope beyond the PRD. A missing decision is an
+OPEN row, never a story invented to cover it.

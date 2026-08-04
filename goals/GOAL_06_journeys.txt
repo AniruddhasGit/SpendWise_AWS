@@ -1,0 +1,48 @@
+ENGINE & MODE: Opus 5 . xhigh effort . ultracode . maximum parallelism . worktrees where write-sets are disjoint.
+OBJECTIVE
+  Write docs/11 Journeys/ - the end-to-end story of each persona's real working day.
+  Journeys exist to find what a per-screen spec misses: the seams between screens.
+
+CONTEXT
+  CLAUDE.md . docs/02 BRD (personas) . docs/03 PRD (surfaces, routes, states)
+  docs/05 B DesignSystem . docs/01 ADR/
+
+WRITE-SET
+  docs/11 Journeys/USER_PERSONA_JOURNEY.md     (new)
+  docs/11 Journeys/ADMIN_PERSONA_JOURNEY.md    (new)
+  docs/11 Journeys/JOURNEY_INDEX.md            (new)
+  CONSTITUTION.md (Article X only) . PROGRESS.md . handoffs/
+
+DELIVERABLES
+  1. One journey document per persona. Each walks the persona's real day step by step:
+     what they intend, which surface they land on, what they see, what they do, what the
+     system does, and what they leave with. Every step cites the P-row that specifies it.
+  2. Journeys to cover at minimum:
+     USER  - first ever visit and account creation . logging the first expense .
+             a normal week of logging . reading the dashboard and changing the period .
+             filtering by category from the ribbon . attaching a receipt .
+             coming back after a month away . being locked out and getting back in
+     ADMIN - finding a user who cannot log in . issuing a reset and handing it over .
+             forcing a sign-out . deactivating and reactivating . promoting a second
+             admin . reading the audit log after an incident
+  3. JOURNEY_INDEX.md - a table of every journey, its persona, the P-rows it traverses,
+     and the SEAMS it crosses (where one surface hands off to another).
+
+WHAT THIS GOAL IS ACTUALLY FOR
+  Every step where the PRD does not say what happens next is a PRD defect. File it.
+  Expect to find: what the dashboard shows on day one with no expenses; what the user
+  sees when a receipt upload fails halfway; what happens to a signed-in user the moment
+  an admin deactivates them; what the admin sees when the person they reset never uses
+  the token. These are seams, and seams are where specs are thin.
+
+DEFINITION OF DONE - binary
+  [ ] every journey step cites a P-row that exists - run the citation checker
+  [ ] every defect found is filed: a PRD gap raised as an OPEN row or an ADR, with the
+      journey step that exposed it named. Print the count found. ZERO found is a
+      SUSPICIOUS result, not a good one - say so and explain what you did to look.
+  [ ] every persona in the BRD has at least one journey; every surface in PRD S3 is
+      reached by at least one journey. Print both coverage tables.
+  [ ] PROGRESS.md appended; handoff written
+
+GUARDRAILS - full set in CLAUDE.md. A journey never invents behaviour. If the PRD does
+not say, the journey stops and files a gap.

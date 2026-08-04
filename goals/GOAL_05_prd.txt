@@ -1,0 +1,52 @@
+ENGINE & MODE: Opus 5 . xhigh effort . ultracode . maximum parallelism . worktrees where write-sets are disjoint.
+OBJECTIVE
+  Write docs/03 PRD/SpendWise_PRD.md - every screen, every rule, every error, every
+  permission. THIS IS THE DOCUMENT THE CODE IS WRITTEN FROM. It is the largest artifact
+  in the project and the one that earns its keep.
+
+CONTEXT
+  CLAUDE.md . CONSTITUTION.md (all articles) . docs/00 SourceOfTruth/SRC-001 + SRC-002
+  docs/01 ADR/ (all) . docs/02 BRD/SpendWise_BRD.md . docs/05 B DesignSystem/
+
+METHOD - this is the goal that most needs parallelism
+  Fan out by epic. Each lane drafts its epic's specs independently against the same BRD
+  rows and the same ADRs, then a merge pass reconciles vocabulary and hunts contradictions
+  BETWEEN lanes. Cross-epic contradictions are the defect class this stage exists to catch.
+
+WRITE-SET
+  docs/03 PRD/SpendWise_PRD.md                 (new)
+  docs/01 ADR/ADR_DECISION_RELEASE_LEDGER.tsv  (included_in_prd column ONLY)
+  CONSTITUTION.md (Article X only, to raise new OPENs)
+  PROGRESS.md . handoffs/
+
+DELIVERABLES - the PRD, with these sections
+  S1 Reading rules & provenance grammar.
+  S2 Scope carried from the frozen BRD.
+  S3 Personas, roles, and the full surface/route inventory.
+  S4 Product specifications by epic, ID'd P-xxx-nn, each carrying: behaviour, the
+     [SRC:] tag, its BRD row, preconditions, the happy path, EVERY exception path,
+     server-side validation, the exact error the user sees, and who may do it.
+  S5 UX specification - binding to docs/05 B DesignSystem. Every screen: fields, actions,
+     states (empty/loading/error/success/partial), and what the user leaves with.
+  S6 The API contract - every endpoint: method, path, request shape, response shape,
+     status codes, and the isolation rule that applies.
+  S7 Cross-cutting floors - isolation, money, audit, rate limits, sessions.
+
+RULES FOR THE CONTENT
+  - Every P-row carries a [SRC:] tag AND names the BRD row it satisfies.
+  - Every rule that computes a number states the rule, its inputs, and a worked example
+    with the expected answer. SW-ADR-010's 75810 paise is the model to copy.
+  - Error behaviour is specified, never left to the implementer.
+  - "TBD" is not a value. An unsettled question is an OPEN row in Art X.
+
+DEFINITION OF DONE - binary
+  [ ] every BRD row R-xxx-nn is covered by at least one P-row. Print the two-way coverage
+      table: no-gap and no-creep. Both must be zero.
+  [ ] every P-row's [SRC:] resolves - re-run the citation checker
+  [ ] every ADR that landed here has included_in_prd flipped with its section cited
+  [ ] a fresh ZERO-CONTEXT session reads only the PRD and reports every place it would
+      have to GUESS to build. Record the count in the handoff. This goal does not close
+      at a high count - iterate the spec and re-run until it is under 5.
+  [ ] PROGRESS.md appended; handoff written
+
+GUARDRAILS - full set in CLAUDE.md. No new scope. The stack is locked by SW-ADR-016.
