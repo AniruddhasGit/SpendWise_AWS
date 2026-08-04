@@ -1,0 +1,36 @@
+ENGINE & MODE: <model + effort, e.g. Opus 5, xhigh effort>.
+
+OBJECTIVE:
+  <One line. What "done" looks like, in outcome terms, not activity terms.
+   Good: "a user can create an expense and see it in the dashboard total."
+   Bad:  "work on the expenses module.">
+
+CONTEXT — read before starting:
+  - CLAUDE.md            the constitution: stack, invariants, DoD, reserved matters
+  - GOTCHAS.md           the trap ledger
+  - docs/01 ADR/         22 settled ADRs — never re-open one
+  - <the specific spec rows / backlog stories this goal covers>
+  Binding rules: <anything unusual for this goal>
+  OUT OF SCOPE: <what this goal must NOT touch — be explicit>
+
+WRITE-SET (the exact files this goal may touch):
+  <path/glob>
+  <path/glob>
+  Nothing outside this list. If the work needs a file that is not here, STOP and say so
+  rather than widening silently — that is a scope change and scope changes are reserved.
+
+DELIVERABLES:
+  <exact filenames and formats>
+
+DEFINITION OF DONE — binary, testable, no adjectives:
+  [ ] <a check that either passes or fails, with the command that proves it>
+  [ ] <...>
+  [ ] the day-one gate is STILL green
+  [ ] a handover is written
+
+GUARDRAILS:
+  - Reversible steps only. Anything irreversible stops and asks.
+  - Report real results. Worst number first. Never fake a green.
+  - An unknown becomes a row in CONSTITUTION.md Art X (the OPEN register) — never a plausible guess.
+  - Secrets stay in .env / SSM. Never in a committed file, never in chat.
+  - Create nothing in AWS. Add what is needed to docs/30 Deployment/AWS_PREP_QUEUE.md and say so in chat.

@@ -1,0 +1,12 @@
+{
+  "generated": "2026-08-05",
+  "algorithm": "sha256",
+  "invalidation_rule": "If any hash below changes, every artifact derived from that source is INVALID and must be re-derived, never silently reused.",
+  "sources": {
+    "SRC-001_requirements_2026-08-05.md": {
+      "sha256": "19bc8eb7bca5b8812457e597e78448e7f99d6ea98fbc9ee444df545285812b71",
+      "bytes": 18661,
+      "status": "FROZEN"
+    }
+  }
+}
