@@ -7,6 +7,11 @@
       "sha256": "19bc8eb7bca5b8812457e597e78448e7f99d6ea98fbc9ee444df545285812b71",
       "bytes": 18661,
       "status": "FROZEN"
+    },
+    "SRC-002_client_rulings_2026-08-05.md": {
+      "sha256": "90d14d4d6698f86bdf839a0536ff01cfb813a223804d69eb64b07526dfaf18dc",
+      "bytes": 12601,
+      "status": "FROZEN"
     }
   }
 }

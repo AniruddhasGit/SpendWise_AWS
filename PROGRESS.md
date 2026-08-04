@@ -70,3 +70,50 @@ its author.**
 **Note on this repo's history:** rewritten on 2026-08-05 to a single root commit. The first
 scaffolding pass used a different delivery method's document shapes; it was replaced wholesale by
 the numbered set above rather than left half-converted in the history.
+
+---
+
+## 2026-08-05 · Session 1 (cont.) · GOAL_01 — freeze the client rulings
+
+**Done:**
+- **`SRC-002_client_rulings_2026-08-05.md` written and frozen** — 17 clauses covering every
+  ruling the client made in this session, plus the framing statements and the standing
+  delegation instruction that `SW-ADR-015` rests on entirely.
+- **All 13 dangling citations closed.** Every ADR that cited *"Client statement, 2026-08-05"*
+  — a reference that resolved to nothing on disk — now cites a real `SRC-002 §n` clause.
+- `fingerprints.json` regenerated over both sources. **`SRC-001` verified byte-unchanged**
+  against its recorded hash.
+- Ledger `last_updated` + `notes` stamped on the 13 affected rows.
+
+**Verified, not asserted** — checker output pasted in the handoff:
+```
+CITATIONS FOUND: 84 across 48 files
+UNRESOLVED     : 0
+'Client statement, 2026-08-05' still present in docs/01 ADR : 0 file(s)
+FINGERPRINTS   : both match a fresh recomputation
+SRC-001        : unchanged (19bc8eb7…812b71)
+VERDICT: PASS
+```
+
+**Deviation from the goal, declared:** `GOAL_01` specified two provenance tags,
+`[VERBATIM]` and `[PARAPHRASE]`. A third was added — **`[SELECTED]`**, for the seven rulings
+that arrived through a multiple-choice interface where the build session authored the option
+text. Forcing those into either existing tag would have been inaccurate in a way that
+matters: it would either credit the client with words they did not write, or downgrade a
+decision they definitively made. Declared in `SRC-002`'s reading rules.
+
+**Finding carried forward, NOT fixed here:** 49 citations across 12 ADRs are written
+`SRC-001 S11.5` (ASCII `S`) rather than `§11.5`. **They resolve** — nothing dangles — so this
+is cosmetic, not the defect this goal targeted. Fixing them is **outside `GOAL_01`'s
+write-set** (`Sources row ONLY`), so it was carried rather than silently widened into.
+`GOAL_02` runs the same checker and should close it.
+
+**In progress:** nothing half-finished.
+
+**Open / next:** `GOAL_02_adr-completion.txt` — sweep `SRC-001`'s 66 sub-clauses for every
+decision the BRD and PRD will need; rule what is rulable; raise the rest as `OPEN` rows.
+Promote the throwaway citation checker into the repo so later goals reuse it, and close the
+49 ASCII-`S` citations while in there.
+
+**Blockers:** unchanged — `OPEN-NAME-01`, `OPEN-CREDS-01`, `OPEN-MODEL-01`, and
+`docs/30 Deployment/AWS_PREP_QUEUE.md` items 0–5.

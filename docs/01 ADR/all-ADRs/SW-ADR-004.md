@@ -11,7 +11,7 @@
 | Decision date | 2026-08-05 |
 | Release decision | DO_NOT_RELEASE |
 | Release status | WITHDRAWN |
-| Sources | `Client statement, 2026-08-05` |
+| Sources | `SRC-002 §5` |
 
 ## Context
 

@@ -11,7 +11,7 @@
 | Decision date | 2026-08-05 |
 | Release decision | RELEASE |
 | Release status | RELEASED |
-| Sources | `SRC-001 S2.3` · `SRC-001 S11.4` · `SRC-001 E-1` · `Client statement, 2026-08-05` |
+| Sources | `SRC-001 S2.3` · `SRC-001 S11.4` · `SRC-001 E-1` · `SRC-002 §15` |
 
 ## Context
 
