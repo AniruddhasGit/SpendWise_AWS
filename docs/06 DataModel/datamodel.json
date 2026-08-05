@@ -586,5 +586,66 @@
         "why": "one row; the signing-secret fingerprint is rewritten on rotation (SW-ADR-125)"
       }
     ]
+  },
+  "cluster": {
+    "source": "SW-ADR-008 (one RDS from day one) · SW-ADR-068 (two databases inside it) · SW-ADR-081",
+    "note": "Roles and databases CANNOT be created by Alembic: CREATE DATABASE will not run inside a transaction, and the owner role has no privilege to create roles. They are created once, by the client, as the RDS master user - which is why this generates a separate bootstrap script rather than a migration.",
+    "roles": [
+      {
+        "name": "spendwise_owner",
+        "purpose": "Owns every table. Runs Alembic. NEVER serves a request.",
+        "attributes": "LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS INHERIT",
+        "why": "It owns the tables, so FORCE ROW LEVEL SECURITY is what stops it bypassing its own policies during a data migration (SW-ADR-081)."
+      },
+      {
+        "name": "spendwise_app",
+        "purpose": "What the application connects as. Serves every request.",
+        "attributes": "LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS INHERIT",
+        "why": "Owns NO table, is NOT superuser, holds NO BYPASSRLS - asserted against the catalog at boot (P-OPS-02). If it owned the tables it could ALTER TABLE ... NO FORCE ROW LEVEL SECURITY, which is the guarantee removing itself."
+      }
+    ],
+    "databases": [
+      {
+        "name": "spendwise",
+        "owner": "spendwise_owner",
+        "purpose": "DEV. What the application connects to."
+      },
+      {
+        "name": "spendwise_test",
+        "owner": "spendwise_owner",
+        "purpose": "The test database. The seeder REFUSES to run against any database not named spendwise_test (SW-ADR-086), and CV-24's per-case TRUNCATE ... RESTART IDENTITY CASCADE only ever touches this one."
+      }
+    ],
+    "rds_notes": [
+      "The RDS master user is NOT a superuser - it holds `rds_superuser`. Everything below works under that; nothing here needs true superuser.",
+      "RDS FORCES SSL. Both connection strings need it. For asyncpg via SQLAlchemy the parameter is `?ssl=require` - NOT libpq's `sslmode=require`, which asyncpg does not accept and which fails at connect time with an unhelpful error.",
+      "PostgreSQL 15 and later no longer grant CREATE on schema `public` to PUBLIC. Creating each database WITH OWNER spendwise_owner is what gives the owner rights over its public schema.",
+      "Run this ONCE, as the master user, connected to the default `postgres` database. It is idempotent: every statement is guarded, so re-running it is safe."
+    ],
+    "how_to_run": [
+      "Run it with psql, passing the passwords as variables so they never enter this file:",
+      "",
+      "    psql \"host=YOUR-ENDPOINT.rds.amazonaws.com port=5432 dbname=postgres user=MASTER sslmode=require\" \\",
+      "         -v spendwise_owner_password=\"OWNER_PASSWORD_HERE\" \\",
+      "         -v spendwise_app_password=\"APP_PASSWORD_HERE\" \\",
+      "         -f \"docs/30 Deployment/rds_bootstrap.sql\"",
+      "",
+      "psql already ships with the PostgreSQL install on this machine. Its full path is",
+      "printed by:",
+      "",
+      "    where.exe psql        (or look under C:/Program Files/PostgreSQL/*/bin/)",
+      "",
+      "pgAdmin will NOT run this file. The :'name' variables and the \\gexec meta-command",
+      "are psql features, not SQL - pgAdmin silently does the wrong thing with both. Use",
+      "psql, or run the statements by hand with each :'..._password' replaced by a quoted",
+      "literal and each CREATE DATABASE executed directly instead of through \\gexec.",
+      "",
+      "Generate the two passwords with:",
+      "",
+      "    py -c \"import secrets; print(secrets.token_urlsafe(24))\"",
+      "",
+      "They go into .env, which is gitignored, and into SSM Parameter Store as SecureString",
+      "for the deploy - prep-queue items 7 and 14. They never enter git."
+    ]
   }
 }

@@ -654,7 +654,10 @@ def check_all(root: str) -> Report:
                     r.fail("generated-artifact", line.rstrip())
         else:
             ok += out.stdout.count("PASS")
-    r.note(f"generated artifacts verified by regeneration: {ok} of 8")
+    # Derived, not typed. It read "of 8" while nine artifacts were verified,
+    # because a fourth was added to generate.py and the literal did not follow —
+    # the `stated-count` class, in the checker that catches it.
+    r.note(f"generated artifacts verified by regeneration: {ok}")
 
     return r
 

@@ -254,9 +254,108 @@ def render_traceability(spec):
     return "".join("\t".join(r) + "\n" for r in rows)
 
 
+def render_bootstrap(spec):
+    """The one script the CLIENT runs by hand, as the RDS master user.
+
+    Everything else in this package is an Alembic migration. This is not, for
+    two reasons that are properties of PostgreSQL rather than choices:
+    `CREATE DATABASE` cannot run inside a transaction, and the owner role has no
+    privilege to create roles. So it is generated here and handed over.
+    """
+    c = spec.get("cluster")
+    if not c:
+        return ""
+    L = ["-- rds_bootstrap.sql — GENERATED from datamodel.json by generate.py. DO NOT HAND-EDIT.",
+         "-- Regenerate:  py \"docs/06 DataModel/generate.py\"",
+         "--",
+         "-- RUN THIS ONCE, AS THE RDS MASTER USER, CONNECTED TO THE `postgres` DATABASE.",
+         "--",
+         "-- Source: " + c["source"],
+         "--",
+         "-- " + "\n-- ".join(_wrap(c["note"])),
+         "--"]
+    for n in c["rds_notes"]:
+        L.append("-- * " + "\n--   ".join(_wrap(n)))
+    if c.get("how_to_run"):
+        L += ["--", "-- ── HOW TO RUN ──────────────────────────────────────────────────────"]
+        # Emitted VERBATIM. These lines are hand-wrapped in the spec, and
+        # re-wrapping them broke a command across two lines and mangled a
+        # Windows path (`\18\bin` -> a backspace escape). Layout the author
+        # chose is layout the author meant.
+        for h in c["how_to_run"]:
+            L.append(("-- " + h).rstrip())
+    L += ["", "\\set ON_ERROR_STOP on", ""]
+
+    L.append("-- ── roles ───────────────────────────────────────────────────────────")
+    L.append("-- Passwords are NOT in this file and never will be. Set them below, or")
+    L.append("-- create the roles here and ALTER ... PASSWORD separately. Whatever you")
+    L.append("-- choose, the password never enters git (CONSTITUTION Art IV.4).")
+    for r in c["roles"]:
+        L += ["",
+              "-- %s — %s" % (r["name"], r["purpose"]),
+              "-- " + "\n-- ".join(_wrap(r["why"])),
+              "DO $$ BEGIN",
+              "    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '%s') THEN" % r["name"],
+              "        CREATE ROLE %s %s" % (r["name"], r["attributes"]),
+              "            PASSWORD :'%s_password';" % r["name"],
+              "    END IF;",
+              "END $$;",
+              "-- re-assert the attributes even if the role already existed:",
+              "ALTER ROLE %s %s;" % (r["name"], r["attributes"])]
+
+    L += ["", "-- ── databases ───────────────────────────────────────────────────────",
+          "-- CREATE DATABASE cannot run inside a transaction or a DO block, so these",
+          "-- are guarded with \\gexec rather than an IF NOT EXISTS."]
+    for d in c["databases"]:
+        L += ["",
+              "-- %s — %s" % (d["name"], d["purpose"]),
+              "SELECT 'CREATE DATABASE %s WITH OWNER %s ENCODING ''UTF8'''"
+              % (d["name"], d["owner"]),
+              " WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = '%s')\\gexec"
+              % d["name"]]
+
+    L += ["", "-- ── connect privileges ──────────────────────────────────────────────",
+          "-- The runtime role may CONNECT. Everything it may then DO is granted by",
+          "-- security.sql, inside the migration, and narrowed again by RLS."]
+    app = next((r["name"] for r in c["roles"] if "app" in r["name"]), "spendwise_app")
+    for d in c["databases"]:
+        L.append("GRANT CONNECT ON DATABASE %s TO %s;" % (d["name"], app))
+    L += ["",
+          "-- Nobody else. PUBLIC can connect to any database by default, which is a",
+          "-- default worth removing on a publicly-reachable instance.",
+          "REVOKE CONNECT ON DATABASE %s FROM PUBLIC;" % c["databases"][0]["name"],
+          "",
+          "-- ── verify — every row must come back as expected ───────────────────",
+          "-- E0-S2 asserts these three at BOOT as well. Checking here means a",
+          "-- mistake surfaces now, not as a failing gate an hour later.",
+          "SELECT rolname, rolsuper, rolbypassrls, rolcreaterole",
+          "  FROM pg_roles WHERE rolname LIKE 'spendwise%';",
+          "--  expected: rolsuper = f, rolbypassrls = f, rolcreaterole = f  for BOTH",
+          "",
+          "SELECT datname, pg_get_userbyid(datdba) AS owner",
+          "  FROM pg_database WHERE datname LIKE 'spendwise%';",
+          "--  expected: owner = %s  for both databases" % c["databases"][0]["owner"],
+          ""]
+    return "\n".join(L)
+
+
+def _wrap(s, w=74):
+    out, line = [], ""
+    for word in s.split():
+        if len(line) + len(word) + 1 > w:
+            out.append(line)
+            line = word
+        else:
+            line = (line + " " + word).strip()
+    if line:
+        out.append(line)
+    return out
+
+
 ARTIFACTS = [("schema.sql", render_schema),
              ("security.sql", render_security),
-             ("TRACEABILITY.tsv", render_traceability)]
+             ("TRACEABILITY.tsv", render_traceability),
+             (os.path.join("..", "30 Deployment", "rds_bootstrap.sql"), render_bootstrap)]
 
 
 def main():
