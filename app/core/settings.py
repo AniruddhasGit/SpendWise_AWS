@@ -83,6 +83,38 @@ class Settings(BaseSettings):
         description="Receipt storage. Absent disables receipt upload and logs one "
                     "WARN naming the disabled feature — it does not abort.")
 
+    @field_validator("JWT_SECRET")
+    @classmethod
+    def _secret_is_long_enough(cls, v: SecretStr) -> SecretStr:
+        """RFC 7518 §3.2: an HMAC key must be at least as long as the hash
+        output — 32 bytes for HS256.
+
+        A shorter secret is brute-forceable offline from a single captured
+        token, and every session in the system is signed with it. PyJWT only
+        *warns*; a warning in a log nobody reads is not a control, so this
+        refuses to start instead.
+        """
+        if len(v.get_secret_value().encode()) < 32:
+            raise ValueError(
+                "must be at least 32 bytes (RFC 7518 §3.2 for HS256). Generate one "
+                'with: py -c "import secrets; print(secrets.token_urlsafe(48))"')
+        return v
+
+    @field_validator("BOOTSTRAP_ADMIN_EMAIL", "APP_TODAY_OVERRIDE", "EXPOSE_VERSION",
+                     "S3_BUCKET", mode="before")
+    @classmethod
+    def _blank_is_unset(cls, v: object) -> object:
+        """In a `.env` file, `KEY=` means **not set**, not "the empty string".
+
+        Every deployment system writes an unset optional that way, and
+        `.env.example` does too — so without this the committed manifest,
+        copied verbatim to `.env`, fails to load with
+        `APP_TODAY_OVERRIDE: input is too short`. Which is precisely the
+        3am deploy failure the manifest exists to prevent, produced by the
+        manifest.
+        """
+        return None if isinstance(v, str) and not v.strip() else v
+
     @field_validator("DATABASE_URL", "MIGRATION_DATABASE_URL")
     @classmethod
     def _must_be_async_postgres(cls, v: SecretStr) -> SecretStr:

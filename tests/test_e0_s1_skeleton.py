@@ -131,3 +131,40 @@ def test_ac4_env_example_lists_every_variable_the_settings_class_reads() -> None
     assert not (documented - declared), (
         f".env.example lists {sorted(documented - declared)} — no code reads them"
     )
+
+
+def test_ac4_the_manifest_actually_loads_as_a_dotenv() -> None:
+    """`.env.example` must not merely LIST the right names — it must work when
+    copied to `.env` and filled in.
+
+    Matching names is necessary and not sufficient. The first version of this
+    file listed every variable correctly and still failed to load, because an
+    unset optional is written `KEY=` and an empty string is not a valid date.
+    A manifest that fails on the one action it exists for is worse than none:
+    it fails at deploy time, in the environment nobody tests.
+    """
+    import subprocess
+
+    env = {k: v for k, v in os.environ.items() if not k.startswith(("DATABASE_", "JWT_", "APP_"))}
+    env["PYTHONPATH"] = str(REPO)
+    env["SPENDWISE_DOTENV"] = "1"
+
+    proc = subprocess.run(
+        [sys.executable, "-c",
+         "import shutil, pathlib, os;"
+         "src = pathlib.Path('.env.example').read_text('utf-8');"
+         # fill the three required values the way a deployer would
+         "src = src.replace('CHANGE_ME', 'x');"
+         "pathlib.Path('.env.probe').write_text(src, encoding='utf-8');"
+         "os.environ['SPENDWISE_DOTENV']='1';"
+         "from pydantic_settings import SettingsConfigDict;"
+         "from app.core.settings import Settings;"
+         "Settings.model_config = SettingsConfigDict(env_file='.env.probe',"
+         " env_file_encoding='utf-8', case_sensitive=True, extra='ignore');"
+         "Settings();"
+         "print('MANIFEST LOADS')"],
+        cwd=REPO, env=env, capture_output=True, text=True, timeout=60,
+    )
+    (REPO / ".env.probe").unlink(missing_ok=True)
+    assert "MANIFEST LOADS" in proc.stdout, (
+        f".env.example does not load as a .env:\n{proc.stdout}\n{proc.stderr}")

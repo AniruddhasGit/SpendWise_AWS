@@ -22,3 +22,6 @@ dist/
 # os
 .DS_Store
 Thumbs.db
+
+# probe file written by a test
+.env.probe
