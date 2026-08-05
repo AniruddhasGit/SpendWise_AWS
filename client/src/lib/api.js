@@ -98,6 +98,14 @@ export const api = {
   updateMe: (body) => request('PATCH', '/api/auth/me', body),
   changePassword: (body) => request('POST', '/api/auth/password', body),
   deactivate: () => request('POST', '/api/auth/deactivate'),
+  // Two names for two different promises (`CR-001 §2`, `SW-ADR-150`).
+  // `deactivate` pauses an account; this CLOSES it — 204, cookie cleared,
+  // every session revoked, `deleted_at` set, and not one row of theirs
+  // touched. They stay separate here precisely because the difference is
+  // invisible in the response: a single `close(kind)` helper is how a button
+  // labelled "Delete" ends up calling the other one, which is the failure
+  // `SW-ADR-148` named and CR-001 repeats.
+  deleteMe: () => request('DELETE', '/api/auth/me'),
   exportMine: () => request('GET', '/api/auth/export'),
 
   categories: () => request('GET', '/api/categories'),
@@ -114,6 +122,11 @@ export const api = {
   // ── admin. Every one of these is 403 for a `user`, enforced on the ROUTER
   // (`SRC-001 §4.3`) — hiding the link is cosmetic and the client knows it.
   adminOverview: () => request('GET', '/api/admin/overview'),
+  // `deleted=true|false` rides through `q()` like any other param — and note
+  // that `q()` drops `null`/`undefined`/`''` and NOT falsy values, which is the
+  // only reason `deleted: false` survives the trip. OMITTING it includes the
+  // deleted accounts (`CR-001 §2`): an administrator looking for someone who
+  // has left must be able to find them, so the default cannot be a filter.
   adminUsers: (params) => request('GET', `/api/admin/users${q(params || {})}`),
   adminSessions: (params) => request('GET', `/api/admin/sessions${q(params || {})}`),
   adminAudit: (params) => request('GET', `/api/admin/audit${q(params || {})}`),
@@ -122,4 +135,14 @@ export const api = {
     request('POST', `/api/admin/users/${id}/active`, { is_active }),
   adminSetRole: (id, role) => request('POST', `/api/admin/users/${id}/role`, { role }),
   adminReset: (id) => request('POST', `/api/admin/users/${id}/reset`),
+
+  // The ONE admin call that answers "how much" (`CR-001`, `SW-ADR-151`), and it
+  // answers it three columns at a time: day, total, count. There is no
+  // `by_category` on the response and no parameter here that could ask for one
+  // — `admin_user_daily()`'s `RETURNS TABLE` clause is what makes that true,
+  // not this line. `params` carries `from` and `to`; both are required, and the
+  // server refuses the same way `/api/expenses/summary` does rather than
+  // guessing a range.
+  adminUserSpending: (id, params) =>
+    request('GET', `/api/admin/users/${id}/spending${q(params)}`),
 }

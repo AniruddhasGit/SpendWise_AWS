@@ -72,17 +72,54 @@ export function previousMonthOf(iso) {
 }
 
 /**
+ * The whole calendar year `iso` falls in.
+ *
+ * Whole year, not year-to-date, for the same reason `monthOf` returns the whole
+ * month: a period is a box on the calendar and the screens already know how to
+ * say "this one has not finished yet". `days_elapsed` is the server's answer to
+ * how much of it has actually happened, and the dashboard's projection reads
+ * `by_day.length > days_elapsed` to decide whether a period is still running —
+ * a year-to-date range would make those two equal and silently kill the
+ * projection for eleven months of the year.
+ *
+ * 365 or 366 days, so it sits inside the 400-day `range.span` ceiling every
+ * summary endpoint enforces. A leap year has no special case here because the
+ * arithmetic is on the STRING parts and December always ends on the 31st.
+ */
+export function yearOf(iso) {
+  const [y] = iso.split('-').map(Number)
+  return { from: `${y}-01-01`, to: `${y}-12-31` }
+}
+
+/**
  * The named periods, in the order they appear in the picker.
  *
- * `SRC-001 §9.1` names this month, last month and last 30 days. "Custom" is
- * what the URL falls back to when someone edits `?from=`/`?to=` by hand or
- * lands on a shared link — it is a STATE, not a fifth chip, because a chip
- * would imply a picker that does not exist yet.
+ * `SRC-001 §9.1` names this month, last month and last 30 days. `CR-001` adds
+ * the last two: an administrator looking at one person's spending needs a range
+ * longer than a month to see a shape, and the change request asks for the
+ * filter by name. They are added HERE rather than in the admin pane because two
+ * lists of periods is two chances for "Last 90 days" to mean 89 days on one
+ * screen and 90 on the other — the dashboard picker gets them too, which is the
+ * point and not a side effect.
+ *
+ * "Custom" is what the URL falls back to when someone edits `?from=`/`?to=` by
+ * hand or lands on a shared link — it is a STATE, not a sixth chip, because a
+ * chip would imply a picker that does not exist yet.
+ *
+ * ORDER MATTERS: `identify` returns the first match, and every range here is
+ * distinct on (from, to) except by coincidence — 1 January is both "this month"
+ * and, for a single day, nothing else. Appending rather than inserting keeps
+ * the three original ids first, so no existing link or test changes meaning.
  */
 export const PERIODS = [
   { id: 'this-month', label: 'This month', range: (t) => monthOf(t) },
   { id: 'last-month', label: 'Last month', range: (t) => previousMonthOf(t) },
   { id: 'last-30', label: 'Last 30 days', range: (t) => ({ from: addDays(t, -29), to: t }) },
+  // -89 and not -90. "Last 90 days" INCLUDES today, exactly as "last 30 days"
+  // does above; `addDays(t, -90)` would produce a 91-day range that reads one
+  // day longer than its own label and shifts every daily average with it.
+  { id: 'last-90', label: 'Last 90 days', range: (t) => ({ from: addDays(t, -89), to: t }) },
+  { id: 'this-year', label: 'This year', range: (t) => yearOf(t) },
 ]
 
 /** Which named period a range corresponds to, or `null` for a custom one. */

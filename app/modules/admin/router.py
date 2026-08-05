@@ -18,8 +18,8 @@ from fastapi import APIRouter, Depends, Query
 from app.core.clock import today
 from app.core.deps import CurrentUser, Db, require_admin
 from app.modules.admin.schemas import (
-    ActiveRequest, AdminOverview, AdminSessionPage, AdminUserPage, AuditPage,
-    ResetToken, RoleRequest,
+    ActiveRequest, AdminOverview, AdminSessionPage, AdminUserPage,
+    AdminUserSpending, AuditPage, ResetToken, RoleRequest,
 )
 from app.modules.admin.service import AdminService
 
@@ -47,9 +47,47 @@ async def list_users(
     q: Annotated[str | None, Query(max_length=100)] = None,
     role: Annotated[str | None, Query(pattern="^(user|admin)$")] = None,
     active: Annotated[bool | None, Query()] = None,
+    deleted: Annotated[bool | None, Query()] = None,
 ) -> AdminUserPage:
+    """`q` searches email AND display name (`CR-001`: *"search any user with
+    their detilas like email id, name"*) — already the behaviour of `_search`.
+
+    **`deleted` defaults to `None`, meaning INCLUDE closed accounts.** Three
+    states, not two: `None` everything, `true` only the closed, `false` only the
+    live. The default is the one that matters and it is `CR-001 §2`'s — an
+    administrator hunting for someone who has left must be able to find them, and
+    a default of `false` would hide precisely the accounts the Restore action
+    exists for.
+    """
     return await AdminService(db).list_users(
-        principal, limit=limit, offset=offset, q=q, role=role, active=active)
+        principal, limit=limit, offset=offset, q=q, role=role, active=active,
+        deleted=deleted)
+
+
+@router.get("/users/{user_id}/spending", response_model=AdminUserSpending)
+async def user_spending(
+    user_id: int, principal: CurrentUser, db: Db,
+    from_: Annotated[str, Query(alias="from")],
+    to: Annotated[str, Query()],
+) -> AdminUserSpending:
+    """`CR-001`, `SW-ADR-151`. One person's total and daily series over a range.
+
+    The capability `SRC-001 §4.2` ruled out and the client reversed in writing.
+    It carries money, and it is the ONLY route in this module that does; there is
+    no `category_id` parameter and no `by_category` in the response, because the
+    same sentence that granted this withheld the categories.
+
+    `from` and `to` are taken as **strings and parsed by `SummaryQuery`**, not
+    annotated as `date` — exactly as `GET /api/expenses/summary` does it. A
+    `date` annotation would let FastAPI reject a malformed date first, with its
+    own error and its own field, and the range rules in `validate_summary_query`
+    would never be reached. Same parser, same rules, same refusals as the summary
+    the account holder sees of themselves.
+
+    `require_admin` is NOT declared here. It is on the router, once, and `E4-S1`
+    walks the route table to prove it — this handler is protected by existing.
+    """
+    return await AdminService(db).spending(principal, user_id, from_, to)
 
 
 @router.get("/sessions", response_model=AdminSessionPage)

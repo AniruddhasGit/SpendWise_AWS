@@ -115,14 +115,42 @@ async def deactivate(response: Response, principal: CurrentUser, db: Db) -> Resp
     return out
 
 
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_me(response: Response, principal: CurrentUser, db: Db) -> Response:
+    """SOFT deletion (`CR-001`, `SW-ADR-150`). The account closes; the rows stay.
+
+    Distinct from `/deactivate` and deliberately so: deactivate is "pause me",
+    this is "close it". Never label one and call the other — the client's copy
+    for this control promises that sign-in is refused, that the records are
+    retained, that an administrator can restore it and that the email address
+    stays taken, and all four of those are only true of THIS handler.
+
+    204 with no body, and the cookie is cleared here as well as the session rows
+    being revoked in the service. Clearing the cookie alone would leave a token
+    that still works if it were ever replayed (`NEG-A-03`); revoking alone would
+    leave the browser holding a cookie for an account that no longer answers,
+    and every subsequent request would 401 instead of reading as signed out.
+    """
+    await AccountService(db).delete_self(principal)
+    out = Response(status_code=status.HTTP_204_NO_CONTENT)
+    out.delete_cookie(COOKIE_NAME, path="/")
+    return out
+
+
 @router.get("/export")
 async def export_me(principal: CurrentUser, db: Db) -> dict:
     """Everything this account holds, as JSON.
 
-    The counterweight to there being no deletion: a person who wants to leave
-    can at least take their record with them. Their OWN rows only — this runs
-    under the same row-level security as every other request, so it cannot
-    return anyone else's even if the query were wrong.
+    Written as the counterweight to there being no deletion. `CR-001` added
+    deletion and made this MORE load-bearing rather than less: the deletion is
+    soft, so the rows survive where the person can no longer reach them, and the
+    settings screen offers this export before it offers the delete. Leaving with
+    your record is the version of leaving that stays reversible for the person
+    as well as for the administrator.
+
+    Their OWN rows only — this runs under the same row-level security as every
+    other request, so it cannot return anyone else's even if the query were
+    wrong.
     """
     from app.modules.categories.service import CategoryService
     from app.modules.expenses.service_db import ExpenseService

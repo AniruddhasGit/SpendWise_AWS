@@ -1,5 +1,13 @@
 # SW-ADR-148 — The settings a person owns: rename, re-password, export, deactivate
 
+> **⚠ AMENDED 2026-08-06 by `SW-ADR-150`.**
+> Decision A's *ruling* stands and now covers two controls instead of one: the UI must say
+> what it does. What stopped being true is its premise — that leaving **is** deactivation,
+> because `SW-ADR-107` allowed nothing else. `CR-001` asked for deletion and named it soft,
+> so a **Delete my account** control sits beside Deactivate, and telling them apart in the
+> copy is this record's rule doing more work, not less. B's export is unchanged and is what
+> the delete flow offers first.
+
 | Field | Value |
 |---|---|
 | ADR | `SW-ADR-148` |

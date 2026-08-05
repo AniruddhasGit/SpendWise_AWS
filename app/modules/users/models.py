@@ -29,6 +29,27 @@ class User(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="true")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now())
+    # SOFT deletion (`CR-001`, `SW-ADR-150`). A timestamp, not a boolean: "when"
+    # answers "whether" as well, and an administrator restoring an account needs
+    # to know how long it was closed.
+    #
+    # `SW-ADR-107` ruled that user deletion does not exist in v1 because deleting
+    # a person's financial history is the clearest one-way door in the register —
+    # and its own text named the form deletion would arrive in when it came. This
+    # is that form: every expense, category and audit row the person owns is
+    # untouched, and only sign-in changes.
+    #
+    # It is set ALONGSIDE `is_active = false`, never instead of it. Two columns
+    # because they answer two questions — "paused" and "closed" — and a single
+    # tri-state column would make `POST /api/auth/deactivate` and
+    # `DELETE /api/auth/me` indistinguishable at the row.
+    #
+    # **The unique index on `lower(email)` below stays TOTAL**, deliberately: a
+    # partial index excluding deleted rows would let the same address register
+    # again and create two rows sharing one identity, which every lookup in this
+    # system would then have to disambiguate correctly, forever (`CR-001 §2`).
+    deleted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True)
 
     __table_args__ = (
         CheckConstraint("char_length(email) <= 254", name="email"),

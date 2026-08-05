@@ -6,7 +6,7 @@
     "users": {
       "rls": false,
       "source": "SRC-001 §6.2",
-      "note": "Outside RLS by SW-ADR-097 — a policy keyed on the request identity cannot serve a pre-authentication lookup.",
+      "note": "Outside RLS by SW-ADR-097 — a policy keyed on the request identity cannot serve a pre-authentication lookup. CR-001 added deleted_at: closing an account is SOFT. The unique index on lower(email) stays TOTAL, so a closed account keeps its address - a partial index would let someone return under the same address and leave two rows sharing one, which every lookup would then have to disambiguate correctly forever (SW-ADR-150).",
       "columns": [
         {
           "name": "id",
@@ -71,6 +71,14 @@
           "default": "now()",
           "check": null,
           "source": "SW-ADR-076"
+        },
+        {
+          "name": "deleted_at",
+          "type": "TIMESTAMPTZ",
+          "nullability": "NULL",
+          "default": null,
+          "check": null,
+          "source": "CR-001 / SW-ADR-150 - SOFT deletion. The row and everything it owns survive; only sign-in stops. NULL means the account is live, so the common case needs no predicate and an accidental omission fails OPEN, which is why the column is a timestamp and not a boolean: a boolean tells you an account was closed, a timestamp tells you when, and 'when' is the question an administrator restoring it actually has."
         }
       ]
     },
@@ -526,11 +534,16 @@
       "table": "admin_audit_log",
       "definition": "(target_user_id)",
       "source": "SW-ADR-039"
+    },
+    {
+      "table": "users",
+      "definition": "(deleted_at) WHERE deleted_at IS NULL",
+      "source": "SW-ADR-150 - partial, like ix_sessions_revoked_at: live accounts are the ones every request looks up, closed ones accumulate forever, and indexing them would grow the index without ever being read"
     }
   ],
   "admin_access": {
     "source": "SW-ADR-129 (supersedes SW-ADR-077, restores SW-ADR-043) · SRC-001 §4.5",
-    "note": "An admin sees counts and dates, never an amount or a description. A row-level policy has NO column dimension and therefore cannot express that; a function's return type can. `app.is_admin` is consulted by no policy on a money table and is never set on a request-scoped connection. SECURITY DEFINER alone is NOT sufficient: FORCE ROW LEVEL SECURITY subjects the table owner to its own policies, so the definer function saw only the CALLER's rows and returned (0, NULL) for every other account - silently, and looking exactly like a correct privacy-respecting answer. It now swaps app.user_id to the target for the length of the query and restores it, and refuses to run when the GUC is unset (SW-ADR-149).",
+    "note": "An admin sees counts and dates, never an amount or a description. A row-level policy has NO column dimension and therefore cannot express that; a function's return type can. `app.is_admin` is consulted by no policy on a money table and is never set on a request-scoped connection. SECURITY DEFINER alone is NOT sufficient: FORCE ROW LEVEL SECURITY subjects the table owner to its own policies, so the definer function saw only the CALLER's rows and returned (0, NULL) for every other account - silently, and looking exactly like a correct privacy-respecting answer. It now swaps app.user_id to the target for the length of the query and restores it, and refuses to run when the GUC is unset (SW-ADR-149). CR-001 REVERSED SRC-001 4.2's admin row at the client's instruction: an administrator may now see how much a person spends over time, and still may not see what they spent it on. admin_user_daily returns day, total_paise and entries - no category, no description, no row (SW-ADR-151).",
     "policies_on_money_tables": false,
     "functions": [
       {
@@ -556,6 +569,14 @@
         "argtypes": "BIGINT",
         "returns": "revoked BIGINT",
         "body": "WITH gone AS (\n        UPDATE sessions SET revoked_at = now()\n         WHERE user_id = target_user_id AND revoked_at IS NULL\n        RETURNING 1\n    )\n    SELECT count(*)::bigint FROM gone;"
+      },
+      {
+        "name": "admin_user_daily",
+        "purpose": "expenses: an admin reads one person's SPENDING PER DAY (CR-001, SW-ADR-151). THREE COLUMNS AND NO FOURTH - there is no category_id, no description and no expense id, so 'what did they spend it on' is unanswerable through this function at any granularity. That is the line the client drew when they granted amount visibility: 'the expenses that are happening not the categories spent on'. The RETURN TYPE is what enforces it, exactly as SW-ADR-129 established for the count - a principle pointed at a line that moved, not a principle abandoned.",
+        "args": "target_user_id BIGINT, from_date DATE, to_date DATE",
+        "argtypes": "BIGINT, DATE, DATE",
+        "returns": "day DATE, total_paise BIGINT, entries BIGINT",
+        "body": "SELECT e.spent_on, sum(e.amount_paise)::bigint, count(e.id)::bigint\n      FROM expenses e\n     WHERE e.user_id = target_user_id\n       AND e.spent_on BETWEEN from_date AND to_date\n     GROUP BY e.spent_on\n     ORDER BY e.spent_on;"
       }
     ]
   },
@@ -583,7 +604,7 @@
           "password_resets"
         ],
         "to": "spendwise_app",
-        "why": "no DELETE: there is no user-deletion path in v1 (SW-ADR-107), and password_resets is pruned by the owner (SW-ADR-122)"
+        "why": "no DELETE, and the reason SURVIVED the record that first gave it: SW-ADR-107 ruled out user deletion in v1 and was SUPERSEDED by SW-ADR-150, which added deletion in its SOFT form - an UPDATE setting deleted_at, not a DELETE. So the runtime role still needs no DELETE on users, and now cannot destroy an account even when a person asks it to. password_resets is pruned by the owner (SW-ADR-122)."
       },
       {
         "privileges": "SELECT, INSERT",

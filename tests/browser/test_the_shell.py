@@ -6,6 +6,8 @@ the admin console. Every claim is observed: "dark mode works" means the
 """
 from __future__ import annotations
 
+import re
+
 import pytest
 
 from tests.seed import seed
@@ -443,3 +445,203 @@ async def test_the_admin_charts_never_render_a_currency_symbol(page, seeded,
     text = await page.inner_text("main")
     assert "₹" not in text, f"a currency symbol reached the admin console: {text[:400]!r}"
     assert "signups" in text
+
+
+# ── CR-001: closing an account, and one person's spending over time ────────
+#
+# The change request moved one line and left the other where it was, and both
+# halves are watched here rather than only asserted over JSON: the failure this
+# section exists to prevent is a screen, not a response. A "Delete" button wired
+# to `/deactivate` returns the same 204 either way, and a category donut on the
+# detail pane is a violation of `CR-001` that no API test can see.
+SEEDED_CATEGORIES = ("Groceries", "Transport", "Health")
+
+
+async def _open_the_detail_pane(page, seeded, test_urls, who="A"):
+    """Sign in as an administrator who is NOT `who`, and open `who`'s pane.
+
+    **B administers, A is looked at**, deliberately: A owns the day-one fixture,
+    so the figures on screen are 3,790.49 and 758.10 — numbers the whole project
+    already agrees about. An administrator opening their OWN row would render
+    correctly with `SW-ADR-149`'s identity-swap bug fully present.
+    """
+    await _make_admin(page, seeded, test_urls, who="B")
+    await page.get_by_test_id("nav-admin").click()
+    await page.get_by_test_id("admin-tab-accounts").click()
+    await page.wait_for_selector('[data-testid="admin-users"]', timeout=20000)
+
+    await page.get_by_test_id(f"view-{seeded[who]['id']}").click()
+    pane = page.get_by_test_id("admin-user-detail")
+    await pane.wait_for(timeout=20000)
+    return pane
+
+
+async def test_settings_offers_a_close_that_is_not_the_pause(page, clean_db) -> None:
+    """**`CR-001 §3`.** Two controls, two promises, and neither of them lies.
+
+    `SW-ADR-148` named the failure and `CR-001` reintroduces the chance to make
+    it: *"Never label it 'Delete' and call `/deactivate`, or vice versa."* Both
+    words mean "I am done" in ordinary English and only the copy distinguishes
+    them, so the copy is asserted — the change request lists what it has to say
+    and every clause below is one of them:
+
+    > the account closes, sign-in is refused, **the records are retained and an
+    > administrator can restore it**, and the email address stays taken. Offer
+    > the export first.
+
+    Then it is completed, and the account is genuinely refused afterwards. A
+    two-step confirm that signs you out without closing anything would pass
+    every assertion above this line.
+    """
+    await _register(page, "closing@spendwise.test", "Closing Person")
+    await page.get_by_test_id("nav-settings").click()
+    await page.wait_for_selector('[data-testid="delete-account"]', timeout=15000)
+
+    # DISTINCT controls, not one control with two labels.
+    assert await page.get_by_test_id("deactivate").inner_text() == "Deactivate my account"
+    assert await page.get_by_test_id("delete-account").inner_text() == "Delete my account"
+
+    await page.get_by_test_id("delete-account").click()
+    await page.wait_for_selector('[data-testid="delete-account-confirmation"]',
+                                 timeout=15000)
+    copy = (await page.get_by_test_id("delete-account-confirmation").inner_text()).lower()
+
+    # "kept" or "retained" — the change request says retained, the screen says
+    # kept, and they are the same promise. The synonym is allowed; the promise
+    # is not optional.
+    assert "kept" in copy or "retained" in copy, copy
+    assert "administrator can restore" in copy, copy
+    assert "refused" in copy, copy
+    assert "stays taken" in copy, (
+        "the copy does not say the email address stays taken — the consequence "
+        "nobody expects and the one they discover trying to sign up again")
+    assert "download my data" in copy, "the export is not offered first (CR-001 §3)"
+
+    await page.get_by_test_id("delete-account-confirm").click()
+    await page.wait_for_selector("#email", timeout=20000)
+
+    # And the account really is closed now.
+    await page.fill("#email", "closing@spendwise.test")
+    await page.fill("#password", PASSWORD)
+    await page.get_by_test_id("gate-submit").click()
+    await page.wait_for_selector('[data-testid="gate-error"]', timeout=15000)
+
+
+async def test_an_admin_opens_a_person_and_sees_their_spending_over_time(
+        page, seeded, test_urls) -> None:
+    """**The grant, on screen.** `CR-001 §3`: a View action, a detail pane, a
+    line plot, a total, a count and a daily average.
+
+    The two amounts are person A's day-one figures rendered `en-IN` by the one
+    shared formatter — ₹3,790.49 and ₹758.10. 758.10 is the gate number, so a
+    pane that computed its own average, or divided by the row count, fails here
+    on a value `CONSTITUTION` Art IX.4 makes never-waivable.
+
+    Asserted as **text on the screen**, not as a prop: the signups plot in this
+    same console once rendered two new accounts as "₹0.02" because a caption was
+    hard-wired to the money formatter, and every test of that bug that read the
+    props had passed.
+    """
+    pane = await _open_the_detail_pane(page, seeded, test_urls)
+    text = await pane.inner_text()
+
+    assert seeded["A"]["email"] in text, "the pane does not say whose figures these are"
+    assert await pane.locator('[data-testid="line-plot"]').count() == 1, (
+        "no line plot — the client asked for the line plot by name")
+    assert "₹3,790.49" in text, f"the total is not on the pane: {text[:400]!r}"
+    assert "₹758.10" in text, f"the daily average is not on the pane: {text[:400]!r}"
+
+
+async def test_the_detail_pane_shows_no_categories_at_any_granularity(
+        page, seeded, test_urls) -> None:
+    """**The half `CR-001` refused**, watched rather than introspected.
+
+    > the expenses that are happening **not the categories spent on**
+
+    > No category chart, no donut, no ribbon, no entry list on this pane. If you
+    > find yourself reaching for `Donut` here, re-read CR-001.
+
+    Both charts already exist and both take the dashboard's `by_category` shape,
+    so the pane is one import away from rendering one. The category NAMES are
+    grepped out of the rendered text as well, because a breakdown does not have
+    to be a chart — a legend, a tooltip or a table of three rows is the same
+    disclosure in a smaller box.
+    """
+    pane = await _open_the_detail_pane(page, seeded, test_urls)
+    text = await pane.inner_text()
+
+    assert await pane.locator('[data-testid="donut"]').count() == 0, "a donut"
+    assert await pane.locator('[data-testid="ribbon"]').count() == 0, "a ribbon"
+    # A legend row carries a category name AND its ₹ amount — the exact leak.
+    assert await pane.locator(".legend-amount").count() == 0
+    assert "Spending by category" not in text
+
+    for name in SEEDED_CATEGORIES:
+        assert name not in text, (
+            f"the detail pane names the category {name!r} — CR-001 grants an "
+            f"administrator how much, never what for")
+
+
+async def test_the_time_filter_changes_the_total_on_the_detail_pane(
+        page, seeded, test_urls) -> None:
+    """**The third thing the client asked for**, and the one a screenshot proves
+    nothing about.
+
+    July 2026 is the right control range: person A's four expenses are all in
+    August, so "Last month" is a real, non-empty range that contains none of
+    them — the total must move to zero rather than merely re-render. A filter
+    wired to the chips but not to the request would keep 3,790.49 on screen and
+    look entirely convincing.
+
+    The chips come from `PERIODS` in `lib/period.js` (`CR-001 §3`), which is why
+    this can use the same `period-*` test ids the dashboard picker uses.
+    """
+    pane = await _open_the_detail_pane(page, seeded, test_urls)
+    assert "₹3,790.49" in await pane.inner_text()
+
+    await pane.get_by_test_id("period-last-month").click()
+    await page.wait_for_function(
+        "!document.querySelector('[data-testid=admin-user-detail]')"
+        ".innerText.includes('₹3,790.49')", timeout=20000)
+
+    after = await pane.inner_text()
+    assert "₹0.00" in after, (
+        f"July holds none of person A's expenses, so the total should read "
+        f"₹0.00: {after[:400]!r}")
+
+
+async def test_a_closed_account_shows_as_closed_and_can_be_restored(
+        page, seeded, test_urls, app_server) -> None:
+    """**`CR-001 §3`**: a clear `deleted` status and a Restore action.
+
+    The account is closed over HTTP rather than by driving the settings screen
+    twice — that path already has its own test above, and repeating it here
+    would make this test fail for that screen's reasons.
+
+    The list shows the closed account **by default** (`CR-001 §2`): an
+    administrator looking for someone who has left must be able to find them,
+    and a Restore action on a row nobody can see is not an action.
+    """
+    import httpx
+
+    async with httpx.AsyncClient(base_url=app_server) as c:
+        r = await c.post("/api/auth/login", json={
+            "email": seeded["A"]["email"], "password": seeded["A"]["password"]})
+        assert r.status_code == 200, r.text
+        assert (await c.delete("/api/auth/me")).status_code == 204
+
+    await _make_admin(page, seeded, test_urls, who="B")
+    await page.get_by_test_id("nav-admin").click()
+    await page.get_by_test_id("admin-tab-accounts").click()
+    await page.wait_for_selector('[data-testid="admin-users"]', timeout=20000)
+
+    a = seeded["A"]["id"]
+    row = page.get_by_test_id(f"admin-user-{a}")
+    assert "deleted" in (await row.inner_text()).lower(), (
+        "a closed account is not shown as closed — 'deactivated' is a THIRD "
+        "state and telling them apart is what the Restore action is for")
+
+    await row.get_by_role("button", name=re.compile("restore", re.I)).click()
+    await page.wait_for_function(
+        f"!document.querySelector('[data-testid=admin-user-{a}]')"
+        f".innerText.toLowerCase().includes('deleted')", timeout=20000)

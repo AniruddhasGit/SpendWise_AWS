@@ -101,11 +101,20 @@ class AuthService:
         """
         user = await self.users.by_email(email)
         ok = await verify_password(password, user.password_hash if user else None)
-        if not user or not ok or not user.is_active:
-            # ONE refusal for all three. `SW-ADR-100 (1)`: "Login refused with
+        if not user or not ok or not user.is_active or user.deleted_at is not None:
+            # ONE refusal for all four. `SW-ADR-100 (1)`: "Login refused with
             # the same generic 401 as any bad credential, bcrypt compare still
             # run." A distinct code for a deactivated account tells anyone who
             # can type an address that it exists and has been disabled.
+            #
+            # A DELETED account is folded into the same condition rather than
+            # given a branch of its own, and that is the whole reason `CR-001`
+            # could add soft deletion without touching the error registry. The
+            # temptation is `ACCOUNT_DELETED` — which would be an enumeration
+            # oracle with a friendlier name: a soft-deleted account keeps its
+            # email address (the unique index on `lower(email)` stays total), so
+            # anyone typing an address would learn both that the person existed
+            # AND that they have left. Same 401, same sentence, same timing.
             #
             # `ACCOUNT_DEACTIVATED` is for a VALID SESSION whose account was
             # switched off underneath it (`error_codes`: "valid session,
@@ -146,9 +155,22 @@ class AuthService:
         user = await self.users.by_id(claims.sub)
         if user is None:
             raise ApiError("SESSION_INVALID")
-        if not user.is_active:
+        if not user.is_active or user.deleted_at is not None:
             # Re-read every request, so deactivating someone takes effect on
             # their next request rather than in thirty days.
+            #
+            # `deleted_at` is checked SEPARATELY even though `delete_self` sets
+            # `is_active = False` in the same transaction, because the two
+            # columns are two facts and only one of them is being relied on
+            # here. Deriving "closed" from "paused" would make the refusal
+            # depend on a write in another method staying correct forever; a
+            # future path that reactivates without clearing `deleted_at` would
+            # then hand a deleted account a working session, silently.
+            #
+            # `ACCOUNT_DEACTIVATED` for both, and deliberately: the person is
+            # already identified by a valid session, so there is nothing left to
+            # disclose — and the client renders one "your account is closed"
+            # screen either way (`CR-001 §2`).
             raise ApiError("ACCOUNT_DEACTIVATED")
 
         if session.last_seen_at + _idle_window(user.role) <= now:
@@ -317,4 +339,52 @@ class AccountService(AuthService):
 
         user.is_active = False
         await self.sessions.revoke_all_for_user(user.id, datetime.now(UTC))
+        await self.db.flush()
+
+    async def delete_self(self, principal: Principal) -> None:
+        """`CR-001`, `SW-ADR-150`. Soft deletion — the account closes, the rows stay.
+
+        `POST /api/auth/deactivate` is "pause me"; this is "close it". They stay
+        two endpoints because they are two intentions, and a person who asks to
+        delete their account and gets a deactivation has been told something
+        untrue about what just happened. Both are reversible by an administrator;
+        only one of them says so on the tin.
+
+        **What is NOT deleted: everything.** Every expense, every category, every
+        audit row, and the person record itself survive untouched. `SW-ADR-107`
+        called hard deletion the clearest one-way door in the register and the
+        client asked for the soft form by name, which is the version that does
+        not walk through it.
+
+        The last active administrator cannot do this — same guard, same code and
+        same field as `deactivate_self`, because it is the same failure: a system
+        nobody can administer. It runs FIRST, before any column is touched, so a
+        refused delete leaves the row exactly as it found it.
+
+        `deleted_at` AND `is_active = False` together, in one transaction with
+        the revocations. Setting only `deleted_at` would leave every
+        `is_active`-shaped guard in this system — `count_active_admins`, the
+        admin overview's counts, `set_active`'s last-admin check — reading a
+        closed account as a live one.
+        """
+        from app.modules.admin.repository import AdminRepository
+
+        user = await self.users.by_id(principal.id)
+        if user is None:                                    # pragma: no cover
+            raise ApiError("SESSION_INVALID")
+        if user.role == "admin":
+            if await AdminRepository(self.db).count_active_admins(
+                    excluding=user.id) == 0:
+                raise ApiError("CONFLICT", field="is_active")
+
+        now = datetime.now(UTC)
+        user.deleted_at = now
+        user.is_active = False
+        # Revoked in the SAME transaction, not left to expire. `principal_for`
+        # refuses a deleted account on the next request anyway, but that is a
+        # check and this is the row — and `E4-S3` is the rule that the two agree
+        # rather than one covering for the other. Every device the person is
+        # signed in on is signed out by this call, including the one that made it
+        # (the handler then clears the cookie).
+        await self.sessions.revoke_all_for_user(user.id, now)
         await self.db.flush()

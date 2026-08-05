@@ -8,6 +8,7 @@ tables/users.role	SRC-001 §4.1 · SW-ADR-028	RULED
 tables/users.currency	SW-ADR-029	RULED
 tables/users.is_active	SRC-001 §6.2	RULED
 tables/users.created_at	SW-ADR-076	RULED
+tables/users.deleted_at	CR-001 / SW-ADR-150 - SOFT deletion. The row and everything it owns survive; only sign-in stops. NULL means the account is live, so the common case needs no predicate and an accidental omission fails OPEN, which is why the column is a timestamp and not a boolean: a boolean tells you an account was closed, a timestamp tells you when, and 'when' is the question an administrator restoring it actually has.	RULED
 tables/sessions	SRC-001 §6.3	RULED
 tables/sessions.id	SW-ADR-023	RULED
 tables/sessions.user_id	SRC-001 §6.3	RULED
@@ -70,6 +71,8 @@ indexes/ix_expenses_user_id__spent_on_desc	SRC-001 §6.8	RULED
 indexes/ix_expenses_user_id__category_id	SRC-001 §6.8	RULED
 indexes/ix_admin_audit_log_admin_id__created_at_desc	SW-ADR-039	RULED
 indexes/ix_admin_audit_log_target_user_id	SW-ADR-039	RULED
+indexes/ix_users_deleted_at__where_deleted_at_is_null	SW-ADR-150 - partial, like ix_sessions_revoked_at: live accounts are the ones every request looks up, closed ones accumulate forever, and indexing them would grow the index without ever being read	RULED
 functions/admin_expense_stats	SW-ADR-129 (supersedes SW-ADR-077, restores SW-ADR-043) · SRC-001 §4.5	RULED
 functions/admin_user_sessions	SW-ADR-129 (supersedes SW-ADR-077, restores SW-ADR-043) · SRC-001 §4.5	RULED
 functions/admin_revoke_sessions	SW-ADR-129 (supersedes SW-ADR-077, restores SW-ADR-043) · SRC-001 §4.5	RULED
+functions/admin_user_daily	SW-ADR-129 (supersedes SW-ADR-077, restores SW-ADR-043) · SRC-001 §4.5	RULED

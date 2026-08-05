@@ -7,6 +7,15 @@
 > the caller's rows and returned `(0, NULL)` for every other account. `SW-ADR-149` makes the
 > mechanism match the decision.
 
+> **⚠ AMENDED 2026-08-06 by `SW-ADR-151`.**
+> The mechanism below is untouched and is now used twice: the *return type* is the guard,
+> because a function has one and a policy does not. What moved is the line it is pointed at.
+> `CR-001` reversed `SRC-001 §4.2`'s admin row at the client's instruction, so an
+> administrator may now see a daily **total** through `admin_user_daily` — and still no
+> category and no description, because there is no column for either. Do not read this
+> record as "an admin cannot see an amount"; read it as "an admin can only see what the
+> signature declares", and come to `SW-ADR-151` for the current signature.
+
 | Field | Value |
 |---|---|
 | ADR | `SW-ADR-129` |

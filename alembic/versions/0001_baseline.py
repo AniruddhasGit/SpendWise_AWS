@@ -36,6 +36,7 @@ SCHEMA = [
     currency TEXT NOT NULL DEFAULT 'INR',
     is_active BOOLEAN NOT NULL DEFAULT true,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at TIMESTAMPTZ NULL,
     CONSTRAINT pk_users PRIMARY KEY (id),
     CONSTRAINT ck_users_email CHECK (char_length(email) <= 254),
     CONSTRAINT ck_users_display_name CHECK (char_length(display_name) BETWEEN 1 AND 100),
@@ -123,6 +124,7 @@ SCHEMA = [
     r"""CREATE INDEX ix_expenses_user_id__category_id ON expenses (user_id, category_id);""",
     r"""CREATE INDEX ix_admin_audit_log_admin_id__created_at_desc ON admin_audit_log (admin_id, created_at DESC);""",
     r"""CREATE INDEX ix_admin_audit_log_target_user_id ON admin_audit_log (target_user_id);""",
+    r"""CREATE INDEX ix_users_deleted_at__where_deleted_at_is_null ON users (deleted_at) WHERE deleted_at IS NULL;""",
     r"""ALTER TABLE sessions ADD CONSTRAINT fk_sessions_user_id FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE;""",
     r"""ALTER TABLE password_resets ADD CONSTRAINT fk_password_resets_user_id FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE;""",
     r"""ALTER TABLE categories ADD CONSTRAINT fk_categories_user_id FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE;""",
@@ -226,6 +228,33 @@ $fn$;""",
     r"""ALTER FUNCTION admin_revoke_sessions(BIGINT) OWNER TO spendwise_owner;""",
     r"""REVOKE ALL ON FUNCTION admin_revoke_sessions(BIGINT) FROM PUBLIC;""",
     r"""GRANT EXECUTE ON FUNCTION admin_revoke_sessions(BIGINT) TO spendwise_app;""",
+    r"""CREATE OR REPLACE FUNCTION admin_user_daily(target_user_id BIGINT, from_date DATE, to_date DATE)
+    RETURNS TABLE (day DATE, total_paise BIGINT, entries BIGINT)
+    LANGUAGE plpgsql
+    VOLATILE
+    SECURITY DEFINER
+    SET search_path = pg_catalog, public
+AS $fn$
+DECLARE
+    caller TEXT := current_setting('app.user_id', true);
+BEGIN
+    IF caller IS NULL OR caller = '' THEN
+        RAISE EXCEPTION 'admin_user_daily requires app.user_id to be set (SW-ADR-136)';
+    END IF;
+    PERFORM set_config('app.user_id', target_user_id::text, true);
+    RETURN QUERY
+    SELECT e.spent_on, sum(e.amount_paise)::bigint, count(e.id)::bigint
+      FROM expenses e
+     WHERE e.user_id = target_user_id
+       AND e.spent_on BETWEEN from_date AND to_date
+     GROUP BY e.spent_on
+     ORDER BY e.spent_on;
+    PERFORM set_config('app.user_id', caller, true);
+END;
+$fn$;""",
+    r"""ALTER FUNCTION admin_user_daily(BIGINT, DATE, DATE) OWNER TO spendwise_owner;""",
+    r"""REVOKE ALL ON FUNCTION admin_user_daily(BIGINT, DATE, DATE) FROM PUBLIC;""",
+    r"""GRANT EXECUTE ON FUNCTION admin_user_daily(BIGINT, DATE, DATE) TO spendwise_app;""",
     r"""GRANT USAGE ON SCHEMA public TO spendwise_app;""",
     r"""GRANT SELECT, INSERT, UPDATE, DELETE ON expenses, categories, sessions TO spendwise_app;""",
     r"""GRANT SELECT, INSERT, UPDATE ON users, password_resets TO spendwise_app;""",

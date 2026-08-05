@@ -1,5 +1,13 @@
 # SW-ADR-107 — User deletion does not exist in v1
 
+> **⚠ SUPERSEDED 2026-08-06 by `SW-ADR-150`**, on the exact terms this record named:
+> *"When deletion comes, it arrives as a client-run runbook plus a superseding ADR."*
+> `CR-001` is the client's instruction and `SW-ADR-150` is the record. Deletion is **soft** —
+> a `deleted_at` timestamp, every row retained, restorable by an administrator — so the
+> one-way door this ruling was guarding is still shut. Read `SW-ADR-150` for what a person
+> can now do; the reasoning below is why it took an authority above the build session to
+> allow it.
+
 | Field | Value |
 |---|---|
 | ADR | `SW-ADR-107` |

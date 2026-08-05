@@ -6,7 +6,7 @@
 -- generate.py reproduces it so the DDL and the ORM agree on every identifier.
 
 
--- users  [SRC-001 §6.2]  Outside RLS by SW-ADR-097 — a policy keyed on the request identity cannot serve a pre-authentication lookup.
+-- users  [SRC-001 §6.2]  Outside RLS by SW-ADR-097 — a policy keyed on the request identity cannot serve a pre-authentication lookup. CR-001 added deleted_at: closing an account is SOFT. The unique index on lower(email) stays TOTAL, so a closed account keeps its address - a partial index would let someone return under the same address and leave two rows sharing one, which every lookup would then have to disambiguate correctly forever (SW-ADR-150).
 CREATE TABLE users (
     id BIGINT GENERATED ALWAYS AS IDENTITY NOT NULL,
     email TEXT NOT NULL,
@@ -16,6 +16,7 @@ CREATE TABLE users (
     currency TEXT NOT NULL DEFAULT 'INR',
     is_active BOOLEAN NOT NULL DEFAULT true,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at TIMESTAMPTZ NULL,
     CONSTRAINT pk_users PRIMARY KEY (id),
     CONSTRAINT ck_users_email CHECK (char_length(email) <= 254),
     CONSTRAINT ck_users_display_name CHECK (char_length(display_name) BETWEEN 1 AND 100),
@@ -129,6 +130,8 @@ CREATE INDEX ix_expenses_user_id__category_id ON expenses (user_id, category_id)
 CREATE INDEX ix_admin_audit_log_admin_id__created_at_desc ON admin_audit_log (admin_id, created_at DESC);
 -- SW-ADR-039
 CREATE INDEX ix_admin_audit_log_target_user_id ON admin_audit_log (target_user_id);
+-- SW-ADR-150 - partial, like ix_sessions_revoked_at: live accounts are the ones every request looks up, closed ones accumulate forever, and indexing them would grow the index without ever being read
+CREATE INDEX ix_users_deleted_at__where_deleted_at_is_null ON users (deleted_at) WHERE deleted_at IS NULL;
 
 -- SRC-001 §6.9
 ALTER TABLE sessions ADD CONSTRAINT fk_sessions_user_id FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE;

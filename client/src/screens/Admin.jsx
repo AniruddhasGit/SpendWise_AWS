@@ -1,26 +1,38 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
-import { longDate, shortDate } from '../lib/money.js'
+import { days, longDate, rupees, shortDate } from '../lib/money.js'
+import { PERIODS, identify, today } from '../lib/period.js'
 import Bars from '../components/charts/Bars.jsx'
 import LinePlot from '../components/charts/LinePlot.jsx'
 
 /**
  * Administration.
  *
- * **There is no money on this screen, and there is no way to put any there.**
- * `SRC-001 §4.2`, the client's own permission matrix:
+ * **The money line moved, once, and this is where it now sits.**
  *
- *     | See anyone else's expense amounts | user: no | admin: **no** |
+ * `SRC-001 §4.2` was the client's own permission matrix — *"See anyone else's
+ * expense amounts | user: no | admin: **no**"*, their bold — and `SW-ADR-129`
+ * built the whole admin data path around it. `CR-001` reverses that one clause
+ * and nothing beside it. An administrator may now see, for ONE person at a
+ * time:
  *
- * The bold **no** is theirs. Every figure below counts accounts, sessions,
- * actions or rows. The only route from an admin to another person's expenses
- * is `admin_expense_stats()`, a `SECURITY DEFINER` function whose return type
- * declares two columns — a count and a date — so "how much" is unanswerable at
- * the database, not merely absent from a response model (`SW-ADR-129`,
- * `SW-ADR-149`).
+ *     the total over a range · the count · the daily average · the line plot
  *
- * So this is an operations console, not a finance one: who exists, who is
- * active, who is signed in, and what administrators have done.
+ * and may still not see **which categories** the money went to, **what any
+ * expense was for**, or any individual row — at any granularity. That is not a
+ * promise this file keeps. `admin_user_daily()` is `SECURITY DEFINER` and its
+ * `RETURNS TABLE` clause declares three columns — day, total, count — so there
+ * is no fourth to render even if a component asked for one (`SW-ADR-151`,
+ * using `SW-ADR-129`'s mechanism against a line the client has moved rather
+ * than abandoned).
+ *
+ * Concretely, for anyone editing below: **no `Donut`, no `Ribbon`, no
+ * `EntryList` on the detail pane, and no import of any of them in this file.**
+ * If you are reaching for one, the thing you want does not exist on purpose.
+ *
+ * Everything else here still counts accounts, sessions, actions or rows: the
+ * tables show no money, the overview shows no money, and every read of the one
+ * pane that does is written to the audit log.
  */
 const TABS = [
   { id: 'overview', label: 'Overview' },
@@ -38,8 +50,10 @@ export default function Admin({ principal }) {
         <div>
           <h1 className="page-title">Administration</h1>
           <p className="entry-meta">
-            Accounts and activity. No screen here can show another person's
-            amounts — that is enforced by the database, not by this page.
+            Accounts and activity. Opening one account shows how much that
+            person spent over a range and never what they spent it on — no
+            category, no description, no single entry. That limit is enforced
+            by the database, not by this page, and every look is audited.
           </p>
         </div>
       </header>
@@ -145,12 +159,68 @@ function Stat({ label, value, hint, testId }) {
 }
 
 // ── accounts ───────────────────────────────────────────────────────────────
+
+/**
+ * One word for the account's state, derived in ONE place so the table and the
+ * detail pane cannot disagree.
+ *
+ * Deleted beats deactivated: `DELETE /api/auth/me` sets `deleted_at` **and**
+ * `is_active = false` in the same transaction (`CR-001 §2`), so a closed
+ * account is also an inactive one and reporting it as merely "deactivated"
+ * would hide the thing the administrator is looking for.
+ *
+ * `u.deleted` missing entirely — an older response, or a client running ahead
+ * of a deploy — reads as `false` and the account shows its `is_active` state.
+ * That is the right failure: it under-reports rather than inventing a closure.
+ */
+function statusOf(u) {
+  if (u.deleted) return 'deleted'
+  return u.is_active ? 'active' : 'deactivated'
+}
+
+const DOTS = { active: 'ok-dot', deactivated: 'off-dot', deleted: 'gone-dot' }
+
+/** The dot is decoration; the WORD carries it. Never colour alone (`SW-ADR-118`). */
+function Status({ user }) {
+  const state = statusOf(user)
+  return (
+    <>
+      <span className={DOTS[state]} aria-hidden="true" />
+      {state}
+    </>
+  )
+}
+
+/**
+ * The `deleted` filter. Three states, because two would be a lie: the server's
+ * default is not "not deleted", it is **everything** (`CR-001 §2` — "an
+ * administrator looking for someone who has left must be able to find them"),
+ * and a two-position toggle has nowhere to put that.
+ *
+ * `value: undefined` is what omits the parameter — `q()` drops `undefined` and
+ * keeps `false`, so "Not deleted" really does send `deleted=false` rather than
+ * silently falling back to the default.
+ */
+const DELETED_FILTERS = [
+  { id: 'any', label: 'All accounts', value: undefined },
+  { id: 'false', label: 'Not deleted', value: false },
+  { id: 'true', label: 'Deleted only', value: true },
+]
+
 function Accounts({ me }) {
   const [q, setQ] = useState('')
+  const [deleted, setDeleted] = useState('any')
+  // The ROW, not an id. Held here rather than derived from `data.items` because
+  // restoring an account removes it from a `deleted=true` list, and a pane that
+  // vanished the instant it succeeded would take its own confirmation with it.
+  const [viewing, setViewing] = useState(null)
   const [notice, setNotice] = useState(null)
   const [error, setError] = useState(null)
   const [{ data, loading }, reload] = useAsync(
-    () => api.adminUsers({ q: q || undefined, limit: 100 }), [q])
+    () => api.adminUsers({
+      q: q || undefined, limit: 100,
+      deleted: DELETED_FILTERS.find((f) => f.id === deleted).value,
+    }), [q, deleted])
 
   const act = async (label, fn) => {
     setError(null)
@@ -166,6 +236,16 @@ function Accounts({ me }) {
     }
   }
 
+  // The pane REPLACES the table rather than sitting under it. One person's
+  // figures beside a list of everyone invites reading the figures as the list's
+  // — and at phone width the table's scroll container would swallow the pane.
+  if (viewing) {
+    return (
+      <UserDetail key={viewing.id} row={viewing} onChanged={reload}
+                  onBack={() => setViewing(null)} />
+    )
+  }
+
   return (
     <>
       <div className="row-form">
@@ -175,6 +255,17 @@ function Accounts({ me }) {
                  data-testid="admin-search" value={q}
                  onChange={(e) => setQ(e.target.value)} />
         </div>
+      </div>
+
+      <div className="filters" role="group" aria-label="Filter by deletion">
+        {DELETED_FILTERS.map((f) => (
+          <button key={f.id} type="button" className="chip"
+                  data-testid={`admin-deleted-${f.id}`}
+                  aria-pressed={deleted === f.id}
+                  onClick={() => setDeleted(f.id)}>
+            {f.label}
+          </button>
+        ))}
       </div>
 
       {error && (
@@ -215,28 +306,37 @@ function Accounts({ me }) {
                       ? <span className="pill">admin</span>
                       : <span className="entry-meta">user</span>}
                   </td>
-                  <td>
-                    <span className={u.is_active ? 'ok-dot' : 'off-dot'} aria-hidden="true" />
-                    {u.is_active ? 'active' : 'deactivated'}
-                  </td>
-                  {/* A COUNT. There is no column here that could hold a sum,
-                      and no endpoint that could fill one. */}
+                  <td><Status user={u} /></td>
+                  {/* A COUNT. There is still no column here that could hold a
+                      sum: `CR-001` opened one person's total on the detail
+                      pane, deliberately behind a click and an audit row, and
+                      not a column an administrator can scan down. */}
                   <td className="num sw-num">{u.expense_count}</td>
                   <td className="entry-meta">
                     {u.last_activity ? shortDate(u.last_activity) : 'never'}
                   </td>
                   <td className="row-actions">
                     <button type="button" className="icon-btn"
+                            data-testid={`view-${u.id}`}
+                            onClick={() => setViewing(u)}>
+                      View
+                    </button>
+                    <button type="button" className="icon-btn"
                             data-testid={`revoke-${u.id}`}
                             onClick={() => act('Signed out.', () => api.adminRevoke(u.id))}>
                       Sign out
                     </button>
+                    {/* One action restores a deleted account: `is_active: true`
+                        also clears `deleted_at` (`CR-001 §2`). So this is the
+                        same call with a truthful label rather than a fourth
+                        button — "Reactivate" on a closed account would leave
+                        the person wondering which half it undid. */}
                     <button type="button" className="icon-btn"
                             data-testid={`toggle-active-${u.id}`}
                             onClick={() => act(
-                              u.is_active ? 'Deactivated.' : 'Reactivated.',
+                              u.deleted ? 'Restored.' : u.is_active ? 'Deactivated.' : 'Reactivated.',
                               () => api.adminSetActive(u.id, !u.is_active))}>
-                      {u.is_active ? 'Deactivate' : 'Reactivate'}
+                      {u.deleted ? 'Restore' : u.is_active ? 'Deactivate' : 'Reactivate'}
                     </button>
                     <button type="button" className="icon-btn"
                             data-testid={`toggle-role-${u.id}`}
@@ -257,6 +357,218 @@ function Accounts({ me }) {
         </div>
       )}
     </>
+  )
+}
+
+// ── one person ─────────────────────────────────────────────────────────────
+/**
+ * The detail pane. **The only screen in SpendWise where one person sees
+ * another person's money**, and the only one that will ever be.
+ *
+ * What it shows is fixed by the response and not by taste: a total, a count, a
+ * daily average and a day-by-day line. `AdminUserSpending` carries no
+ * `by_category`, no description and no expense row — grep it for `categor` and
+ * there is nothing to find — so the temptation to "just add the breakdown while
+ * we are here" has nothing to read. **Do not add a `Donut`, a `Ribbon` or an
+ * `EntryList` below.** That boundary is the entire content of `CR-001`; the
+ * client asked for *"the expenses that are happening **not the categories spent
+ * on**"* and drew the line themselves.
+ *
+ * `data.user` is a whole `AdminUser` — the same row the table shows — so every
+ * fact below prefers it and falls back to `row` only until the first response
+ * lands, or if it never does. That ordering is what makes Restore honest: the
+ * status a person reads after clicking it came back from the server, and is not
+ * this component congratulating itself.
+ */
+function UserDetail({ row, onBack, onChanged }) {
+  const now = today()
+  const [range, setRange] = useState(() => PERIODS[0].range(now))
+  const [busy, setBusy] = useState(false)
+  const [actionError, setActionError] = useState(null)
+
+  const [{ data, error, loading }, reload] = useAsync(
+    () => api.adminUserSpending(row.id, { from: range.from, to: range.to }),
+    [row.id, range.from, range.to])
+
+  // Keyed on the PERSON and not the range: a session is not in a date window,
+  // and refetching it on every chip would write an audit row per click for an
+  // answer that had not changed.
+  const [{ data: sessions }] = useAsync(
+    () => api.adminSessions({ user_id: row.id, limit: 1 }), [row.id])
+
+  const who = data?.user || row
+  const active = identify(range, now)
+
+  const restore = async () => {
+    setBusy(true)
+    setActionError(null)
+    try {
+      // ONE call. `is_active: true` on a deleted account also clears
+      // `deleted_at` (`CR-001 §2`) — restoring is one action, not two, and a
+      // client that made it two could leave an account half-restored if the
+      // second request failed.
+      await api.adminSetActive(row.id, true)
+      await reload()          // the pane's own copy of who they are
+      await onChanged()       // and the table waiting behind it
+    } catch (err) {
+      setActionError(err)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <section className="detail" data-testid="admin-user-detail"
+             aria-label={`${who.display_name}, account detail`}>
+      <header className="page-head">
+        <div>
+          <h2 className="section-title">{who.display_name}</h2>
+          <p className="entry-meta">{who.email}</p>
+        </div>
+        <button type="button" className="btn btn-quiet" onClick={onBack}
+                data-testid="admin-user-back">
+          Back to accounts
+        </button>
+      </header>
+
+      <dl className="card facts">
+        <div>
+          <dt>Status</dt>
+          <dd data-testid="admin-user-status"><Status user={who} /></dd>
+        </div>
+        <div>
+          <dt>Expenses recorded</dt>
+          {/* LIFETIME, from `admin_expense_stats()` — deliberately not
+              `data.count`, which counts only the selected range. Two counts a
+              few centimetres apart need the labels to say which is which, and
+              "Entries" below carries the range's dates under it. */}
+          <dd className="sw-num" data-testid="admin-user-expense-count">
+            {who.expense_count}
+          </dd>
+        </div>
+        <div>
+          <dt>Last activity</dt>
+          <dd data-testid="admin-user-last-activity">
+            {who.last_activity ? longDate(who.last_activity) : 'never'}
+          </dd>
+        </div>
+        <div>
+          <dt>Signed in now</dt>
+          {/* `SW-ADR-106` still holds: a count, never where from. */}
+          <dd className="sw-num" data-testid="admin-user-sessions">
+            {sessions ? sessions.total : '—'}
+          </dd>
+        </div>
+        <div>
+          <dt>Role</dt>
+          <dd>{who.role === 'admin' ? <span className="pill">admin</span> : 'user'}</dd>
+        </div>
+      </dl>
+
+      {actionError && (
+        <p className="form-error" role="alert" data-testid="admin-user-action-error">
+          {actionError.message}
+        </p>
+      )}
+
+      {statusOf(who) === 'deleted' && (
+        <div className="card card-danger">
+          <p className="card-desc">
+            <strong>This account was closed by the person who owns it.</strong>{' '}
+            Nothing was erased — every expense and category is still attached to
+            it, and their email address is still held. Restoring it clears the
+            closure and lets them sign in again.
+          </p>
+          <button type="button" className="btn" onClick={restore}
+                  data-testid={`restore-${row.id}`}
+                  aria-disabled={busy ? 'true' : undefined}>
+            {busy ? 'Restoring…' : 'Restore this account'}
+          </button>
+        </div>
+      )}
+
+      {/* Not `PeriodPicker`. It owns two things this pane must not have: the
+          `period-*` test ids, which would collide with the person's own picker
+          in any test that walks the whole app, and `writeState` — the URL's
+          `?from=&to=` belongs to the ADMINISTRATOR'S dashboard period, and an
+          admin glancing at someone's year would silently rewrite their own. The
+          list itself is shared, which is the part that could actually drift. */}
+      <div className="periods" role="group" aria-label="Period">
+        {PERIODS.map((p) => (
+          <button key={p.id} type="button" className="chip"
+                  data-testid={`admin-period-${p.id}`}
+                  aria-pressed={active === p.id}
+                  aria-disabled={loading ? 'true' : undefined}
+                  onClick={() => !loading && setRange(p.range(now))}>
+            {p.label}
+          </button>
+        ))}
+      </div>
+
+      {error ? (
+        <p className="form-error" role="alert" data-testid="admin-user-error">
+          {error.message}
+        </p>
+      ) : !data ? (
+        <p className="entry-meta" aria-live="polite">Loading…</p>
+      ) : (
+        <>
+          <section className="cards" aria-label="Spending in the selected range">
+            <article className="card">
+              <p className="card-label">Total</p>
+              {/* `rupees(total_paise)`, never the `total` string the response
+                  also carries. That string is a plain decimal — 3790.49 — and
+                  printing it would put an ungrouped number beside every
+                  lakh-grouped one in the product (`SW-ADR-056`). The integer is
+                  the value; the formatting is `lib/money.js`'s job. */}
+              <p className="card-value sw-num" data-testid="admin-user-total">
+                {rupees(data.total_paise)}
+              </p>
+              <p className="entry-meta">{data.from} to {data.to}</p>
+            </article>
+
+            <article className="card">
+              <p className="card-label">Entries</p>
+              <p className="card-value sw-num" data-testid="admin-user-count">
+                {data.count}
+              </p>
+              <p className="entry-meta">a count of expenses, not a list of them</p>
+            </article>
+
+            <article className="card">
+              <p className="card-label">Daily average</p>
+              {/* `daily_average_paise` is `int | None` on the model, produced by
+                  the same helper as the person's own summary: no day elapsed
+                  means no average, never 0.00 (`SW-ADR-053`). None of the five
+                  chips can build a wholly-future range, so the branch is rarely
+                  taken — but ₹0.00 standing in for "no answer yet" reads as
+                  "this person spends nothing", and that is a claim about
+                  someone else's money that nothing here is entitled to make. */}
+              <p className="card-value sw-num" data-testid="admin-user-average">
+                {data.daily_average_paise === null
+                  ? 'Not yet' : rupees(data.daily_average_paise)}
+              </p>
+              <p className="entry-meta">over {days(data.days_elapsed)}</p>
+            </article>
+          </section>
+
+          {/* ONE chart, and there is no second one coming. A donut here would
+              need `by_category`; the response has no such field and no
+              parameter asks for one, so this is the exact spot where the line
+              `CR-001` draws stops being a rule and becomes a missing key. */}
+          <article className="card">
+            <h3 className="card-heading">Spending over time</h3>
+            <LinePlot days={data.by_day} />
+            {data.count === 0 && (
+              <p className="entry-meta" data-testid="admin-user-empty">
+                Nothing recorded in this range. The flat line is the answer, not
+                a failure to load.
+              </p>
+            )}
+          </article>
+        </>
+      )}
+    </section>
   )
 }
 

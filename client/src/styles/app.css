@@ -350,8 +350,11 @@ table { border-collapse: collapse; width: 100%; }
   font-weight: var(--sw-weight-medium);
 }
 
-/* ── period picker ──────────────────────────────────────────────────────── */
-.periods { display: flex; flex-wrap: wrap; gap: var(--sw-space-2); }
+/* ── period picker, and the admin's deleted filter ──────────────────────── */
+/* Two names for one row of chips. `.filters` is not an alias for tidiness: a
+   class called `.periods` on a control that filters by deletion is a name that
+   lies, and the next person to restyle the period chips would move it. */
+.periods, .filters { display: flex; flex-wrap: wrap; gap: var(--sw-space-2); }
 
 .chip {
   min-height: var(--sw-target-min);
@@ -623,6 +626,45 @@ table { border-collapse: collapse; width: 100%; }
 .cat-editor { display: flex; align-items: flex-end; gap: var(--sw-space-2);
               flex-wrap: wrap; flex: 1 1 100%; }
 
+/* ── leaving (`CR-001`, `SW-ADR-150`) ───────────────────────────────────── */
+/* Two options, side by side and equally weighted. Deliberately NOT a primary
+   action with the other tucked underneath: "deactivate" and "delete" both mean
+   "I am done" in ordinary English, so the layout has to make a person read
+   which is which rather than reach for whichever is larger. At 375px the grid
+   collapses to one column and the reading order is unchanged. */
+.leaving {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: var(--sw-space-4);
+}
+
+.leaving-option {
+  display: flex;
+  flex-direction: column;
+  /* Shrink-to-fit, so a red button is only as wide as its label. Stretched, a
+     confirm button would fill its column and become the biggest target on the
+     screen — on the one card where that is the wrong incentive. */
+  align-items: flex-start;
+  gap: var(--sw-space-3);
+  padding: var(--sw-space-4);
+  border: 1px solid var(--sw-border);
+  border-radius: var(--sw-radius-md);
+  background: var(--sw-glass-sunken);
+}
+
+.leaving-title { font-size: var(--sw-text-base); font-weight: var(--sw-weight-semibold); }
+
+/* Markers restored on purpose. The global reset strips them from every list
+   because most lists here are layout; this one is prose, and four consequences
+   run together as a paragraph are four consequences nobody reads. */
+.consequences {
+  list-style: disc;
+  padding-left: var(--sw-space-6);
+  font-size: var(--sw-text-sm);
+}
+.consequences li { margin-bottom: var(--sw-space-2); }
+.consequences li:last-child { margin-bottom: 0; }
+
 /* ── tables (admin) ─────────────────────────────────────────────────────── */
 .tabs { display: flex; gap: var(--sw-space-1); flex-wrap: wrap; }
 
@@ -667,7 +709,7 @@ table { border-collapse: collapse; width: 100%; }
 .cell-sub { display: block; }
 .row-actions { display: flex; gap: var(--sw-space-1); flex-wrap: wrap; }
 
-.ok-dot, .off-dot {
+.ok-dot, .off-dot, .gone-dot {
   display: inline-block;
   width: 0.5rem; height: 0.5rem;
   border-radius: var(--sw-radius-full);
@@ -675,6 +717,37 @@ table { border-collapse: collapse; width: 100%; }
 }
 .ok-dot { background: var(--sw-positive); }
 .off-dot { background: var(--sw-ink-faint); }
+/* Deleted, not merely off. The dot is decoration — every status renders its
+   own WORD beside it, so nothing here is carried by colour alone
+   (`SW-ADR-118`), which matters most for the two greys that would otherwise
+   have to be told apart. */
+.gone-dot { background: var(--sw-danger); }
+
+/* ── admin: one person's spending (`CR-001`) ────────────────────────────── */
+/* The pane is a plain column, NOT a `.card`: the figures and the plot are
+   cards themselves, and glass inside glass reads as a rendering fault. */
+.detail { display: flex; flex-direction: column; gap: var(--sw-space-4); }
+
+/* Label-and-value pairs as a real `<dl>`. `auto-fit` at 8rem gives five
+   columns on a desktop and two at 375px — it never needs its own scroll
+   container because it has no fixed-width child to overflow with. */
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: var(--sw-space-4);
+  /* `dl` is the one block element the reset at the top does not zero — it lists
+     h1/h2/h3/p/figure and ul/ol — so this carries a 1em UA margin that does NOT
+     collapse inside a flex column and lands as a stray gap above the card. */
+  margin: 0;
+}
+.facts dt {
+  font-size: var(--sw-text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--sw-ink-muted);
+  margin-bottom: var(--sw-space-1);
+}
+.facts dd { margin: 0; }
 
 .audit { display: flex; flex-direction: column; gap: var(--sw-space-1); }
 .audit-row {

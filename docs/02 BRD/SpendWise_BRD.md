@@ -168,7 +168,7 @@ a stated product value, not an oversight (`R-PRV-02`).
 | `R-ADM-09` | Where a person redeems the code they were given. **No screen for this exists in any source** — as written, the locked-out person receives a code and a dead end. | `SRC-001 §7.1` | **RULED** — `OPEN-RESETUI-01` closed by `SW-ADR-110` |
 | `R-ADM-10` | **Whether an administrator may act on another administrator at all.** Issuing a reset against a peer is a complete account takeover: the code is shown to the issuer and the target is signed out in the same act. | `SRC-001 §7.6` | **RULED** — `OPEN-ADMINSELF-01` closed by `SW-ADR-098` |
 | `R-ADM-11` | What happens to someone's live sessions when their role changes. A demoted administrator otherwise keeps every power until their session expires. | `SRC-001 §7.6` | **RULED** — `OPEN-ROLECHG-01` closed by `SW-ADR-101` |
-| `R-ADM-12` | Whether a person can be deleted at all. `SRC-001 §6.9` specifies the cascade in careful detail, but no role is granted the power and no screen offers it. | `SRC-001 §6.9` | **RULED** — `OPEN-USERDEL-01` closed by `SW-ADR-107` |
+| `R-ADM-12` | Whether a person can be deleted at all. `SRC-001 §6.9` specifies the cascade in careful detail, but no role is granted the power and no screen offers it. | `SRC-001 §6.9` | **RULED** — `OPEN-USERDEL-01` closed by `SW-ADR-107`, which `CR-001` has since superseded: read `SW-ADR-150`. Deletion now exists and is **soft** — a `deleted_at` timestamp, every row retained, restorable by an administrator — so `SRC-001 §6.9`'s cascade stays unexercised. |
 
 ### E6 — Privacy, authority and the record
 

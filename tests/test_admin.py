@@ -153,16 +153,25 @@ async def test_an_unauthenticated_caller_is_401_not_403(client, clean_db) -> Non
 MONEY_WORDS = ("amount", "paise", "total", "sum", "money", "price", "cost",
                "value", "description", "note", "spent_on", "currency")
 
+# `CR-001` exempts exactly TWO models, and this is the list. A tuple of NAMES
+# rather than a looser rule — "anything ending in Spending", "anything the admin
+# service builds" — because a rule with a shape can be satisfied by a model
+# nobody meant to exempt, and a list cannot. Adding a third is an edit to this
+# line, which is one line in a diff and impossible to miss.
+SPENDING_MODELS = ("AdminUserSpending", "SpendingDay")
 
-def test_no_admin_response_model_can_hold_an_amount_or_a_description() -> None:
-    """**AC1, by introspection.**
+# Named, because an introspection test that reaches nothing PASSES. A renamed
+# module, a moved class or a `schemas.py` split in two would find zero models to
+# fail on and report green on the guarantee this file exists for.
+MUST_STILL_BE_CLEAN = ("AdminUser", "AdminSession", "AuditRow", "AdminOverview")
 
-    Walks every Pydantic model in `admin.schemas` and fails on a field whose
-    name could hold money. `expense_count` and `audit_last_7_days` are counts
-    and are allowed by name; anything matching a money word is not.
 
-    Introspection rather than review, because this is the guarantee the whole
-    product is about and a reviewer reads a diff once.
+def admin_models() -> dict:
+    """Every Pydantic model DECLARED in `admin.schemas`, keyed by class name.
+
+    `cls.__module__` check included: `inspect.getmembers` returns everything
+    *imported* into the module too, and without it this walks `BaseModel`'s
+    imports and half of Pydantic.
     """
     import inspect
 
@@ -170,24 +179,91 @@ def test_no_admin_response_model_can_hold_an_amount_or_a_description() -> None:
 
     from app.modules.admin import schemas
 
-    checked = 0
-    for _, cls in inspect.getmembers(schemas, inspect.isclass):
-        if not issubclass(cls, BaseModel) or cls is BaseModel:
+    return {name: cls for name, cls in inspect.getmembers(schemas, inspect.isclass)
+            if issubclass(cls, BaseModel) and cls is not BaseModel
+            and cls.__module__ == schemas.__name__}
+
+
+def test_no_admin_response_model_can_hold_an_amount_or_a_description() -> None:
+    """**AC1, by introspection — and `CR-001` moved ONE of the two lines.**
+
+    `SRC-001 §4.2` refused an administrator every amount; `CR-001` reversed that
+    half by name, so the money rule is no longer universal. The exemption is
+    therefore written down HERE, by name, instead of the rule being loosened
+    everywhere:
+
+        `AdminUserSpending`, and `SpendingDay` — which exists only as its
+        `by_day` rows — are the ONLY models in `admin.schemas` that may declare
+        a field capable of holding money. Nothing else may, and a second model
+        gaining one fails this test rather than passing it quietly.
+
+    The exemption is inert until those classes exist; `tests/test_admin_spending.py`
+    is what proves they do, and proves the endpoint behind them returns the
+    person's real total. If a model appears under some OTHER name carrying
+    `total_paise`, this test fails — correctly, because `CR-001 §2` names the
+    response model and a divergence there is a contract break, not a style
+    choice.
+
+    **The other half of the client's sentence did not move**, and it is the half
+    the whole design now rests on:
+
+        *"the expenses that are happening not the categories spent on"*
+
+    That is asserted SEPARATELY below, over **every** model including the two
+    exempt ones, with no exemption at all: `CR-001` granted the amount and
+    refused the label, so a field matching `categor` or `description` is
+    forbidden everywhere in this module. It is mechanical on purpose — a
+    reviewer greps this module for `categor` and finds nothing, and so does
+    this.
+
+    One thing tightened while rewriting: the bare name `total` used to sit on
+    the allowlist as a row count and would have sailed through **on any model
+    at all**, including `AdminUser`. It is now allowed only on a `*Page`, which
+    is the only place a row count lives.
+
+    Introspection rather than review, because this is the guarantee the whole
+    product is about and a reviewer reads a diff once.
+    """
+    models = admin_models()
+    assert len(models) >= 8, f"only {len(models)} models introspected — did the module move?"
+    for required in MUST_STILL_BE_CLEAN:
+        assert required in models, (
+            f"{required} was not found in admin.schemas — this test cannot "
+            f"assert anything about a model it cannot reach")
+
+    # ── 1. money: forbidden on every model but the two CR-001 named ────────
+    for name, cls in models.items():
+        if name in SPENDING_MODELS:
             continue
-        if cls.__module__ != schemas.__name__:
-            continue
-        checked += 1
-        for name in cls.model_fields:
-            low = name.lower()
+        for field in cls.model_fields:
+            low = field.lower()
             if low.endswith("_count") or low.startswith("accounts_") or low in (
-                    "count", "total", "limit", "offset", "admins", "sessions_live",
+                    "count", "limit", "offset", "admins", "sessions_live",
                     "expenses_recorded", "audit_last_7_days"):
+                continue
+            # A row count, and only where rows are counted.
+            if low == "total" and name.endswith("Page"):
                 continue
             for word in MONEY_WORDS:
                 assert word not in low, (
-                    f"{cls.__name__}.{name} could carry money or a description "
-                    f"(matched {word!r}) — SRC-001 §4.2 says an admin sees neither")
-    assert checked >= 8, f"only {checked} models introspected — did the module move?"
+                    f"{name}.{field} could carry money or a description "
+                    f"(matched {word!r}). CR-001 exempts {SPENDING_MODELS} and "
+                    f"nothing else — SRC-001 §4.2 still holds for {name}")
+
+    # ── 2. the label: forbidden EVERYWHERE, exemptions included ────────────
+    # The line CR-001 draws, asserted mechanically. `AdminUserSpending` carries
+    # a total precisely so that it can carry nothing else, and a `by_category`
+    # arriving on it later would be the change request read backwards.
+    for name, cls in models.items():
+        for field in cls.model_fields:
+            low = field.lower()
+            assert "categor" not in low, (
+                f"{name}.{field} is a CATEGORY field. CR-001 granted the amount "
+                f"and refused the label: 'the expenses that are happening not "
+                f"the categories spent on'")
+            assert "description" not in low, (
+                f"{name}.{field} could hold a description. CR-001 grants an "
+                f"administrator how much, never what for")
 
 
 def test_the_session_model_declares_no_ip_and_no_user_agent() -> None:

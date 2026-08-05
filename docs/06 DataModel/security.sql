@@ -11,7 +11,7 @@
 -- SET LOCAL cannot take a bind parameter, and interpolating would be the
 -- f-string-near-SQL that SRC-001 §10.3 forbids (SW-ADR-082).
 
--- users: NO row-level security. Outside RLS by SW-ADR-097 — a policy keyed on the request identity cannot serve a pre-authentication lookup.
+-- users: NO row-level security. Outside RLS by SW-ADR-097 — a policy keyed on the request identity cannot serve a pre-authentication lookup. CR-001 added deleted_at: closing an account is SOFT. The unique index on lower(email) stays TOTAL, so a closed account keeps its address - a partial index would let someone return under the same address and leave two rows sharing one, which every lookup would then have to disambiguate correctly forever (SW-ADR-150).
 
 -- sessions: protected — Protected. The identity column is user_id
 ALTER TABLE sessions ENABLE ROW LEVEL SECURITY;
@@ -207,13 +207,63 @@ ALTER FUNCTION admin_revoke_sessions(BIGINT) OWNER TO spendwise_owner;
 REVOKE ALL ON FUNCTION admin_revoke_sessions(BIGINT) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION admin_revoke_sessions(BIGINT) TO spendwise_app;
 
+
+-- expenses: an admin reads one person's SPENDING PER DAY (CR-001, SW-ADR-151). THREE COLUMNS AND NO FOURTH - there is no category_id, no description and no expense id, so 'what did they spend it on' is unanswerable through this function at any granularity. That is the line the client drew when they granted amount visibility: 'the expenses that are happening not the categories spent on'. The RETURN TYPE is what enforces it, exactly as SW-ADR-129 established for the count - a principle pointed at a line that moved, not a principle abandoned.
+-- SECURITY DEFINER runs this as the TABLE OWNER — which is not, on its own,
+-- enough. FORCE ROW LEVEL SECURITY subjects the owner to its own policies, so
+-- the owner sees exactly what `app.user_id` says and nothing else. The first
+-- version of this function was LANGUAGE sql with no GUC handling, and it
+-- returned (0, NULL) for every account except the caller's own — silently,
+-- and looking exactly like a correct privacy-respecting answer.
+--
+-- So the identity is swapped to the TARGET for the length of the query and
+-- restored before returning. It is transaction-local (set_config(..., true)),
+-- and it refuses to run when app.user_id is unset rather than restoring to
+-- something that was never there — an unset GUC reads as NULL, an empty one
+-- raises on ::bigint, and the two are not the same state.
+--
+-- THE RETURN TYPE IS STILL THE GUARD. An amount cannot come back through this
+-- function because there is no column for one, so SRC-001 §4.5 is structurally
+-- true at the DATABASE and not merely in a response model.
+-- SET search_path is MANDATORY: without it a definer function is a
+-- privilege-escalation vector (an attacker-controlled schema shadows a name).
+-- VOLATILE, not STABLE: it mutates a GUC, and labelling that STABLE would be
+-- a lie the planner is entitled to act on.
+CREATE OR REPLACE FUNCTION admin_user_daily(target_user_id BIGINT, from_date DATE, to_date DATE)
+    RETURNS TABLE (day DATE, total_paise BIGINT, entries BIGINT)
+    LANGUAGE plpgsql
+    VOLATILE
+    SECURITY DEFINER
+    SET search_path = pg_catalog, public
+AS $fn$
+DECLARE
+    caller TEXT := current_setting('app.user_id', true);
+BEGIN
+    IF caller IS NULL OR caller = '' THEN
+        RAISE EXCEPTION 'admin_user_daily requires app.user_id to be set (SW-ADR-136)';
+    END IF;
+    PERFORM set_config('app.user_id', target_user_id::text, true);
+    RETURN QUERY
+    SELECT e.spent_on, sum(e.amount_paise)::bigint, count(e.id)::bigint
+      FROM expenses e
+     WHERE e.user_id = target_user_id
+       AND e.spent_on BETWEEN from_date AND to_date
+     GROUP BY e.spent_on
+     ORDER BY e.spent_on;
+    PERFORM set_config('app.user_id', caller, true);
+END;
+$fn$;
+ALTER FUNCTION admin_user_daily(BIGINT, DATE, DATE) OWNER TO spendwise_owner;
+REVOKE ALL ON FUNCTION admin_user_daily(BIGINT, DATE, DATE) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION admin_user_daily(BIGINT, DATE, DATE) TO spendwise_app;
+
 -- ── privileges (SW-ADR-137) ──────────────────────────────────────────
 -- RLS only NARROWS what a grant already allows. Both are required, and the
 -- boot assertion checks this direction too, not only the dangerous one.
 GRANT USAGE ON SCHEMA public TO spendwise_app;
 -- full CRUD, narrowed by RLS
 GRANT SELECT, INSERT, UPDATE, DELETE ON expenses, categories, sessions TO spendwise_app;
--- no DELETE: there is no user-deletion path in v1 (SW-ADR-107), and password_resets is pruned by the owner (SW-ADR-122)
+-- no DELETE, and the reason SURVIVED the record that first gave it: SW-ADR-107 ruled out user deletion in v1 and was SUPERSEDED by SW-ADR-150, which added deletion in its SOFT form - an UPDATE setting deleted_at, not a DELETE. So the runtime role still needs no DELETE on users, and now cannot destroy an account even when a person asks it to. password_resets is pruned by the owner (SW-ADR-122).
 GRANT SELECT, INSERT, UPDATE ON users, password_resets TO spendwise_app;
 -- append-only; UPDATE and DELETE are revoked and a trigger raises (SW-ADR-083)
 GRANT SELECT, INSERT ON admin_audit_log TO spendwise_app;

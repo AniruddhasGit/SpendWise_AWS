@@ -35,13 +35,34 @@ class AdminRepository:
                     func.lower(User.display_name).like(like))]
 
     async def list_users(self, *, limit: int, offset: int, q: str | None,
-                         role: str | None, active: bool | None
-                         ) -> tuple[list[User], int]:
+                         role: str | None, active: bool | None,
+                         deleted: bool | None) -> tuple[list[User], int]:
+        """The account list. **`deleted=None` includes closed accounts.**
+
+        That default is `CR-001 §2`'s and it is the opposite of the instinct: an
+        administrator looking for someone who has left must be able to find them,
+        and a list that silently hides them turns "restore this account" into a
+        support ticket about a person who appears never to have existed.
+
+        Which is also why the deleted predicate lives HERE and never in
+        `UserRepository.by_email`/`by_id`. Filtering closed rows out at the
+        repository would make deletion look like a clean win — until the admin
+        console, the audit log's `target_user_id` and the last-admin guard all
+        started disagreeing about who exists. The rows stay visible to queries;
+        the SERVICE decides who may sign in.
+        """
         where = self._search(q)
         if role:
             where.append(User.role == role)
         if active is not None:
             where.append(User.is_active.is_(active))
+        if deleted is not None:
+            # `is_(None)` / `is_not(None)`, never `== None`: SQL's NULL does not
+            # compare equal to itself, so `deleted_at = NULL` matches no row at
+            # all and `deleted=false` would return an empty list rather than
+            # every live account.
+            where.append(User.deleted_at.is_(None) if not deleted
+                         else User.deleted_at.is_not(None))
 
         total = await self.db.scalar(
             select(func.count()).select_from(User).where(*where)) or 0
@@ -69,9 +90,53 @@ class AdminRepository:
             {"u": user_id})).one()
         return int(row[0] or 0), row[1]
 
+    async def daily_for(self, user_id: int, from_: date, to: date) -> list[tuple]:
+        """`(day, total_paise, entries)` per day — **and nothing else, ever**.
+
+        `CR-001`, `SW-ADR-151`. The sibling of `stats_for`, built the same way and
+        for the same reason: `admin_user_daily()` is `SECURITY DEFINER`, runs as
+        the table owner, and swaps `app.user_id` to the target and back. Without
+        the swap it would return nothing for every account but the caller's —
+        silently, as an empty series that reads as "this person spends nothing"
+        rather than as an error (`SW-ADR-149`).
+
+        `CR-001` moved `SRC-001 §4.2`'s line so that `total_paise` may now be
+        read; it did not move the rest. The function's `RETURNS TABLE` clause
+        declares **three columns and no fourth** — no `category_id`, no
+        `description`, no expense id — so "which categories" stays unanswerable
+        at the DATABASE and not merely absent from a response model. Widening
+        this query is not possible without a migration, deliberately.
+
+        Only days with rows come back; the zero days are filled in the service,
+        by the same code path as the person's own summary.
+        """
+        rows = await self.db.execute(
+            text("SELECT day, total_paise, entries FROM admin_user_daily(:u, :f, :t)"),
+            {"u": user_id, "f": from_, "t": to})
+        # Cast at the boundary. The function declares BIGINT, but a `SUM()` over
+        # one is `numeric` in PostgreSQL and arrives as a `Decimal` the moment
+        # anybody edits the body — and a `Decimal` that reaches a response model
+        # is CONSTITUTION Art V.2. Cheap here, unfindable later.
+        return [(r[0], int(r[1] or 0), int(r[2] or 0)) for r in rows]
+
     async def set_active(self, user_id: int, is_active: bool) -> int:
+        """Reactivating also CLEARS `deleted_at` (`CR-001 §2`).
+
+        Restoring an account is ONE action, not two. The alternative — an admin
+        who reactivates a closed account and finds sign-in still refused, because
+        `principal_for` checks `deleted_at` independently — is a half-restored
+        account with no control anywhere in the product to finish the job.
+
+        Deactivating does the reverse of nothing: it must NOT set `deleted_at`.
+        Pausing an account is not closing it, and collapsing the two would make
+        `POST /api/auth/deactivate` and `DELETE /api/auth/me` indistinguishable
+        the moment an administrator touched either.
+        """
+        values: dict = {"is_active": is_active}
+        if is_active:
+            values["deleted_at"] = None
         r = await self.db.execute(
-            update(User).where(User.id == user_id).values(is_active=is_active))
+            update(User).where(User.id == user_id).values(**values))
         return r.rowcount or 0
 
     async def set_role(self, user_id: int, role: str) -> int:

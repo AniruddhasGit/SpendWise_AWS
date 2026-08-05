@@ -72,7 +72,10 @@ FROM (VALUES ('SELECT'),('INSERT')) AS p(priv);
 -- 11. and holds NO privilege the design has no path for
 SELECT 'runtime role cannot DELETE ' || t.tbl AS check,
        NOT has_table_privilege('spendwise_app', t.tbl, 'DELETE') AS ok
-FROM (VALUES ('users'),('password_resets')) AS t(tbl)   -- no user-deletion path in v1 (SW-ADR-107)
+-- SW-ADR-107 ("no user-deletion path in v1") is superseded by SW-ADR-150: deletion
+-- exists and it is SOFT, which is an UPDATE of deleted_at — so the runtime role
+-- still holds no DELETE on users. The grant did not change; the record behind it did.
+FROM (VALUES ('users'),('password_resets')) AS t(tbl)
 UNION ALL
 SELECT 'runtime role cannot ' || p.priv || ' admin_audit_log',
        NOT has_table_privilege('spendwise_app', 'admin_audit_log', p.priv)
