@@ -1,5 +1,12 @@
 # SW-ADR-129 — An admin sees expense counts through a SECURITY DEFINER function, never a policy
 
+> **⚠ AMENDED 2026-08-06 by `SW-ADR-149`.**
+> The ruling below stands — counting is separated from reading, and the return type is the
+> guard. What changed is that it did not WORK: `SECURITY DEFINER` runs as the owner, and
+> `FORCE ROW LEVEL SECURITY` subjects the owner to its own policies, so the function saw only
+> the caller's rows and returned `(0, NULL)` for every other account. `SW-ADR-149` makes the
+> mechanism match the decision.
+
 | Field | Value |
 |---|---|
 | ADR | `SW-ADR-129` |

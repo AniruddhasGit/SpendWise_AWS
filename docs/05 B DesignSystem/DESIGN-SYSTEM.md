@@ -10,6 +10,17 @@
 > **This binds front-end engineering only. It is NOT a schema source.**
 > Every contrast figure below was **computed** from the hex values in `tokens.css`, not
 > asserted. The script is in the goal's evidence; re-run it rather than trusting this page.
+>
+> **As of `SW-ADR-147` that is a program, not a practice.** `tools/contrast.py` measures every
+> pair in **both themes**, composites translucent surfaces before measuring, and **fails the
+> build on a pair below its floor** — not only on drift. The live table is
+> [`CONTRAST.md`](CONTRAST.md); the tables in §2.1 and §2.2 below are the light theme's, kept
+> here for reading.
+>
+> It found one on its first honest run. `--sw-border-strong` was `#a8a29e` — **2.36:1** against
+> paper, below the 3:1 §6 requires of a UI component, and the same hex `SW-ADR-131` had already
+> measured, found failing, and darkened *for the Uncategorised band*. A hand-maintained check
+> measures what someone remembered to list; nothing listed the borders. Now `#8a837b`, 3.50:1.
 
 ---
 
@@ -200,6 +211,40 @@ is the date-grouped entry list already on the page — the same numbers, already
 | Targets | ≥44×44 CSS px at phone width |
 | Ribbon | a real control — §5.1 |
 | Colour | never the only carrier of meaning |
+
+---
+
+## §6.1 — Dark mode and glass — `SW-ADR-147`
+
+Two themes. `@media (prefers-color-scheme: dark)` is the **default**, so a person whose system is
+dark never sees a white flash before the script runs; `:root[data-theme="dark"]` is the
+**override** the appearance control writes, and the media query is scoped
+`:root:not([data-theme="light"])` so an explicit light choice beats a dark system.
+
+**Dark is not an inversion.** Pine `#2d5a3d` measures 1.6:1 on a dark surface, so dark uses a
+lighter tint of the same hue (`#7fc79a`); five of the nine category bands are re-tinted the same
+way. Every replacement was chosen by running the tool until it passed.
+
+**Glass composites, so its alpha is a measured floor.** `--sw-glass` is
+`rgb(255 255 255 / 0.78)` because that is where `--sw-ink-muted` on glass still clears 4.5:1 over
+the pine wash. Lowering it for a prettier blur is a change the gate refuses — the colour a person
+reads through glass is `surface × α + backdrop × (1−α)`, which is written down nowhere and has to
+be calculated.
+
+| Token | Use |
+|---|---|
+| `--sw-glass` | cards, the sidebar, panels |
+| `--sw-glass-strong` | anything overlapping content — the dialog |
+| `--sw-glass-sunken` | wells and table headers |
+| `--sw-glass-border` | the 1px highlight that makes an edge read as glass |
+| `--sw-glass-blur` | `backdrop-filter` radius |
+| `--sw-wash-1`, `--sw-wash-2` | the two pine/teal radials the glass sits on |
+| `--sw-on-pine` | text on a pine or danger fill |
+| `--sw-plot-line`, `--sw-plot-fill`, `--sw-plot-grid` | the line chart. Not category colours |
+
+`backdrop-filter` is **progressive enhancement**: where it is unsupported the surface is still
+opaque enough to clear every floor on its own, because the figures are computed from the alpha,
+never from the blur.
 
 ---
 

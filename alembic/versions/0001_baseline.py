@@ -151,17 +151,81 @@ SECURITY = [
     WITH CHECK (user_id = current_setting('app.user_id', true)::bigint);""",
     r"""CREATE OR REPLACE FUNCTION admin_expense_stats(target_user_id BIGINT)
     RETURNS TABLE (expense_count BIGINT, last_activity DATE)
-    LANGUAGE sql
-    STABLE
+    LANGUAGE plpgsql
+    VOLATILE
     SECURITY DEFINER
     SET search_path = pg_catalog, public
-AS $$
+AS $fn$
+DECLARE
+    caller TEXT := current_setting('app.user_id', true);
+BEGIN
+    IF caller IS NULL OR caller = '' THEN
+        RAISE EXCEPTION 'admin_expense_stats requires app.user_id to be set (SW-ADR-136)';
+    END IF;
+    PERFORM set_config('app.user_id', target_user_id::text, true);
+    RETURN QUERY
     SELECT count(*)::bigint, max(spent_on)
       FROM expenses WHERE user_id = target_user_id;
-$$;""",
+    PERFORM set_config('app.user_id', caller, true);
+END;
+$fn$;""",
     r"""ALTER FUNCTION admin_expense_stats(BIGINT) OWNER TO spendwise_owner;""",
     r"""REVOKE ALL ON FUNCTION admin_expense_stats(BIGINT) FROM PUBLIC;""",
     r"""GRANT EXECUTE ON FUNCTION admin_expense_stats(BIGINT) TO spendwise_app;""",
+    r"""CREATE OR REPLACE FUNCTION admin_user_sessions(target_user_id BIGINT)
+    RETURNS TABLE (id BIGINT, user_id BIGINT, issued_at TIMESTAMPTZ, last_seen_at TIMESTAMPTZ, expires_at TIMESTAMPTZ, revoked_at TIMESTAMPTZ)
+    LANGUAGE plpgsql
+    VOLATILE
+    SECURITY DEFINER
+    SET search_path = pg_catalog, public
+AS $fn$
+DECLARE
+    caller TEXT := current_setting('app.user_id', true);
+BEGIN
+    IF caller IS NULL OR caller = '' THEN
+        RAISE EXCEPTION 'admin_user_sessions requires app.user_id to be set (SW-ADR-136)';
+    END IF;
+    PERFORM set_config('app.user_id', target_user_id::text, true);
+    RETURN QUERY
+    SELECT s.id, s.user_id, s.issued_at, s.last_seen_at, s.expires_at, s.revoked_at
+      FROM sessions s
+     WHERE s.user_id = target_user_id
+       AND s.revoked_at IS NULL
+       AND s.expires_at > now()
+     ORDER BY s.last_seen_at DESC, s.id DESC;
+    PERFORM set_config('app.user_id', caller, true);
+END;
+$fn$;""",
+    r"""ALTER FUNCTION admin_user_sessions(BIGINT) OWNER TO spendwise_owner;""",
+    r"""REVOKE ALL ON FUNCTION admin_user_sessions(BIGINT) FROM PUBLIC;""",
+    r"""GRANT EXECUTE ON FUNCTION admin_user_sessions(BIGINT) TO spendwise_app;""",
+    r"""CREATE OR REPLACE FUNCTION admin_revoke_sessions(target_user_id BIGINT)
+    RETURNS TABLE (revoked BIGINT)
+    LANGUAGE plpgsql
+    VOLATILE
+    SECURITY DEFINER
+    SET search_path = pg_catalog, public
+AS $fn$
+DECLARE
+    caller TEXT := current_setting('app.user_id', true);
+BEGIN
+    IF caller IS NULL OR caller = '' THEN
+        RAISE EXCEPTION 'admin_revoke_sessions requires app.user_id to be set (SW-ADR-136)';
+    END IF;
+    PERFORM set_config('app.user_id', target_user_id::text, true);
+    RETURN QUERY
+    WITH gone AS (
+        UPDATE sessions SET revoked_at = now()
+         WHERE user_id = target_user_id AND revoked_at IS NULL
+        RETURNING 1
+    )
+    SELECT count(*)::bigint FROM gone;
+    PERFORM set_config('app.user_id', caller, true);
+END;
+$fn$;""",
+    r"""ALTER FUNCTION admin_revoke_sessions(BIGINT) OWNER TO spendwise_owner;""",
+    r"""REVOKE ALL ON FUNCTION admin_revoke_sessions(BIGINT) FROM PUBLIC;""",
+    r"""GRANT EXECUTE ON FUNCTION admin_revoke_sessions(BIGINT) TO spendwise_app;""",
     r"""GRANT USAGE ON SCHEMA public TO spendwise_app;""",
     r"""GRANT SELECT, INSERT, UPDATE, DELETE ON expenses, categories, sessions TO spendwise_app;""",
     r"""GRANT SELECT, INSERT, UPDATE ON users, password_resets TO spendwise_app;""",

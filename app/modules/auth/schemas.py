@@ -55,3 +55,38 @@ class Principal(BaseModel):
     currency: str
     is_active: bool
     receipts_enabled: bool
+
+
+# ── the settings a person owns (SW-ADR-148) ────────────────────────────────
+class ProfileUpdate(BaseModel):
+    """`PATCH /api/auth/me`. Display name only.
+
+    Email is absent deliberately: it is the identity the unique index is built
+    on, changing it is an account takeover vector when nothing verifies the new
+    address, and `SW-ADR-012` records that there is no email in this stack to
+    verify with.
+    """
+
+    model_config = ConfigDict(extra="ignore", strict=True)
+    display_name: str | None = None
+
+
+class PasswordChange(BaseModel):
+    """`POST /api/auth/password`. Both, always.
+
+    Requiring the current password is what stops a stolen session becoming a
+    stolen account — without it, anyone holding a live cookie can lock the
+    owner out.
+    """
+
+    model_config = ConfigDict(extra="ignore", strict=True)
+    current_password: str
+    new_password: str
+
+
+class ResetComplete(BaseModel):
+    """`POST /api/auth/reset/complete`. Redeeming an admin-issued code."""
+
+    model_config = ConfigDict(extra="ignore", strict=True)
+    token: str
+    new_password: str

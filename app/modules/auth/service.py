@@ -11,7 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import set_request_identity
-from app.core.errors import ApiError
+from app.core.errors import ApiError, Violation, validation_error
 from app.core.security import (
     TokenClaims, TokenError, hash_password, mint_token, read_token, verify_password,
 )
@@ -101,10 +101,17 @@ class AuthService:
         """
         user = await self.users.by_email(email)
         ok = await verify_password(password, user.password_hash if user else None)
-        if not user or not ok:
+        if not user or not ok or not user.is_active:
+            # ONE refusal for all three. `SW-ADR-100 (1)`: "Login refused with
+            # the same generic 401 as any bad credential, bcrypt compare still
+            # run." A distinct code for a deactivated account tells anyone who
+            # can type an address that it exists and has been disabled.
+            #
+            # `ACCOUNT_DEACTIVATED` is for a VALID SESSION whose account was
+            # switched off underneath it (`error_codes`: "valid session,
+            # is_active false") — the person is already identified there, so
+            # there is nothing left to disclose and everything to explain.
             raise ApiError("SESSION_INVALID")
-        if not user.is_active:
-            raise ApiError("ACCOUNT_DEACTIVATED")
         return user
 
     async def open_session(self, user, *, user_agent: str | None, ip: str | None) -> str:
@@ -160,3 +167,154 @@ def read_claims(token: str) -> TokenClaims:
         return read_token(token)
     except TokenError as exc:
         raise ApiError("SESSION_INVALID") from exc
+
+
+def validate_password(password: str) -> None:
+    """12-72 bytes (`SW-ADR-103`), checked HERE as well as in the request model.
+
+    The upper bound is bcrypt's: it silently ignores bytes past 72, so without
+    the cap two different long passwords sharing a 72-byte prefix are the same
+    password and nobody is told. The reset and change-password paths do not go
+    through `RegisterRequest`, so the rule has to live somewhere both can call
+    — and one function is what stops the two from drifting.
+    """
+    if not 12 <= len(password.encode("utf-8")) <= 72:
+        raise validation_error([Violation("field.type", "password")])
+
+
+# ── M1/M4: reset codes, and the settings a person owns ─────────────────────
+RESET_LIFETIME = timedelta(hours=1)
+
+
+class AccountService(AuthService):
+    """The half of auth a person exercises on themselves.
+
+    A subclass rather than a sibling because it needs the same repositories and
+    the same `_principal`, and a second class holding a second copy of those is
+    how two definitions of "who is this" come to exist.
+    """
+
+    async def issue_reset(self, user_id: int, *, created_by_admin_id: int) -> tuple[str, datetime]:
+        """`P-ACC-07`. Returns the RAW token exactly once.
+
+        Only the SHA-256 hash is stored (`SW-ADR-032`), so a database dump is
+        not a set of working password resets — and this return value is the
+        only moment the code exists in the clear anywhere in the system. It is
+        never logged: `SW-ADR-138`'s deny-list covers `token`.
+        """
+        from app.core.security import new_reset_token
+        from app.modules.auth.models import PasswordReset
+
+        raw, hashed = new_reset_token()
+        expires_at = datetime.now(UTC) + RESET_LIFETIME
+        self.db.add(PasswordReset(
+            user_id=user_id, token_hash=hashed, expires_at=expires_at,
+            created_by_admin_id=created_by_admin_id))
+        await self.db.flush()
+        return raw, expires_at
+
+    async def redeem_reset(self, *, token: str, new_password: str) -> None:
+        """`P-ACC-07`, all four outcomes with ONE message.
+
+        Unknown, expired, already used and valid-but-weak-password are four
+        different states, and three of them return the same sentence — telling
+        an attacker which one they hit turns a guessed token into an oracle.
+        The fourth (a weak password) is the caller's own input and is named.
+        """
+        from sqlalchemy import select
+
+        from app.core.security import hash_reset_token
+        from app.modules.auth.models import PasswordReset
+
+        validate_password(new_password)
+
+        now = datetime.now(UTC)
+        row = await self.db.scalar(
+            select(PasswordReset).where(
+                PasswordReset.token_hash == hash_reset_token(token)))
+        if row is None or row.used_at is not None or row.expires_at <= now:
+            raise ApiError("SESSION_INVALID")
+
+        user = await self.users.by_id(row.user_id)
+        if user is None:
+            raise ApiError("SESSION_INVALID")
+
+        # ESTABLISH THE IDENTITY before touching `sessions`.
+        #
+        # This route is unauthenticated by design — the point of a reset is that
+        # the person cannot sign in — so no dependency has set `app.user_id`,
+        # and `sessions` is under FORCE ROW LEVEL SECURITY. The revocation below
+        # would match zero rows, leaving every session of a possibly-compromised
+        # account live while the response said the reset succeeded.
+        #
+        # Setting it here is not a weakening: possession of the token IS the
+        # proof of identity this endpoint accepts, and it has just been checked.
+        await set_request_identity(self.db, row.user_id)
+
+        user.password_hash = await hash_password(new_password)
+        row.used_at = now
+        # Redeeming ends every session. A reset exists because the account may
+        # be compromised; leaving the attacker's session live would make the
+        # reset a formality.
+        await self.sessions.revoke_all_for_user(row.user_id, now)
+        await self.db.flush()
+
+    async def update_profile(self, principal: Principal, *, display_name: str | None):
+        user = await self.users.by_id(principal.id)
+        if user is None:                                    # pragma: no cover
+            raise ApiError("SESSION_INVALID")
+        if display_name is not None:
+            name = display_name.strip()
+            if not 1 <= len(name) <= 100:
+                raise validation_error([Violation("field.type", "display_name")])
+            user.display_name = name
+        await self.db.flush()
+        return self._principal(user)
+
+    async def change_password(self, principal: Principal, *, current: str,
+                              new: str, keep_session_id: int) -> int:
+        """Changing a password signs out EVERY OTHER session, not this one.
+
+        Signing the person out of the browser they are standing in punishes the
+        action this feature exists to encourage. Every other session goes,
+        because "change my password" is what someone does when they think
+        another session is not theirs.
+        """
+        validate_password(new)
+        user = await self.users.by_id(principal.id)
+        if user is None or not await verify_password(current, user.password_hash):
+            # The SAME code a bad sign-in returns. A distinct one would confirm
+            # a guessed password against a session someone already stole.
+            raise ApiError("SESSION_INVALID")
+
+        user.password_hash = await hash_password(new)
+        await self.db.flush()
+        return await self.sessions.revoke_all_except(principal.id, keep_session_id,
+                                                     datetime.now(UTC))
+
+    async def deactivate_self(self, principal: Principal) -> None:
+        """`SW-ADR-148`. Deactivation, not deletion.
+
+        `SW-ADR-107` rules that user deletion does not exist in v1 — deleting a
+        person's financial history is the clearest one-way door in the register.
+        This is the reversible half of what a person means when they ask to
+        leave: sign-in refused, every session revoked, the record intact and
+        restorable by an administrator.
+
+        The last active administrator cannot do this to themselves, for the same
+        reason they cannot demote themselves: it leaves a system nobody can
+        administer.
+        """
+        from app.modules.admin.repository import AdminRepository
+
+        user = await self.users.by_id(principal.id)
+        if user is None:                                    # pragma: no cover
+            raise ApiError("SESSION_INVALID")
+        if user.role == "admin":
+            if await AdminRepository(self.db).count_active_admins(
+                    excluding=user.id) == 0:
+                raise ApiError("CONFLICT", field="is_active")
+
+        user.is_active = False
+        await self.sessions.revoke_all_for_user(user.id, datetime.now(UTC))
+        await self.db.flush()

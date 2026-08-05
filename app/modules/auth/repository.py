@@ -49,3 +49,18 @@ class AuthRepository:
                                   Session.revoked_at.is_(None))
             .values(revoked_at=now))
         return r.rowcount or 0
+
+    async def revoke_all_except(self, user_id: int, keep_session_id: int,
+                                now: datetime) -> int:
+        """Every live session but the one making the request.
+
+        Signing someone out of the browser they are standing in punishes the
+        action this exists to encourage — and "change my password" is exactly
+        what a person does when they suspect another session is not theirs.
+        """
+        r = await self.db.execute(
+            update(Session).where(Session.user_id == user_id,
+                                  Session.id != keep_session_id,
+                                  Session.revoked_at.is_(None))
+            .values(revoked_at=now))
+        return r.rowcount or 0

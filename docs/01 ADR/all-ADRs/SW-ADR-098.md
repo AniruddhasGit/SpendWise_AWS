@@ -1,5 +1,11 @@
 # SW-ADR-098 — Admin-on-admin: guard extended, peer reset refused
 
+> **⚠ AMENDED 2026-08-06 by `SW-ADR-148`.**
+> The ruling below stands in full and is implemented. What changed is the *premise* of
+> Decision (4): it reasons "with no self-service password change, that is the only
+> password-change route anyone has", and `SW-ADR-148 D` added one. The sentence is now
+> historical; the ruling is not.
+
 | Field | Value |
 |---|---|
 | ADR | `SW-ADR-098` |

@@ -530,7 +530,7 @@
   ],
   "admin_access": {
     "source": "SW-ADR-129 (supersedes SW-ADR-077, restores SW-ADR-043) · SRC-001 §4.5",
-    "note": "An admin sees counts and dates, never an amount or a description. A row-level policy has NO column dimension and therefore cannot express that; a function's return type can. `app.is_admin` is consulted by no policy on a money table and is never set on a request-scoped connection.",
+    "note": "An admin sees counts and dates, never an amount or a description. A row-level policy has NO column dimension and therefore cannot express that; a function's return type can. `app.is_admin` is consulted by no policy on a money table and is never set on a request-scoped connection. SECURITY DEFINER alone is NOT sufficient: FORCE ROW LEVEL SECURITY subjects the table owner to its own policies, so the definer function saw only the CALLER's rows and returned (0, NULL) for every other account - silently, and looking exactly like a correct privacy-respecting answer. It now swaps app.user_id to the target for the length of the query and restores it, and refuses to run when the GUC is unset (SW-ADR-149).",
     "policies_on_money_tables": false,
     "functions": [
       {
@@ -540,6 +540,22 @@
         "argtypes": "BIGINT",
         "returns": "expense_count BIGINT, last_activity DATE",
         "body": "SELECT count(*)::bigint, max(spent_on)\n      FROM expenses WHERE user_id = target_user_id;"
+      },
+      {
+        "name": "admin_user_sessions",
+        "purpose": "sessions: an admin sees WHO IS SIGNED IN (SRC-001 §4.2) and nothing about where from. `sessions` carries exactly one policy, keyed on app.user_id, so an admin querying it directly sees only their own - the capability the matrix grants was unreachable. The RETURN TYPE carries no ip and no user_agent, which makes SW-ADR-106 structurally true at the DATABASE rather than only in a Pydantic model.",
+        "args": "target_user_id BIGINT",
+        "argtypes": "BIGINT",
+        "returns": "id BIGINT, user_id BIGINT, issued_at TIMESTAMPTZ, last_seen_at TIMESTAMPTZ, expires_at TIMESTAMPTZ, revoked_at TIMESTAMPTZ",
+        "body": "SELECT s.id, s.user_id, s.issued_at, s.last_seen_at, s.expires_at, s.revoked_at\n      FROM sessions s\n     WHERE s.user_id = target_user_id\n       AND s.revoked_at IS NULL\n       AND s.expires_at > now()\n     ORDER BY s.last_seen_at DESC, s.id DESC;"
+      },
+      {
+        "name": "admin_revoke_sessions",
+        "purpose": "sessions: FORCE SIGN SOMEONE OUT (SRC-001 §4.2), and the revocation SW-ADR-100 (2) requires in the same transaction as a deactivation. Without this the UPDATE matched zero rows under RLS and REPORTED SUCCESS - a force-sign-out that signs nobody out, and an audit row claiming it did.",
+        "args": "target_user_id BIGINT",
+        "argtypes": "BIGINT",
+        "returns": "revoked BIGINT",
+        "body": "WITH gone AS (\n        UPDATE sessions SET revoked_at = now()\n         WHERE user_id = target_user_id AND revoked_at IS NULL\n        RETURNING 1\n    )\n    SELECT count(*)::bigint FROM gone;"
       }
     ]
   },

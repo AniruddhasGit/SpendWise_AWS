@@ -63,25 +63,149 @@ CREATE POLICY expenses_owner ON expenses
 
 
 -- expenses: an admin reads COUNT and LAST ACTIVITY DATE only (SW-ADR-129). This is the whole of admin access to the money table.
--- SECURITY DEFINER bypasses row security by design — which is exactly why
--- the RETURN TYPE is the guard. An amount cannot come back through this
--- function because there is no column for one. SRC-001 §4.5 is structurally
--- true at the DATABASE, not merely in a response model.
+-- SECURITY DEFINER runs this as the TABLE OWNER — which is not, on its own,
+-- enough. FORCE ROW LEVEL SECURITY subjects the owner to its own policies, so
+-- the owner sees exactly what `app.user_id` says and nothing else. The first
+-- version of this function was LANGUAGE sql with no GUC handling, and it
+-- returned (0, NULL) for every account except the caller's own — silently,
+-- and looking exactly like a correct privacy-respecting answer.
+--
+-- So the identity is swapped to the TARGET for the length of the query and
+-- restored before returning. It is transaction-local (set_config(..., true)),
+-- and it refuses to run when app.user_id is unset rather than restoring to
+-- something that was never there — an unset GUC reads as NULL, an empty one
+-- raises on ::bigint, and the two are not the same state.
+--
+-- THE RETURN TYPE IS STILL THE GUARD. An amount cannot come back through this
+-- function because there is no column for one, so SRC-001 §4.5 is structurally
+-- true at the DATABASE and not merely in a response model.
 -- SET search_path is MANDATORY: without it a definer function is a
 -- privilege-escalation vector (an attacker-controlled schema shadows a name).
+-- VOLATILE, not STABLE: it mutates a GUC, and labelling that STABLE would be
+-- a lie the planner is entitled to act on.
 CREATE OR REPLACE FUNCTION admin_expense_stats(target_user_id BIGINT)
     RETURNS TABLE (expense_count BIGINT, last_activity DATE)
-    LANGUAGE sql
-    STABLE
+    LANGUAGE plpgsql
+    VOLATILE
     SECURITY DEFINER
     SET search_path = pg_catalog, public
-AS $$
+AS $fn$
+DECLARE
+    caller TEXT := current_setting('app.user_id', true);
+BEGIN
+    IF caller IS NULL OR caller = '' THEN
+        RAISE EXCEPTION 'admin_expense_stats requires app.user_id to be set (SW-ADR-136)';
+    END IF;
+    PERFORM set_config('app.user_id', target_user_id::text, true);
+    RETURN QUERY
     SELECT count(*)::bigint, max(spent_on)
       FROM expenses WHERE user_id = target_user_id;
-$$;
+    PERFORM set_config('app.user_id', caller, true);
+END;
+$fn$;
 ALTER FUNCTION admin_expense_stats(BIGINT) OWNER TO spendwise_owner;
 REVOKE ALL ON FUNCTION admin_expense_stats(BIGINT) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION admin_expense_stats(BIGINT) TO spendwise_app;
+
+
+-- sessions: an admin sees WHO IS SIGNED IN (SRC-001 §4.2) and nothing about where from. `sessions` carries exactly one policy, keyed on app.user_id, so an admin querying it directly sees only their own - the capability the matrix grants was unreachable. The RETURN TYPE carries no ip and no user_agent, which makes SW-ADR-106 structurally true at the DATABASE rather than only in a Pydantic model.
+-- SECURITY DEFINER runs this as the TABLE OWNER — which is not, on its own,
+-- enough. FORCE ROW LEVEL SECURITY subjects the owner to its own policies, so
+-- the owner sees exactly what `app.user_id` says and nothing else. The first
+-- version of this function was LANGUAGE sql with no GUC handling, and it
+-- returned (0, NULL) for every account except the caller's own — silently,
+-- and looking exactly like a correct privacy-respecting answer.
+--
+-- So the identity is swapped to the TARGET for the length of the query and
+-- restored before returning. It is transaction-local (set_config(..., true)),
+-- and it refuses to run when app.user_id is unset rather than restoring to
+-- something that was never there — an unset GUC reads as NULL, an empty one
+-- raises on ::bigint, and the two are not the same state.
+--
+-- THE RETURN TYPE IS STILL THE GUARD. An amount cannot come back through this
+-- function because there is no column for one, so SRC-001 §4.5 is structurally
+-- true at the DATABASE and not merely in a response model.
+-- SET search_path is MANDATORY: without it a definer function is a
+-- privilege-escalation vector (an attacker-controlled schema shadows a name).
+-- VOLATILE, not STABLE: it mutates a GUC, and labelling that STABLE would be
+-- a lie the planner is entitled to act on.
+CREATE OR REPLACE FUNCTION admin_user_sessions(target_user_id BIGINT)
+    RETURNS TABLE (id BIGINT, user_id BIGINT, issued_at TIMESTAMPTZ, last_seen_at TIMESTAMPTZ, expires_at TIMESTAMPTZ, revoked_at TIMESTAMPTZ)
+    LANGUAGE plpgsql
+    VOLATILE
+    SECURITY DEFINER
+    SET search_path = pg_catalog, public
+AS $fn$
+DECLARE
+    caller TEXT := current_setting('app.user_id', true);
+BEGIN
+    IF caller IS NULL OR caller = '' THEN
+        RAISE EXCEPTION 'admin_user_sessions requires app.user_id to be set (SW-ADR-136)';
+    END IF;
+    PERFORM set_config('app.user_id', target_user_id::text, true);
+    RETURN QUERY
+    SELECT s.id, s.user_id, s.issued_at, s.last_seen_at, s.expires_at, s.revoked_at
+      FROM sessions s
+     WHERE s.user_id = target_user_id
+       AND s.revoked_at IS NULL
+       AND s.expires_at > now()
+     ORDER BY s.last_seen_at DESC, s.id DESC;
+    PERFORM set_config('app.user_id', caller, true);
+END;
+$fn$;
+ALTER FUNCTION admin_user_sessions(BIGINT) OWNER TO spendwise_owner;
+REVOKE ALL ON FUNCTION admin_user_sessions(BIGINT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION admin_user_sessions(BIGINT) TO spendwise_app;
+
+
+-- sessions: FORCE SIGN SOMEONE OUT (SRC-001 §4.2), and the revocation SW-ADR-100 (2) requires in the same transaction as a deactivation. Without this the UPDATE matched zero rows under RLS and REPORTED SUCCESS - a force-sign-out that signs nobody out, and an audit row claiming it did.
+-- SECURITY DEFINER runs this as the TABLE OWNER — which is not, on its own,
+-- enough. FORCE ROW LEVEL SECURITY subjects the owner to its own policies, so
+-- the owner sees exactly what `app.user_id` says and nothing else. The first
+-- version of this function was LANGUAGE sql with no GUC handling, and it
+-- returned (0, NULL) for every account except the caller's own — silently,
+-- and looking exactly like a correct privacy-respecting answer.
+--
+-- So the identity is swapped to the TARGET for the length of the query and
+-- restored before returning. It is transaction-local (set_config(..., true)),
+-- and it refuses to run when app.user_id is unset rather than restoring to
+-- something that was never there — an unset GUC reads as NULL, an empty one
+-- raises on ::bigint, and the two are not the same state.
+--
+-- THE RETURN TYPE IS STILL THE GUARD. An amount cannot come back through this
+-- function because there is no column for one, so SRC-001 §4.5 is structurally
+-- true at the DATABASE and not merely in a response model.
+-- SET search_path is MANDATORY: without it a definer function is a
+-- privilege-escalation vector (an attacker-controlled schema shadows a name).
+-- VOLATILE, not STABLE: it mutates a GUC, and labelling that STABLE would be
+-- a lie the planner is entitled to act on.
+CREATE OR REPLACE FUNCTION admin_revoke_sessions(target_user_id BIGINT)
+    RETURNS TABLE (revoked BIGINT)
+    LANGUAGE plpgsql
+    VOLATILE
+    SECURITY DEFINER
+    SET search_path = pg_catalog, public
+AS $fn$
+DECLARE
+    caller TEXT := current_setting('app.user_id', true);
+BEGIN
+    IF caller IS NULL OR caller = '' THEN
+        RAISE EXCEPTION 'admin_revoke_sessions requires app.user_id to be set (SW-ADR-136)';
+    END IF;
+    PERFORM set_config('app.user_id', target_user_id::text, true);
+    RETURN QUERY
+    WITH gone AS (
+        UPDATE sessions SET revoked_at = now()
+         WHERE user_id = target_user_id AND revoked_at IS NULL
+        RETURNING 1
+    )
+    SELECT count(*)::bigint FROM gone;
+    PERFORM set_config('app.user_id', caller, true);
+END;
+$fn$;
+ALTER FUNCTION admin_revoke_sessions(BIGINT) OWNER TO spendwise_owner;
+REVOKE ALL ON FUNCTION admin_revoke_sessions(BIGINT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION admin_revoke_sessions(BIGINT) TO spendwise_app;
 
 -- ── privileges (SW-ADR-137) ──────────────────────────────────────────
 -- RLS only NARROWS what a grant already allows. Both are required, and the

@@ -646,7 +646,13 @@ def check_all(root: str) -> Report:
                 # one of the nine category bands failed the 3:1 floor and had to
                 # be darkened — so a hand-edited copy inside client/ would be a
                 # colour that no measurement backs.
-                os.path.join(root, "client", "sync_tokens.py")):
+                os.path.join(root, "client", "sync_tokens.py"),
+                # Every contrast figure in the design system, computed rather
+                # than asserted — and it fails on a pair BELOW ITS FLOOR, not
+                # only on drift. A generated table faithfully recording a
+                # 2.36:1 would be a document doing its job while the product
+                # fails the standard it claims (`SW-ADR-147`).
+                os.path.join(root, "tools", "contrast.py")):
         if not os.path.isfile(gen):
             r.fail("generated-artifact",
                    os.path.relpath(gen, root).replace("\\", "/") + " is missing, so every "

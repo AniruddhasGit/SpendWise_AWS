@@ -22,6 +22,7 @@ from app.core.errors import (
 from app.core.health import router as ops_router
 from app.core.settings import get_settings
 from app.core.spa import mount as mount_client
+from app.modules.admin.router import router as admin_router
 from app.modules.auth.router import router as auth_router
 from app.modules.categories.router import router as categories_router
 from app.modules.expenses.router import router as expenses_router
@@ -50,6 +51,7 @@ app.include_router(ops_router)
 app.include_router(auth_router)
 app.include_router(categories_router)
 app.include_router(expenses_router)
+app.include_router(admin_router)
 
 # ── LAST ───────────────────────────────────────────────────────────────────
 # Everything above this line is a route. Everything below is the fallback. A
@@ -57,6 +59,6 @@ app.include_router(expenses_router)
 # returns index.html with a 200, so a client calling a misspelt endpoint parses
 # HTML as JSON and reports a syntax error at character 0 instead of a 404.
 #
-# Still to come: M4 admin · M5 receipts (deferred — no S3 bucket, prep-queue
-# item 6) · M6 hardening. Each of those goes ABOVE this call.
+# Still to come: M5 receipts (deferred — no S3 bucket, prep-queue item 6) ·
+# M6 hardening. Each of those goes ABOVE this call.
 mount_client(app)

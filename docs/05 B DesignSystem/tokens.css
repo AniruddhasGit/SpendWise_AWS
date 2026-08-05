@@ -10,7 +10,14 @@
   --sw-pine-deep: #1b3826;        /* pressed and hover on pine. */
   --sw-pine-soft: #e6ede8;        /* tinted backgrounds behind pine content. */
   --sw-border: #ddd6cb;           /* hairlines, input borders, band separators. */
-  --sw-border-strong: #a8a29e;    /* focus-adjacent borders, table rules. */
+  --sw-border-strong: #8a837b;    /* focus-adjacent borders, table rules. */
+  /* Was #a8a29e until 2026-08-06, which measures 2.36:1 against paper — below
+     the 3:1 a UI component needs. SW-ADR-131 measured exactly that value,
+     found it failing, and darkened it for the Uncategorised band; the IDENTICAL
+     hex sat here doing a job with the identical floor and was never re-checked,
+     because the measurement was done per-token by hand. Darkened within the
+     same hue to 3.50:1. Found the moment tools/contrast.py measured every pair
+     instead of the ones someone remembered to list (SW-ADR-147). */
   --sw-positive: #2d5a3d;         /* same as pine — under-budget, success. */
   --sw-warning: #8a5a1f;          /* approaching a limit. */
   --sw-danger: #9c2f28;           /* destructive actions, validation errors. */
@@ -68,6 +75,135 @@
      the same ink the shadows already use. Not in the contrast table: a scrim
      carries no content and no control sits on it. */
   --sw-scrim: rgb(28 25 23 / 0.35);
+
+  /* glass — SW-ADR-147 ------------------------------------------------- */
+  /* Translucent surfaces over a pine wash. The alpha is 0.78 and not lower:
+     glass composites over whatever is behind it, so the contrast a person
+     actually gets depends on the backdrop. tools/contrast.py computes the
+     composited figure and fails below 4.5:1, which is what fixes the alpha —
+     it is a measured floor, not a taste. */
+  --sw-glass: rgb(255 255 255 / 0.78);
+  --sw-glass-strong: rgb(255 255 255 / 0.92);
+  --sw-glass-sunken: rgb(240 236 228 / 0.66);
+  --sw-glass-border: rgb(255 255 255 / 0.60);
+  --sw-glass-blur: 16px;
+
+  /* The page wash the glass sits on. Two soft pine radials over paper —
+     the thing that makes a translucent surface read as glass rather than as
+     a slightly wrong white. */
+  --sw-wash-1: rgb(45 90 61 / 0.10);
+  --sw-wash-2: rgb(46 125 138 / 0.07);
+
+  /* Text on a pine or danger fill. Was `--sw-paper` used positionally in three
+     components; named here so the contrast table can measure it. */
+  --sw-on-pine: #faf7f2;
+
+  /* charts — SW-ADR-147. A line plot needs a stroke and a fill that are the
+     same hue and different weights, and neither is a category colour. */
+  --sw-plot-line: #2d5a3d;
+  --sw-plot-fill: rgb(45 90 61 / 0.14);
+  --sw-plot-grid: rgb(28 25 23 / 0.08);
+}
+
+/* ── dark ─────────────────────────────────────────────────────────────────
+   `SW-ADR-147`. Two selectors, deliberately: the media query is the DEFAULT
+   (a person whose system is dark gets dark before any script runs, so there is
+   no white flash), and `[data-theme]` is the OVERRIDE the appearance control
+   writes. `[data-theme="light"]` has to restate the light values or a dark
+   system would win over an explicit light choice.
+
+   Not an inversion. Pine stays the accent, but at #2d5a3d it measures 1.6:1 on
+   a dark surface — so the dark theme uses a lighter tint of the same hue, and
+   the same is true of five of the nine category bands. Every replacement below
+   was chosen by running tools/contrast.py until it passed, not by eye. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --sw-paper: #10150f;
+    --sw-paper-raised: #1a211a;
+    --sw-paper-sunken: #0b0f0b;
+    --sw-ink: #eef2ea;
+    --sw-ink-muted: #b3bdb2;
+    --sw-ink-faint: #7d8a7e;
+    --sw-pine: #7fc79a;
+    --sw-pine-deep: #a5dcb8;
+    --sw-pine-soft: #1c2b21;
+    --sw-border: #2b352b;
+    --sw-border-strong: #6d7c6e;
+    --sw-positive: #7fc79a;
+    --sw-warning: #d9a441;
+    --sw-danger: #f08a80;
+    --sw-on-pine: #0b120c;
+
+    --sw-cat-1: #6fae82;
+    --sw-cat-2: #e08a6f;
+    --sw-cat-3: #74a6cc;
+    --sw-cat-4: #d4ae5e;
+    --sw-cat-5: #62b8c4;
+    --sw-cat-6: #b48ecb;
+    --sw-cat-7: #d883a6;
+    --sw-cat-8: #a8b09c;
+    --sw-cat-uncat: #9aa096;
+
+    --sw-glass: rgb(30 40 32 / 0.78);
+    --sw-glass-strong: rgb(30 40 32 / 0.94);
+    --sw-glass-sunken: rgb(11 15 11 / 0.66);
+    --sw-glass-border: rgb(255 255 255 / 0.10);
+    --sw-wash-1: rgb(127 199 154 / 0.10);
+    --sw-wash-2: rgb(98 184 196 / 0.07);
+    --sw-scrim: rgb(0 0 0 / 0.60);
+
+    --sw-plot-line: #7fc79a;
+    --sw-plot-fill: rgb(127 199 154 / 0.16);
+    --sw-plot-grid: rgb(255 255 255 / 0.09);
+
+    --sw-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.35);
+    --sw-shadow-md: 0 2px 8px rgb(0 0 0 / 0.40);
+    --sw-shadow-panel: 0 0 0 1px rgb(255 255 255 / 0.08), 0 8px 32px rgb(0 0 0 / 0.55);
+  }
+}
+
+:root[data-theme="dark"] {
+  --sw-paper: #10150f;
+  --sw-paper-raised: #1a211a;
+  --sw-paper-sunken: #0b0f0b;
+  --sw-ink: #eef2ea;
+  --sw-ink-muted: #b3bdb2;
+  --sw-ink-faint: #7d8a7e;
+  --sw-pine: #7fc79a;
+  --sw-pine-deep: #a5dcb8;
+  --sw-pine-soft: #1c2b21;
+  --sw-border: #2b352b;
+  --sw-border-strong: #6d7c6e;
+  --sw-positive: #7fc79a;
+  --sw-warning: #d9a441;
+  --sw-danger: #f08a80;
+  --sw-on-pine: #0b120c;
+
+  --sw-cat-1: #6fae82;
+  --sw-cat-2: #e08a6f;
+  --sw-cat-3: #74a6cc;
+  --sw-cat-4: #d4ae5e;
+  --sw-cat-5: #62b8c4;
+  --sw-cat-6: #b48ecb;
+  --sw-cat-7: #d883a6;
+  --sw-cat-8: #a8b09c;
+  --sw-cat-uncat: #9aa096;
+
+  --sw-glass: rgb(30 40 32 / 0.78);
+  --sw-glass-strong: rgb(30 40 32 / 0.94);
+  --sw-glass-sunken: rgb(11 15 11 / 0.66);
+  --sw-glass-border: rgb(255 255 255 / 0.10);
+  --sw-wash-1: rgb(127 199 154 / 0.10);
+  --sw-wash-2: rgb(98 184 196 / 0.07);
+  --sw-scrim: rgb(0 0 0 / 0.60);
+
+  --sw-plot-line: #7fc79a;
+  --sw-plot-fill: rgb(127 199 154 / 0.16);
+  --sw-plot-grid: rgb(255 255 255 / 0.09);
+
+  --sw-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.35);
+  --sw-shadow-md: 0 2px 8px rgb(0 0 0 / 0.40);
+  --sw-shadow-panel: 0 0 0 1px rgb(255 255 255 / 0.08), 0 8px 32px rgb(0 0 0 / 0.55);
 }
 
 /* Numbers ALWAYS use tabular figures so columns of money line up.
