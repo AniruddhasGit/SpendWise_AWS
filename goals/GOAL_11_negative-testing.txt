@@ -49,6 +49,8 @@ DEFINITION OF DONE - binary
   [ ] every case's expected status AND body are specified. No case says only "fails".
   [ ] the RLS red-proof has its own case: disable the policy, the isolation case MUST go
       red, revert, verify. Written as steps, not prose.
+  [ ] py tools/consistency_check.py --selftest -> 7/7 fired, THEN the run itself
+      exits 0. Every cross-reference this goal writes must resolve. Paste both outputs.
   [ ] PROGRESS.md appended; handoff written
 
 GUARDRAILS - full set in CLAUDE.md. Cases are written; nothing is executed against any

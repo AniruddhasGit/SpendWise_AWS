@@ -41,6 +41,8 @@ DEFINITION OF DONE - binary
   [ ] no raw hex appears in any component spec; components reference semantic tokens only.
       Prove it with a grep.
   [ ] every claim in DESIGN-SYSTEM.md traces to SRC-001 S9 or is tagged [JUDGEMENT]
+  [ ] py tools/consistency_check.py --selftest -> 7/7 fired, THEN the run itself
+      exits 0. Every cross-reference this goal writes must resolve. Paste both outputs.
   [ ] PROGRESS.md appended; handoff written
 
 GUARDRAILS - full set in CLAUDE.md.

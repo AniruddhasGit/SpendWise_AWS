@@ -1,0 +1,77 @@
+ENGINE & MODE: Opus 5 . xhigh effort . ultracode . maximum parallelism . worktrees where write-sets are disjoint.
+OBJECTIVE
+  Prove the document set fits together, and that a stranger can build from it. Nothing here
+  produces new scope - it produces a verdict. This gate runs BEFORE any product code.
+
+WHY THIS EXISTS
+  GOAL_02's review found 3 contradictions BETWEEN ADRs that no single-document check could
+  see, and 4 defects a 40-line script catches for free. Per-goal QA asks "is this artifact
+  right?". Nothing yet asks "do they agree with each other?" - and by GOAL_12 there are eight
+  documents each derived from the last. A contradiction found here costs one fix; found after
+  the Bible, it costs re-deriving three documents.
+
+CONTEXT
+  CONSTITUTION.md . docs/00 SourceOfTruth/ . every folder 01..12 . tools/consistency_check.py
+
+WRITE-SET
+  docs/12 DesignReview/**  .  docs/13 Fixes for Design Review/**
+  CONSTITUTION.md (Article X only, to raise what the gate finds)
+  PROGRESS.md . handoffs/
+  Never edit an artifact under review from inside this goal. Findings are FILED, not fixed
+  here - fixing is GOAL_13b, so the reviewer and the repairer are never the same session.
+
+PART 1 - THE MECHANICAL LAYER (cheap, runs first)
+  py tools/consistency_check.py --selftest    then    py tools/consistency_check.py
+  Both must be green before spending a single agent. If the script is red, the semantic
+  review is reviewing a document set that does not even resolve internally.
+
+PART 2 - CROSS-ARTIFACT ASSURANCE (fan out, one lane per lens)
+  Each lane is a FRESH agent with zero inherited context.
+  X-01 CONTRADICTIONS. Every pair of documents that could disagree. Output CONFLICT_MAP.tsv:
+       one row per conflict - the two locations, the incompatible claims, severity, and
+       whether it is resolved or open. This is the lane GOAL_02 proved is load-bearing.
+  X-02 TWO-WAY COVERAGE at every seam: SRC-001<->BRD, BRD<->PRD, PRD<->Bible, Bible<->SIT,
+       Bible<->DataModel, ADR<->all. Both directions: no-gap AND no-creep. Output
+       COVERAGE_MATRIX.tsv with a count per seam. Any non-zero cell is a finding.
+  X-03 AUTHORITY AUDIT. Every ADR marked decided by BUILD_SESSION: does it actually decide
+       money, secrets, legal, product identity, scope, or waive a check? Those belong in
+       Article X. GOAL_02 shipped two such breaches; assume more.
+  X-04 CLAIMED-BUT-NOT-DONE. Every sentence asserting an action ("filed as", "added to",
+       "recorded in"). Verify each against the artifact it names. K1 lives or dies here.
+  X-05 UNKNOWN-UNKNOWNS RED TEAM. What is missing that nobody thought to look for? What
+       would a hostile reader say this document set cannot do?
+
+PART 3 - THE UNCOACHED VERTICAL SLICE (the only test that actually proves it)
+  Hand a FRESH agent the frozen documents and NOTHING else - no conversation, no coaching,
+  no answering its questions. Task: build one complete feature end to end
+  ("a user logs an expense and sees it in the dashboard total").
+  EVERY question it must ask is recorded as a DEFECT IN THE DOCUMENTS, not a failing of the
+  agent. Do not answer them. Count them. Fix the specs. Re-run with another fresh agent.
+  Iterate until a fresh run asks ZERO questions.
+
+DELIVERABLES - docs/12 DesignReview/EX_Consolidated-Exit-Gate/
+  01_CONSOLIDATED_EXIT_REPORT.md   the verdict, worst number first
+  02_ROOT_CAUSE_REGISTER.tsv       findings grouped by cause, not by symptom
+  03_CONFLICT_MAP.tsv              from X-01
+  04_COVERAGE_MATRIX.tsv           from X-02
+  05_UNCOACHED_SLICE_LOG.md        every question the fresh agent had to ask, per run
+  06_HUMAN_DECISION_QUEUE.md       what only the client can settle, ready to rule in 5 min
+  07_MACHINE_VERDICT.json          {pass|fail, counts per lane, the blocking list}
+  08_REVIEWER_SELF_CHALLENGE.md    what this gate did NOT look at, and what could hide there
+
+DEFINITION OF DONE - binary
+  [ ] consistency_check --selftest 7/7 AND the run exits 0. Both outputs pasted.
+  [ ] CONFLICT_MAP.tsv exists; every row is resolved or carries an Article X id
+  [ ] COVERAGE_MATRIX.tsv shows every seam, both directions, with counts
+  [ ] every BUILD_SESSION ADR passed the X-03 authority test, or moved to Article X
+  [ ] every "claimed action" verified by X-04 - zero unverified assertions remain
+  [ ] the uncoached slice reached ZERO questions on a fresh run. Record the count per
+      attempt. A first attempt above zero is EXPECTED - report the curve, not just the end.
+  [ ] 08_REVIEWER_SELF_CHALLENGE.md names at least three things this gate cannot see
+  [ ] PROGRESS.md appended; handoff written
+
+GUARDRAILS - full set in CLAUDE.md.
+  - A reviewer never fixes what it found. Findings are filed; GOAL_13b repairs.
+  - "Found nothing" is a SUSPICIOUS result. State exactly what you attacked and what you
+    did not - an empty finding list with a thin attack log is a failure of the review.
+  - No new scope. A gap is an Article X row, never a document invented to cover it.

@@ -43,6 +43,8 @@ DEFINITION OF DONE - binary
       the carrying section cited in notes. Count of INCLUDED printed.
   [ ] a fresh zero-context session reads ONLY the BRD and answers: who uses this, what
       are they trying to do, what is deliberately excluded. Paste its answers.
+  [ ] py tools/consistency_check.py --selftest -> 7/7 fired, THEN the run itself
+      exits 0. Every cross-reference this goal writes must resolve. Paste both outputs.
   [ ] PROGRESS.md appended; handoff written
 
 GUARDRAILS - full set in CLAUDE.md. No new scope. Anything the sources do not settle is

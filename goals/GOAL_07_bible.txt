@@ -46,6 +46,8 @@ DEFINITION OF DONE - binary
       this alone, without asking anyone anything?" Paste its verdict and the sample.
   [ ] no dependency cycles - detect and print
   [ ] included_in_bible flipped for every ADR that landed
+  [ ] py tools/consistency_check.py --selftest -> 7/7 fired, THEN the run itself
+      exits 0. Every cross-reference this goal writes must resolve. Paste both outputs.
   [ ] PROGRESS.md appended; handoff written
 
 GUARDRAILS - full set in CLAUDE.md. No scope beyond the PRD. A missing decision is an

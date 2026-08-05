@@ -42,6 +42,8 @@ DEFINITION OF DONE - binary
       SUSPICIOUS result, not a good one - say so and explain what you did to look.
   [ ] every persona in the BRD has at least one journey; every surface in PRD S3 is
       reached by at least one journey. Print both coverage tables.
+  [ ] py tools/consistency_check.py --selftest -> 7/7 fired, THEN the run itself
+      exits 0. Every cross-reference this goal writes must resolve. Paste both outputs.
   [ ] PROGRESS.md appended; handoff written
 
 GUARDRAILS - full set in CLAUDE.md. A journey never invents behaviour. If the PRD does

@@ -40,6 +40,7 @@ the full document is read before the next begins.
 | 10 | `GOAL_10_sit.txt` | `08 SIT/` | Positive cases, written before the code exists. |
 | 11 | `GOAL_11_negative-testing.txt` | `09 NegativeTesting/` | The cases that try to break it. Weighted at user B seeing user A's money. |
 | 12 | `GOAL_12_engineering-ledger.txt` | `10 EngineeringLedger/` | What `/ss` reads to report the frontier. Makes cold resumption real. |
+| 13 | `GOAL_13_consolidated-exit-gate.txt` | `12 DesignReview/` | **The gate before code.** Do the eight documents agree with each other, and can a stranger build from them? |
 
 Every goal is set to **Opus 5 · xhigh effort · ultracode · maximum parallelism**, and every
 one carries a Definition of Done whose lines are binary and name the command that proves them.
@@ -52,6 +53,25 @@ Two goals are designed to be **failed on the first attempt**: `GOAL_05` (the PRD
 close until a fresh session reports fewer than 5 places it would have to guess, and `GOAL_06`
 (journeys) treats "found zero defects" as a suspicious result requiring explanation rather
 than a good one.
+
+## The two layers of checking
+
+**Every goal runs `tools/consistency_check.py`** as a Definition-of-Done line — the cheap,
+mechanical layer. It answers one question: *does every cross-reference actually resolve?*
+Dangling ADR ids, dangling `OPEN-` ids, an erratum claimed but never filed, a prep-queue row
+claimed but never added. That last class is the **"I reported an action I did not perform"**
+breach, and `GOAL_02`'s review spent an expensive adversarial agent finding four of them that
+a 40-line script catches instantly.
+
+It ships `--selftest`, which **plants a real violation of each rule and requires the check to
+fire** — by delta, so it still red-proofs on a repo that is already red. A check nobody has
+watched fail is decoration.
+
+**`GOAL_13` is the expensive layer**, and it exists because the cheap one is blind to the
+thing that actually bit us: three contradictions *between* ADRs that each resolved perfectly
+well on their own. Plus the uncoached vertical slice — a fresh agent handed the frozen
+documents and nothing else, whose every question is a defect in the documents rather than a
+failing of the agent.
 
 ## Writing a good goal
 

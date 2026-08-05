@@ -47,6 +47,8 @@ DEFINITION OF DONE - binary
   [ ] a fresh ZERO-CONTEXT session reads only the PRD and reports every place it would
       have to GUESS to build. Record the count in the handoff. This goal does not close
       at a high count - iterate the spec and re-run until it is under 5.
+  [ ] py tools/consistency_check.py --selftest -> 7/7 fired, THEN the run itself
+      exits 0. Every cross-reference this goal writes must resolve. Paste both outputs.
   [ ] PROGRESS.md appended; handoff written
 
 GUARDRAILS - full set in CLAUDE.md. No new scope. The stack is locked by SW-ADR-016.

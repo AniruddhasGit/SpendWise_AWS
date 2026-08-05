@@ -45,6 +45,8 @@ DEFINITION OF DONE - binary
       the system did, on the project this method came from.
   [ ] a FRESH zero-context session picks 15 random cases and answers "could you execute
       this exactly as written, without asking anything?" Paste the verdict.
+  [ ] py tools/consistency_check.py --selftest -> 7/7 fired, THEN the run itself
+      exits 0. Every cross-reference this goal writes must resolve. Paste both outputs.
   [ ] PROGRESS.md appended; handoff written
 
 GUARDRAILS - full set in CLAUDE.md. No new scope. A missing spec is an OPEN row.

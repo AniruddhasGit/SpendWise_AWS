@@ -43,6 +43,8 @@ DEFINITION OF DONE - binary
   [ ] THE REAL TEST: run the /ss hook and confirm it discovers this ledger and prints the
       milestone x status matrix. Paste the hook's actual output. If it does not find the
       file, the column names are wrong - fix them, do not fix the hook.
+  [ ] py tools/consistency_check.py --selftest -> 7/7 fired, THEN the run itself
+      exits 0. Every cross-reference this goal writes must resolve. Paste both outputs.
   [ ] PROGRESS.md appended; handoff written
 
 GUARDRAILS - full set in CLAUDE.md. The ledger is DERIVED. If it disagrees with the

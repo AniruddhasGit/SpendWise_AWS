@@ -48,6 +48,8 @@ DEFINITION OF DONE - binary
   [ ] every mermaid block parses. Render or lint each one. Paste the result.
   [ ] 02_decisions_owed.md covers 100% of Art X's OPEN rows. Count both, print both.
   [ ] no AWS claim is stated as observed. Grep for the labels and paste the count.
+  [ ] py tools/consistency_check.py --selftest -> 7/7 fired, THEN the run itself
+      exits 0. Every cross-reference this goal writes must resolve. Paste both outputs.
   [ ] PROGRESS.md appended; handoff written
 
 GUARDRAILS - full set in CLAUDE.md. This goal creates nothing in AWS and writes no
