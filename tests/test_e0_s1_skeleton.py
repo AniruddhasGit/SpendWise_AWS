@@ -133,6 +133,60 @@ def test_ac4_env_example_lists_every_variable_the_settings_class_reads() -> None
     )
 
 
+def test_ac4_the_rds_template_declares_the_same_variables_as_the_manifest() -> None:
+    """A second template is a second thing that drifts.
+
+    `docs/30 Deployment/env.rds-template.txt` exists so the client can paste
+    their endpoint and passwords into one place. It must declare **exactly** the
+    variables the settings class reads — otherwise filling it in produces a
+    `.env` that fails to load, or silently omits something, in the environment
+    where a mistake is most expensive.
+    """
+    sys.path.insert(0, str(REPO))
+    from app.core.settings import Settings          # noqa: PLC0415
+
+    declared = {(f.alias or name).upper() for name, f in Settings.model_fields.items()}
+
+    env_key = re.compile(r"^#?\s*([A-Z][A-Z0-9_]*)\s*=")
+    template = (REPO / "docs" / "30 Deployment" / "env.rds-template.txt").read_text("utf-8")
+    documented = {m.group(1) for line in template.splitlines()
+                  if (m := env_key.match(line.strip()))}
+
+    assert not (declared - documented), (
+        f"the RDS template is missing {sorted(declared - documented)} — filling it "
+        f"in would produce a .env that aborts at startup")
+    assert not (documented - declared), (
+        f"the RDS template lists {sorted(documented - declared)} — no code reads them")
+
+
+def test_ac4_the_rds_template_keeps_the_asyncpg_ssl_spelling() -> None:
+    """`?ssl=require`, never libpq's `sslmode=require`.
+
+    RDS forces SSL. asyncpg does not understand `sslmode=`, and treats it as an
+    unknown server setting — the connection then fails with an error that never
+    mentions SSL, which is an afternoon lost. Asserted so a well-meaning edit
+    to the "more standard" spelling fails here instead.
+    """
+    template = (REPO / "docs" / "30 Deployment" / "env.rds-template.txt").read_text("utf-8")
+    urls = [ln for ln in template.splitlines() if ln.startswith(("DATABASE_URL=",
+                                                                "MIGRATION_DATABASE_URL="))]
+    assert len(urls) == 2
+    for u in urls:
+        assert "?ssl=require" in u, f"missing asyncpg's SSL parameter: {u}"
+        assert "sslmode=" not in u, f"libpq spelling, which asyncpg ignores: {u}"
+        assert u.startswith(("DATABASE_URL=postgresql+asyncpg://",
+                             "MIGRATION_DATABASE_URL=postgresql+asyncpg://"))
+
+
+def test_ac4_the_rds_template_uses_two_different_roles() -> None:
+    """`SW-ADR-081`. One role for both is the mistake that makes the runtime
+    connection own the tables — and an owner can `ALTER TABLE … NO FORCE ROW
+    LEVEL SECURITY`, which is the isolation guarantee removing itself."""
+    template = (REPO / "docs" / "30 Deployment" / "env.rds-template.txt").read_text("utf-8")
+    assert "spendwise_app:" in template
+    assert "spendwise_owner:" in template
+
+
 def test_ac4_the_manifest_actually_loads_as_a_dotenv() -> None:
     """`.env.example` must not merely LIST the right names — it must work when
     copied to `.env` and filled in.
