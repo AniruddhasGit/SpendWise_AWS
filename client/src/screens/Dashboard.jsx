@@ -35,6 +35,17 @@ export default function Dashboard({ principal, draft, onDraft, onSignOut }) {
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(true)
 
+  // Has this account EVER recorded an expense — a different question from
+  // "did it record one this month", and the difference between the first-run
+  // state and the empty-period one. Asked with no date filter, so an empty
+  // July never tells a person with a year of history that they have never
+  // spent anything (E3-S6 AC1 vs AC2).
+  const [everAny, setEverAny] = useState(null)
+  // A ref as well as state, so `load` does not list `everAny` as a dependency
+  // — it would be rebuilt the moment the answer arrived and fire a second
+  // round of every request on first paint.
+  const answered = useRef(false)
+
   const [panelOpen, setPanelOpen] = useState(false)
   const [editing, setEditing] = useState(null)
   const [busyId, setBusyId] = useState(null)
@@ -75,11 +86,14 @@ export default function Dashboard({ principal, draft, onDraft, onSignOut }) {
       const filter = category === 'none' ? { uncategorised: true }
                    : category ? { category_id: category }
                    : {}
-      const [w, list, cats] = await Promise.all([
+      const [w, list, cats, ever] = await Promise.all([
         api.summary({ from: range.from, to: range.to }),
         api.expenses({ from: range.from, to: range.to, limit: 200,
                        ...(category === 'none' ? {} : category ? { category_id: category } : {}) }),
         api.categories(),
+        // One row, no date filter — the cheapest way to ask "is this account
+        // new". Skipped once the answer is yes, because it can never go back.
+        answered.current ? Promise.resolve(null) : api.expenses({ limit: 1 }),
       ])
       // Only ask twice when a filter is actually on.
       const s = Object.keys(filter).length
@@ -95,6 +109,10 @@ export default function Dashboard({ principal, draft, onDraft, onSignOut }) {
         ? { ...list, items: list.items.filter((e) => e.category_id === null) }
         : list)
       setCategories(cats)
+      if (ever) {
+        if (ever.total > 0) answered.current = true
+        setEverAny(ever.total > 0)
+      }
     } catch (err) {
       if (seq !== loadSeq.current) return
       // A 401 has already been routed by `api.js`; leaving it to render an
@@ -158,10 +176,12 @@ export default function Dashboard({ principal, draft, onDraft, onSignOut }) {
   const openEdit = (e) => { setEditing(e); setPanelOpen(true) }
 
   const periodLabel = labelFor(range)
-  // Whether the ACCOUNT is empty, not whether this period is — the difference
-  // between first-run and no-matches, and the reason `whole` is consulted here
-  // rather than `scoped`.
-  const accountLooksEmpty = whole && whole.count === 0 && category === null
+  // Whether the ACCOUNT is new, not whether this PERIOD is empty. The first
+  // version asked `whole.count === 0`, and a browser test caught it: switching
+  // to a month with no spending told person A — who has four expenses — that
+  // they had never recorded one, and replaced their period picker's context
+  // with "add your first expense".
+  const accountIsNew = everAny === false
 
   return (
     <>
@@ -185,7 +205,7 @@ export default function Dashboard({ principal, draft, onDraft, onSignOut }) {
           <LoadFailed error={error} onRetry={load} />
         ) : loading && !whole ? (
           <Loading />
-        ) : !whole ? null : accountLooksEmpty ? (
+        ) : !whole ? null : accountIsNew ? (
           <FirstRun onAdd={openAdd} />
         ) : (
           <>
@@ -237,7 +257,8 @@ export default function Dashboard({ principal, draft, onDraft, onSignOut }) {
             {entries && entries.items.length === 0 ? (
               <NoMatches
                 label={category !== null ? 'this category' : periodLabel.toLowerCase()}
-                onClear={() => (category !== null ? changeCategory(null) : null)}
+                onClear={category !== null ? () => changeCategory(null) : null}
+                onAdd={openAdd}
               />
             ) : entries ? (
               <EntryList

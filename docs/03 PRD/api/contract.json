@@ -169,6 +169,8 @@
     "request": "GET /api/expenses/summary?from=2026-08-01&to=2026-08-31",
     "from": "2026-08-01",
     "to": "2026-08-31",
+    "as_of": "2026-08-05",
+    "as_of_note": "THE DAY THE GATE IS EVALUATED ON, and until 2026-08-06 it was stated nowhere. days_elapsed is min(to, today) - from + 1, so the divisor grows by one every midnight: 75810 on the 5th, 63175 on the 6th, 54150 on the 7th. The VALUE was pinned and the DATE it was pinned to was not, so the in-process gate tests read the system clock and passed for exactly one day. Found when they went red at midnight with no code change behind them. Every runner of the gate MUST set APP_TODAY_OVERRIDE to this date; the browser tests always did, which is why only half the suite fell over.",
     "assert_field": "daily_average_paise",
     "assert_value": 75810,
     "rounding": "half-up, in integers: (2*total + elapsed) // (2*elapsed)",

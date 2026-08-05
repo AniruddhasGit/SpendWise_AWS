@@ -640,7 +640,13 @@ def check_all(root: str) -> Report:
     ok = 0
     for gen in (os.path.join(root, "docs", "06 DataModel", "generate.py"),
                 os.path.join(root, "docs", "03 PRD", "api", "generate_api.py"),
-                os.path.join(root, "tools", "generate_docs_readme.py")):
+                os.path.join(root, "tools", "generate_docs_readme.py"),
+                # The client's copy of the design tokens. Every contrast figure
+                # in DESIGN-SYSTEM.md was COMPUTED from the source values, and
+                # one of the nine category bands failed the 3:1 floor and had to
+                # be darkened — so a hand-edited copy inside client/ would be a
+                # colour that no measurement backs.
+                os.path.join(root, "client", "sync_tokens.py")):
         if not os.path.isfile(gen):
             r.fail("generated-artifact",
                    os.path.relpath(gen, root).replace("\\", "/") + " is missing, so every "
@@ -696,6 +702,11 @@ PLANTS = [
      lambda t: t + "\n\nPlanted: this pack holds **7 decision records**.\n"),
     ("generated-artifact", "docs/06 DataModel/security.sql",
      lambda t: t + "\nCREATE POLICY planted_hole ON expenses FOR SELECT USING (true);\n"),
+    # The client's token copy, drifted by ONE hex digit — the exact shape this
+    # check exists for: a colour in the shipped stylesheet that no longer
+    # matches the one the design system measured 4.55:1 against.
+    ("generated-artifact", "client/src/styles/tokens.css",
+     lambda t: t.replace("#4a7c59", "#4a7c5a", 1)),
     # Asserted, with no warning framing anywhere near it — the shape that matters.
     ("day-one-value", "docs/02 BRD/SpendWise_BRD.md",
      lambda t: t + "\n\nPlanted: the daily average over the seeded fixture is 75809 paise.\n"),

@@ -26,17 +26,28 @@ export function FirstRun({ onAdd }) {
  * "empty" component, and then a person with a year of history is told they
  * have never spent anything.
  */
-export function NoMatches({ label, onClear }) {
+export function NoMatches({ label, onClear, onAdd }) {
   return (
     <div className="state" data-testid="state-no-matches">
       <h2 className="state-title">No spending in {label}</h2>
       <p className="state-body">
-        There is nothing recorded for this filter. Your other entries are still
-        there.
+        {onClear
+          ? 'There is nothing recorded for this filter. Your other entries are still there.'
+          : 'Nothing was recorded in this period. Your other entries are still there.'}
       </p>
-      <button type="button" className="btn btn-quiet" onClick={onClear}>
-        Clear the filter
-      </button>
+      {/* The affordance matches what is actually on: a period with nothing in
+          it has no filter to clear, and offering to clear one that does not
+          exist is a button that appears to do nothing. */}
+      {onClear ? (
+        <button type="button" className="btn btn-quiet" onClick={onClear}
+                data-testid="clear-filter">
+          Clear the filter
+        </button>
+      ) : (
+        <button type="button" className="btn" onClick={onAdd} data-testid="add-here">
+          Add an expense
+        </button>
+      )}
     </div>
   )
 }

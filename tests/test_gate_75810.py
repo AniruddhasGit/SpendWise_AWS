@@ -29,6 +29,28 @@ GATE = json.loads(
 
 QUERY = f"/api/expenses/summary?from={EXPECTED['from']}&to={EXPECTED['to']}"
 
+# `SW-ADR-039` freezes the gate to 2026-08-05. 379049 / 5 = 75810 holds ON THAT
+# DAY and no other: `days_elapsed` is min(to, today) - from + 1, so the divisor
+# grows by one every midnight until the month ends.
+GATE_DAY = GATE["as_of"]        # stated in the contract, never typed here
+
+
+@pytest.fixture(autouse=True)
+def _frozen_to_the_gate_day(monkeypatch):
+    """Pin `today`. **Autouse, so it runs before `client`** — which clears the
+    settings cache and re-imports the app, and would otherwise bake in the real
+    date.
+
+    This was missing until 2026-08-06, when the wall clock rolled over and four
+    gate assertions went red at midnight. They had passed for one day. Every
+    other reading of them — in CI, on another machine, tomorrow — would have
+    been a failure with no code change behind it, which is precisely the shape
+    `CV-14` added `APP_TODAY_OVERRIDE` to prevent. The browser tests had it from
+    the start; the in-process ones inherited the system clock and nobody
+    noticed, because the day they were written was the day they were pinned to.
+    """
+    monkeypatch.setenv("APP_TODAY_OVERRIDE", GATE_DAY)
+
 
 async def _sign_in(client, who: dict) -> None:
     r = await client.post("/api/auth/login",

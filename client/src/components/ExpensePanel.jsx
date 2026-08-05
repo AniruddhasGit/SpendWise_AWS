@@ -62,14 +62,26 @@ export default function ExpensePanel({ open, editing, categories, draft, onDraft
     if (open && !editing && dirty) onDraft(form)
   }, [form, open, editing, dirty])
 
+  /**
+   * Focus RESTORED to the trigger — on a timeout, and that is not a hack.
+   *
+   * The trigger lives inside `.shell`, which is `inert` while the panel is
+   * open. An inert subtree is removed from the focus system entirely, so
+   * `focus()` called synchronously here is a silent no-op: focus falls to
+   * <body> and the next Tab starts from the top of the document. Clearing
+   * inert happens in the dashboard's effect, which runs after this commit.
+   * A zero timeout is the first moment both have happened.
+   */
+  const restoreFocus = () => {
+    const trigger = returnFocusTo.current
+    setTimeout(() => trigger?.focus?.(), 0)
+  }
+
   const tryClose = () => {
     if (dirty && !window.confirm('Discard this expense?')) return
     if (!editing) onDraft(null)
     onClose()
-    // Focus RESTORED to the trigger. Without this, focus falls to <body> and
-    // the next Tab starts from the top of the document — which for a keyboard
-    // user means finding their place again after every entry.
-    returnFocusTo.current?.focus?.()
+    restoreFocus()
   }
 
   const onKeyDown = (event) => {
@@ -110,7 +122,7 @@ export default function ExpensePanel({ open, editing, categories, draft, onDraft
       })
       if (!editing) onDraft(null)
       onClose()
-      returnFocusTo.current?.focus?.()
+      restoreFocus()
     } catch (err) {
       // The server's own sentence, on the field the server named. Not a
       // second copy of the rule written here — two copies drift, and the one

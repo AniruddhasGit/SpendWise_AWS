@@ -36,6 +36,12 @@ button, input, select, textarea { font: inherit; color: inherit; }
   left: var(--sw-space-2);
   top: calc(var(--sw-space-2) * -8);
   z-index: 100;
+  /* 44px like every other target. It was 40 until the phone-width test
+     measured it — off-screen until focused is not exempt, and it is the FIRST
+     thing a keyboard user reaches. */
+  display: flex;
+  align-items: center;
+  min-height: var(--sw-target-min);
   padding: var(--sw-space-2) var(--sw-space-4);
   background: var(--sw-paper-raised);
   color: var(--sw-ink);
