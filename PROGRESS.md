@@ -396,3 +396,47 @@ gate returning exactly `75810` paise with person B denied at the database layer,
 policy disabled on purpose and the denial watched going red.
 
 - **Session closed 2026-08-05_1907 by ani87** → handoff: handoffs/HANDOFF_2026-08-05_1907_ani87.md
+
+---
+
+## Session 2026-08-06 — the application exists, and it runs
+
+The previous block closed with *"No application code exists. No database has been created. The
+day-one proof has never run."* All three are now false.
+
+**Built:** M0 (the day-one spine), M2 (the API), M3 (the client), M4 (the admin module), the
+E0-S10 endpoints, and a shell rebuild — sidebar, light/dark/system, glass, a line plot, a donut
+that is also a filter, custom categories, settings, an administration console.
+
+**`CR-001`:** the client reversed two frozen requirements — no user deletion (`SW-ADR-107`) and
+an administrator who may not see amounts (`SRC-001 §4.2`). Recorded as a change request with
+superseding records, because `SRC-001` is fingerprinted and cannot be struck where it stands.
+Deletion is SOFT; the administrator sees *how much over time* and still not *what on*, held by a
+three-column return type rather than by a response model.
+
+**418 tests pass** (50 in Chromium) in one clean sequential run. `consistency_check` PASS with
+16/16 red-proofed, 12 generated artifacts verified by regeneration, every contrast pair measured
+in both themes.
+
+**Four defects that passed review and were caught only by running the thing** — `SW-ADR-146` (the
+gate read the wall clock and went red at midnight), `SW-ADR-147` (a contrast pair at 2.36:1, the
+same hex already fixed under a different token), `SW-ADR-149` (three admin capabilities that
+returned a plausible answer and did nothing, because `FORCE ROW LEVEL SECURITY` applies to the
+owner too), and a false green in a test that asserted a privacy boundary against a pane which had
+rendered nothing.
+
+**Not done, recorded as such:** no rate limiting exists — every auth endpoint is unthrottled
+(`E1-S6`). M5 receipts is Blocked on an S3 bucket. `E0-S10`'s fresh-clone run signed by a named
+human has not happened. Nothing is deployed.
+
+**A cost worth recording:** the `CR-001` work was built by four agents in parallel sharing one
+`spendwise_test`. Per-test `TRUNCATE` landed mid-seed in other processes and produced a real
+Postgres `DeadlockDetectedError`; no agent could get a clean full run. Do not parallelise pytest
+against this database again without a per-worker database or a lock.
+
+**In progress:** nothing half-finished.
+
+**Open / next:** rate limits (`E1-S6`), then M6 hardening — the log deny-list red-proofed
+(`E6-S1`) and the capabilities that must not exist (`E6-S5`).
+
+- **Session closed 2026-08-06_0442 by ani87** → handoff: handoffs/HANDOFF_2026-08-06_0442_ani87.md
