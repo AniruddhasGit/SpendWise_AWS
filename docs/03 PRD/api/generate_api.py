@@ -158,6 +158,14 @@ def render_codes(spec):
                 "| Rule | `field` | Message |", "|---|---|---|"]
         for m in msgs["rules"]:
             out.append("| `%s` | `%s` | %s |" % (m["rule"], m["field"], m["message"]))
+        bc = msgs.get("by_code")
+        if bc:
+            out += ["", "### One message per non-validation code", "", bc["note"], "",
+                    "| `code` | Message | |", "|---|---|---|"]
+            for c in bc["codes"]:
+                out.append("| `%s` | %s | %s |"
+                           % (c["code"], c["message"], c.get("note", "")))
+            out.append("")
         ph = msgs.get("placeholders")
         if ph:
             out += ["", "**Placeholders.** " + ph["note"], "",
@@ -172,6 +180,17 @@ def render_codes(spec):
                 "**" + pr["rule"] + "**", "",
                 pr["note"], "", pr["why"], "",
                 "```", " -> ".join(pr["order"]), "```", ""]
+        # The scope block existed in contract.json and this renderer read four of
+        # the object's five keys, so the registry stated an order that made
+        # `range.required` unreachable and omitted the only text that prevents
+        # that reading — the very defect the block records as fixed.
+        sc = pr.get("scope")
+        if sc:
+            out += ["### Scope — which rule owns an absence", "",
+                    "| Rule | Owns |", "|---|---|",
+                    "| `field.required` | %s |" % sc["field_required"],
+                    "| `range.required` | %s |" % sc["range_required"],
+                    "", sc["note"], ""]
     return "\n".join(out)
 
 
@@ -314,8 +333,13 @@ def render_prd_block(spec, summary):
          % len(summary["by_day"]),
          "  with the owner predicate in the **`ON`** clause: move it to `WHERE` and the LEFT JOIN",
          "  degenerates to an INNER JOIN, the zero days vanish, and only `SIT-E0-S9-05` notices.",
-         "- Absent keys are absent, not null: a range with no rows returns `total_paise: 0`,",
-         "  `count: 0`, `by_category: []`, and a `by_day` still full of zero rows.",
+         # This bullet was hand-written prose inside a block whose banner reads
+         # "Generated from contract.json", and it stated the OPPOSITE of §6.3's
+         # null rule two sections below. Derived now, so the two cannot disagree.
+         "- An empty range returns `total_paise: 0`, `count: 0`, `by_category: []`, and a `by_day`",
+         "  still full of zero rows — **zeros and empty arrays, not `null`**. That is not a",
+         "  contradiction of the null policy in §6.3 (%s):" % spec["serialisation"]["nulls"].rstrip("."),
+         "  a field that HAS no value is `null`; a total that IS zero is `0`.",
          "",
          "**Error codes** are enumerated in `docs/03 PRD/api/error_codes.md`, generated from the same",
          "spec. The list is closed: a code not on it cannot be returned.",
@@ -359,7 +383,22 @@ def render_prd_block(spec, summary):
               "",
               "Rejected by that pattern: %s."
               % ", ".join("`%s`" % x for x in ser["amount_grammar"]["rejected_examples"]),
+              "",
+              "Rejected by `amount.scale`, **not** by the pattern: %s — the grammar checks shape,"
+              % ", ".join("`%s`" % x
+                          for x in ser["amount_grammar"]["rejected_by_scale_not_grammar"]),
+              "the scale rule counts decimal places and owns `P-REC-01`'s sentence.",
               ""]
+        tx = spec.get("transaction")
+        if tx:
+            L += ["| **Isolation** | %s %s |" % (tx["isolation"], tx["how"]),
+                  "| **Commit** | %s |" % tx["commit"], ""]
+
+    # This section was DEFINED and never called until 2026-08-05: `SW-ADR-141`
+    # asserted "Rendered as PRD §6.4" and no §6.4 existed, while --check printed
+    # PASS because it compares the PRD against what the generator emits, and the
+    # generator omitted it too. Check 12d now asserts the block reaches the page.
+    L += render_request_models(spec)
 
     L.append(END)
     return "\n".join(L)

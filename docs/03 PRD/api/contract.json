@@ -314,8 +314,9 @@
         },
         {
           "rule": "range.required",
-          "field": "<from or to, whichever is missing>",
-          "message": "Both from and to are required; there is no default range."
+          "field": "<from or to, whichever is missing; `from` when BOTH are absent>",
+          "message": "Both from and to are required; there is no default range.",
+          "note": "A summary request with NO parameters is the most likely malformed one there is, and both the rule and its scope cell were phrased in the singular - leaving it with no stated expected field, which is the 50/50 failure the precedence block exists to end, reproduced inside it. `from` wins because §6.1's worked request writes `?from=...&to=...` in that order."
         },
         {
           "rule": "filter.exclusive",
@@ -352,6 +353,57 @@
             "example": "\"2026-08-31\""
           }
         ]
+      },
+      "by_code": {
+        "note": "`messages.rules` covers the VALIDATION_ERROR rules only. Every other code still returns a message, and until 2026-08-05 five of them had none - while ACCOUNT_DEACTIVATED's exact sentence was specified (SW-ADR-100) and P-ACC-07's four reset outcomes were specified word for word, which is what makes the omission conspicuous rather than deliberate.",
+        "codes": [
+          {
+            "code": "UNAUTHENTICATED",
+            "message": "Sign in to continue."
+          },
+          {
+            "code": "SESSION_INVALID",
+            "message": "Your session has ended. Please sign in again.",
+            "note": "One sentence for every cause - expiry, revocation, idle timeout, rotated secret, bad signature. Distinguishing them would tell an attacker which one they hit."
+          },
+          {
+            "code": "ACCOUNT_DEACTIVATED",
+            "message": "Your account has been deactivated. Contact your administrator.",
+            "note": "Already specified by SW-ADR-100; restated here so the table is complete."
+          },
+          {
+            "code": "NOT_FOUND",
+            "message": "Not found.",
+            "note": "Deliberately identical for not-yours and not-found (P-PRV-03). Any difference is an enumeration oracle."
+          },
+          {
+            "code": "FORBIDDEN",
+            "message": "You do not have permission to do that."
+          },
+          {
+            "code": "CONFLICT",
+            "message": "That already exists."
+          },
+          {
+            "code": "EMAIL_TAKEN",
+            "message": "That email address cannot be used.",
+            "note": "Wording subject to SW-ADR-102's enumeration posture."
+          },
+          {
+            "code": "RATE_LIMITED",
+            "message": "Too many requests. Try again shortly.",
+            "note": "Carries Retry-After."
+          },
+          {
+            "code": "BAD_REQUEST",
+            "message": "The request body could not be read."
+          },
+          {
+            "code": "INTERNAL",
+            "message": "Something went wrong.",
+            "note": "Generic by rule - it never carries detail, an id, or a stack."
+          }
+        ]
       }
     },
     "precedence": {
@@ -373,12 +425,13 @@
         "filter.exclusive",
         "category.not_owned"
       ],
-      "why": "Presence before type before value, then fields in the order §6.1's worked payload lists them. `category.not_owned` is last because it is raised by the database, after every in-process rule has already passed.",
+      "why": "Presence before type before value, then fields in the order the request model declares them (see `tie_break`). `category.not_owned` is last because the database raises it, after every in-process rule has already passed.",
       "scope": {
         "field_required": "BODY keys only. A required key that is absent OR sent as explicit `null` is `field.required`, never `field.type` - presence is checked before type, and a null in a required slot is an absence of a value, not a wrong type (G3).",
         "range_required": "The summary's QUERY pair only. A missing `from` or `to` is `range.required`, with `field` set to the key that is actually missing - not `field.required`, which would otherwise make `range.required` unreachable (G2).",
         "note": "Both rules were live and `field.required` was first in the order, which read literally made `range.required` dead text. A rule that can never fire is the same defect as a missing one, and CV-07 exists precisely to describe the query-pair case."
-      }
+      },
+      "tie_break": "When two keys fail the SAME rule class, report the one that comes first in `request_models.<Model>.fields` - the declaration order, which is what Pydantic reports in. An earlier `why` cell said '§6.1's worked payload order' (amount, category_id, description, spent_on) while ExpenseCreate declares (amount, spent_on, category_id, description), so the natural implementation silently produced the other answer. The model is authoritative because it is the thing the code is built from. Found by the sixth uncoached slice, C5."
     }
   },
   "models": {
@@ -920,6 +973,30 @@
         "why": "Every other date rule here is calendar-based and Asia/Kolkata-anchored; the two readings differ by up to three days, exactly on the boundary NEG-M-08/09 probe.",
         "source": "SW-ADR-111 · SW-ADR-096",
         "asked_by": "slice run 5, guess 8"
+      },
+      {
+        "id": "CV-24",
+        "question": "How is database state reset between test cases?",
+        "ruling": "Function-scoped **truncate-and-reseed through the real endpoints**. NOT the usual outer-transaction-and-rollback pattern.",
+        "why": "That pattern is unavailable here and nothing said so. It contradicts CV-12 (the dependency commits, once, per request) and it breaks `set_config(..., true)`, which is transaction-local - nest the request inside an outer transaction and the GUC's lifetime stops matching the request's. The seed README states isolation 'between runs'; between CASES was never stated, and it bites immediately: a test that creates a fifth expense makes the day-one gate read 379049 + n and fail for a reason that has nothing to do with the code.",
+        "source": "seed/README.md · CV-12 · SW-ADR-136 D",
+        "asked_by": "slice run 6, guess 6"
+      },
+      {
+        "id": "CV-25",
+        "question": "Truncate or round when rendering a timestamp to 3 fractional digits?",
+        "ruling": "**Truncate, never round.**",
+        "why": "`now()` yields microseconds and rounding can carry into the next second, moving a timestamp across a boundary - including a day boundary, which is the one thing the Asia/Kolkata rule exists to get right.",
+        "source": "serialisation.datetime",
+        "asked_by": "slice run 6, guess 7"
+      },
+      {
+        "id": "CV-26",
+        "question": "What caching posture do authenticated JSON responses take?",
+        "ruling": "**`Cache-Control: no-store` on every `/api/*` response.**",
+        "why": "The deployment has no TLS (SW-ADR-014, a recorded weakness), and FastAPI's default is no header at all, which permits heuristic caching of a summary. A money response cached by an intermediary is a cross-person leak achieved without touching the database.",
+        "source": "SW-ADR-014 · P-OPS-05",
+        "asked_by": "slice run 6, guess 8"
       }
     ]
   },
@@ -1634,7 +1711,8 @@
           }
         ]
       }
-    }
+    },
+    "parsing": "**Types are strict.** The only coercion is ISO-8601 text to `date`, on `spent_on`, `from` and `to` - JSON has no date type, so that one is unavoidable. `{\"category_id\": \"9\"}` is **422 `field.type`**, not a 201: a quoted integer is a client bug and stricter wins (Art II.1). `amount` is the deliberate exception - modelled `Any` and grammar-checked, so a JSON number returns `amount.grammar` rather than `field.type` (CV-21)."
   },
   "transaction": {
     "source": "SW-ADR-142",
@@ -1642,6 +1720,9 @@
     "isolation": "**REPEATABLE READ** on any request that reads the summary.",
     "why": "`SRC-001 §7.4` asked for one round trip and `SW-ADR-017` split it into three queries - headline, breakdown, day series - and nothing then re-established atomicity. Under PostgreSQL's default READ COMMITTED each statement takes a NEW snapshot, so a concurrent insert landing between the headline and the breakdown breaks 'the breakdown sums exactly to the headline total' - an invariant P-UND-05, 06_summary_sequence.md and both SIT-E0-S9-04 and SIT-E2-S5-03 assert unqualified. Invisible in every single-user test; it fails only in production, intermittently, on the one number the product is about.",
     "alternative": "A single CTE-unified statement would also work and would restore SRC-001 §7.4's one round trip. REPEATABLE READ is chosen because it keeps the three queries readable and the module boundary of SW-ADR-017 intact.",
-    "write_path": "READ COMMITTED is correct for the create path: it takes one snapshot per statement and there is only one statement inside the savepoint."
+    "write_path": "READ COMMITTED is correct for the create path: it takes one snapshot per statement and there is only one statement inside the savepoint.",
+    "how": "The level is selected **on the connection at checkout, before `BEGIN`** — in SQLAlchemy, `engine.connect().execution_options(isolation_level='REPEATABLE READ')` behind a second session dependency (`get_db_rr`) that only the summary route declares.",
+    "why_how": "SW-ADR-136 B makes `set_config` the FIRST STATEMENT of the request transaction, and SW-ADR-142 F requires REPEATABLE READ on the summary. PostgreSQL rejects `SET TRANSACTION ISOLATION LEVEL` after any query in the transaction - SQLSTATE **25001**, 'SET TRANSACTION ISOLATION LEVEL must be called before any query'. Executed literally, the two APPROVED records either 500 on every summary request or silently stay READ COMMITTED, which is the exact intermittent breakage F was written to prevent. `SET SESSION CHARACTERISTICS` does not rescue it: it does not affect a transaction already in progress. Setting the level at checkout is the only reading under which neither record is violated. Found by the sixth uncoached slice, contradiction C4. **Reasoned, not observed.**",
+    "write_inside_the_snapshot": "The summary transaction is REPEATABLE READ and contains a WRITE - the `last_seen_at` heartbeat. Two concurrent requests on one session that both see it stale will both UPDATE the row, and under REPEATABLE READ the loser gets **40001, could not serialize access due to concurrent update**, and the request dies. Under READ COMMITTED it would simply block and succeed. J-U-09 documents the dashboard firing several requests at once, so this is a 500 on the dashboard, intermittently, in production only. **The bump runs inside its own SAVEPOINT; on 40001 the savepoint is rolled back and the request continues** - losing one bump is harmless, because the transaction that won already performed it."
   }
 }

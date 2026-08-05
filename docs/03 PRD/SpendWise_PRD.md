@@ -20,7 +20,7 @@ Every `P-` row carries **two** references: a `[SRC:]` tag (where the requirement
 a **BRD row** (which business requirement it satisfies). A row missing either is a defect:
 no `[SRC:]` means invented, no BRD row means scope creep.
 
-Citations resolve against **currently APPROVED** records only. 21 of the 142 ADRs are
+Citations resolve against **currently APPROVED** records only. 21 of the 143 ADRs are
 superseded or withdrawn and are not authority.
 
 **Status:** `RULED` (decided, cited) · `PROVISIONAL` (buildable, a dependency outstanding) ·
@@ -682,8 +682,10 @@ Every field, spelled out, because each was guessed at least once by a cold reade
   `[SRC: SRC-001 §7.4]` — 31 rows here. Build it with `generate_series` and a LEFT JOIN,
   with the owner predicate in the **`ON`** clause: move it to `WHERE` and the LEFT JOIN
   degenerates to an INNER JOIN, the zero days vanish, and only `SIT-E0-S9-05` notices.
-- Absent keys are absent, not null: a range with no rows returns `total_paise: 0`,
-  `count: 0`, `by_category: []`, and a `by_day` still full of zero rows.
+- An empty range returns `total_paise: 0`, `count: 0`, `by_category: []`, and a `by_day`
+  still full of zero rows — **zeros and empty arrays, not `null`**. That is not a
+  contradiction of the null policy in §6.3 (An absent value is `null`, never omitted, never an empty string):
+  a field that HAS no value is `null`; a total that IS zero is `0`.
 
 **Error codes** are enumerated in `docs/03 PRD/api/error_codes.md`, generated from the same
 spec. The list is closed: a code not on it cannot be returned.
@@ -723,6 +725,9 @@ only of what it now says.
 | `CV-21` | Which rule owns a non-string `amount` that is not a number either? | **`amount.grammar` owns EVERY non-conforming amount - boolean, array, object, number. `amount` is modelled as `Any` and grammar-checked; it never reaches `field.type`.** | One concept, one sentence. The `amount` row of the field.type placeholder table is therefore unreachable and is removed. | NEG-M-06 · SW-ADR-142 | slice run 5, guess 6 |
 | `CV-22` | Is `description` trimmed, and is 500 measured before or after? | **Whitespace-only becomes `null` FIRST; the length is then measured on the survivor. A non-empty description is stored **verbatim** - never trimmed.** | SW-ADR-115 says normalised to null, not stripped. Trimming would silently alter what the person typed, which SW-ADR-112 refuses to do for amounts. | SW-ADR-115 · SW-ADR-112 | slice run 5, guess 7 |
 | `CV-23` | How is `today ± N years` computed at the boundary? | **Calendar arithmetic (`relativedelta`), clamping 29 February to 28 February. Never fixed day counts.** | Every other date rule here is calendar-based and Asia/Kolkata-anchored; the two readings differ by up to three days, exactly on the boundary NEG-M-08/09 probe. | SW-ADR-111 · SW-ADR-096 | slice run 5, guess 8 |
+| `CV-24` | How is database state reset between test cases? | **Function-scoped **truncate-and-reseed through the real endpoints**. NOT the usual outer-transaction-and-rollback pattern.** | That pattern is unavailable here and nothing said so. It contradicts CV-12 (the dependency commits, once, per request) and it breaks `set_config(..., true)`, which is transaction-local - nest the request inside an outer transaction and the GUC's lifetime stops matching the request's. The seed README states isolation 'between runs'; between CASES was never stated, and it bites immediately: a test that creates a fifth expense makes the day-one gate read 379049 + n and fail for a reason that has nothing to do with the code. | seed/README.md · CV-12 · SW-ADR-136 D | slice run 6, guess 6 |
+| `CV-25` | Truncate or round when rendering a timestamp to 3 fractional digits? | ****Truncate, never round.**** | `now()` yields microseconds and rounding can carry into the next second, moving a timestamp across a boundary - including a day boundary, which is the one thing the Asia/Kolkata rule exists to get right. | serialisation.datetime | slice run 6, guess 7 |
+| `CV-26` | What caching posture do authenticated JSON responses take? | ****`Cache-Control: no-store` on every `/api/*` response.**** | The deployment has no TLS (SW-ADR-014, a recorded weakness), and FastAPI's default is no header at all, which permits heuristic caching of a summary. A money response cached by an intermediary is a cross-person leak achieved without touching the database. | SW-ADR-014 · P-OPS-05 | slice run 6, guess 8 |
 
 A convention absent from this table and from §6.1 is **not** a licence to choose one.
 It is an `OPEN` item: escalate, never invent (`CONSTITUTION.md` Art X).
@@ -739,6 +744,122 @@ It is an `OPEN` item: escalate, never invent (`CONSTITUTION.md` Art X).
 | **`amount` grammar** | `^-?[0-9]{1,15}(\.[0-9]+)?$` — applied **before** `Decimal()`. Applied BEFORE Decimal(). It checks SHAPE, not scale: decimal places are counted by `amount.scale`, which owns the sentence P-REC-01 quotes. An earlier pattern capped the fraction at two digits AND was ordered before amount.scale, which made amount.scale unreachable dead text - so `12.345` returned 'Amount must be a decimal string' instead of 'Amount must have at most two decimal places.', the sentence P-REC-01 states. Found by the fifth uncoached slice, contradiction C1. Rejects scientific notation, surrounding whitespace, a leading '+', and a bare '.50'. |
 
 Rejected by that pattern: `1.25e3`, ` 12.50 `, `+12.50`, `.50`, `abc`, `1,250.00`.
+
+Rejected by `amount.scale`, **not** by the pattern: `1250.0000`, `12.345` — the grammar checks shape,
+the scale rule counts decimal places and owns `P-REC-01`'s sentence.
+
+| **Isolation** | **REPEATABLE READ** on any request that reads the summary. The level is selected **on the connection at checkout, before `BEGIN`** — in SQLAlchemy, `engine.connect().execution_options(isolation_level='REPEATABLE READ')` behind a second session dependency (`get_db_rr`) that only the summary route declares. |
+| **Commit** | The session dependency commits ONCE, after the handler returns (CV-12). |
+
+### §6.4 — Request models
+
+**Generated from `contract.json`. Do not hand-edit — regenerate.**
+
+`models` held only the RESPONSE shapes. `ExpenseCreate` and `Principal` appeared as bare strings in the route table and were defined nowhere - so the half of the contract every 422 test touches was outside the spec of record that SW-ADR-138 created precisely because hand-written shapes drift.
+
+**Null policy.** An optional field may be sent as explicit `null` or omitted; the two are equivalent. Unknown keys are discarded, never rejected (`extra="ignore"`, CV-19 / SW-ADR-130).
+
+**`ExpenseCreate`** — P-REC-01 · SW-ADR-130
+
+| Field | Type | Required | |
+|---|---|---|---|
+| `amount` | `string` | **yes** | decimal string in rupees; a JSON number is 422 (amount.grammar) |
+| `spent_on` | `date` | **yes** | never defaulted server-side (SW-ADR-111) |
+| `category_id` | `integer|null` | no | ownership enforced by the composite FK, not a pre-read (SW-ADR-072) |
+| `description` | `string|null` | no | empty or whitespace-only is normalised to null (SW-ADR-115) |
+
+Discarded before validation: `user_id`, `id`, `amount_paise`, `currency`, `created_at`, `updated_at`, `receipt_key`, `category_name`. Discarded BEFORE validation, never 422 (SW-ADR-130). NEG-X-10 requires 201 for a forged user_id, so extra="forbid" is not available.
+
+**`ExpenseUpdate`** — P-REC-03
+
+Every field optional; at least one must be present or 422 field.required with field='body'. The service sets updated_at (CV-09).
+
+| Field | Type | Required | |
+|---|---|---|---|
+| `amount` | `string` | no |  |
+| `spent_on` | `date` | no |  |
+| `category_id` | `integer|null` | no |  |
+| `description` | `string|null` | no |  |
+
+**`Principal`** — P-ACC-06
+
+A response model, but listed here because the route table names it and `models` did not define it.
+
+| Field | Type | Required | |
+|---|---|---|---|
+| `id` | `integer` | — |  |
+| `email` | `string` | — |  |
+| `display_name` | `string` | — |  |
+| `role` | `string` | — | `user` or `admin` |
+| `currency` | `string` | — | the expenses service reads currency from HERE, never from the users table (CV-05, SRC-001 §3.4) |
+| `is_active` | `boolean` | — |  |
+| `receipts_enabled` | `boolean` | — | Required by P-ACC-06 so the client can hide the receipt control when storage is unconfigured rather than letting it fail. It was MISSING from this model, which SW-ADR-141 added to the spec of record in order to stop drift - and which drifted in the same commit. Bible E1-S8 AC2, SIT-E1-S8-02, SIT-E5-S3-01, P-RCP-03 and 08_failure_modes.md all assert it. Found by the fifth uncoached slice, C3. |
+
+**`RegisterRequest`** — P-ACC-01
+
+| Field | Type | Required | |
+|---|---|---|---|
+| `email` | `string` | **yes** |  |
+| `password` | `string` | **yes** | 12-72 bytes (SW-ADR-103) |
+| `display_name` | `string` | **yes** |  |
+
+**`LoginRequest`** — P-ACC-03
+
+| Field | Type | Required | |
+|---|---|---|---|
+| `email` | `string` | **yes** |  |
+| `password` | `string` | **yes** |  |
+
+**`ResetCompleteRequest`** — P-ACC-07
+
+| Field | Type | Required | |
+|---|---|---|---|
+| `token` | `string` | **yes** | the raw code; the row stores its SHA-256 |
+| `password` | `string` | **yes** |  |
+
+**`CategoryCreate`** — P-REC-05
+
+| Field | Type | Required | |
+|---|---|---|---|
+| `name` | `string` | **yes** | 1-50 chars, unique per person case-insensitively |
+| `color` | `string` | **yes** | ^#[0-9a-f]{6}$ |
+
+**`CategoryUpdate`** — SW-ADR-114
+
+At least one must be present or 422 field.required with field='body'.
+
+| Field | Type | Required | |
+|---|---|---|---|
+| `name` | `string` | no |  |
+| `color` | `string` | no |  |
+
+**`UploadUrlRequest`** — P-RCP-01
+
+The object key is NEVER accepted from the client (P-RCP-02); it is server-derived.
+
+| Field | Type | Required | |
+|---|---|---|---|
+| `content_type` | `string` | **yes** | allowlist: jpeg, png, webp, pdf |
+| `content_length` | `integer` | **yes** | <= 10 MB |
+
+**`AttachRequest`** — P-RCP-01
+
+| Field | Type | Required | |
+|---|---|---|---|
+| `expense_id` | `integer` | **yes** |  |
+| `staging_key` | `string` | **yes** | must be under staging/{caller_id}/ |
+
+**`ActiveRequest`** — P-ADM-05
+
+| Field | Type | Required | |
+|---|---|---|---|
+| `is_active` | `boolean` | **yes** |  |
+
+**`RoleRequest`** — P-ADM-06
+
+| Field | Type | Required | |
+|---|---|---|---|
+| `role` | `string` | **yes** | `user` or `admin`; last-admin guard is 409 |
 
 <!-- END GENERATED §6.1 -->
 

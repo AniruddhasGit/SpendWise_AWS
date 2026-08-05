@@ -526,6 +526,54 @@ def check_all(root: str) -> Report:
         r.note(f"spec-of-record cross-references: {len(defined)} models defined, "
                f"{len(set(re.findall(r'P-[A-Z]+-[0-9]+', blob)))} P- rows cited")
 
+        # -- 12d. every block of the spec REACHES the page it feeds ----------
+        # `contract-refs` is a REFERENCE check and both of these slipped past it:
+        # `render_request_models` was defined and never called, so PRD §6.4 did
+        # not exist while SW-ADR-141 asserted it did; and `render_codes` read
+        # four keys of the five-key `precedence` object, so the registry stated
+        # an order that made `range.required` unreachable and omitted the scope
+        # text that prevents that reading. Every reference resolved. `--check`
+        # printed PASS, because it asks whether the artifact matches what the
+        # generator EMITS - never whether the generator emits what the spec
+        # CONTAINS. This is a completeness check.
+        prd_t = corpus_all.get("docs/03 PRD/SpendWise_PRD.md", "")
+        codes_t = corpus_all.get("docs/03 PRD/api/error_codes.md", "")
+        REACHES = [
+            ("routes.routes", prd_t, "PRD §6",
+             [rt["path"] for rt in contract.get("routes", {}).get("routes", [])]),
+            ("conventions.rules", prd_t, "PRD §6.2",
+             [c["id"] for c in contract.get("conventions", {}).get("rules", [])]),
+            ("request_models.models", prd_t, "PRD §6.4",
+             list(contract.get("request_models", {}).get("models", {}))),
+            ("serialisation", prd_t, "PRD §6.3",
+             [contract.get("serialisation", {}).get("amount_grammar", {}).get("pattern", "")]),
+            ("error_codes.codes", codes_t, "error_codes.md",
+             [c["code"] for c in contract.get("error_codes", {}).get("codes", [])]),
+            ("error_codes.messages.rules", codes_t, "error_codes.md",
+             [m["rule"] for m in
+              contract.get("error_codes", {}).get("messages", {}).get("rules", [])]),
+            ("error_codes.precedence.scope", codes_t, "error_codes.md",
+             list(contract.get("error_codes", {}).get("precedence", {}).get("scope", {}).values())),
+            ("error_codes.messages.by_code", codes_t, "error_codes.md",
+             [c["message"] for c in contract.get("error_codes", {})
+              .get("messages", {}).get("by_code", {}).get("codes", [])]),
+            ("transaction", prd_t, "PRD §6.3",
+             [contract.get("transaction", {}).get("isolation", "")]),
+        ]
+        reached = 0
+        for block, target, where, items in REACHES:
+            missing = [str(x) for x in items if x and str(x)[:90] not in target]
+            reached += len(items) - len(missing)
+            if missing:
+                r.fail("spec-completeness",
+                       f"contract.json `{block}`: {len(missing)} of {len(items)} entries never "
+                       f"reach {where} — e.g. {missing[0][:70]!r}. A block the generator does not "
+                       f"emit is invisible to every reader of the document it was written into, "
+                       f"and --check cannot see it because it compares the page against what the "
+                       f"generator emits")
+        r.note(f"spec-of-record blocks reaching their page: {reached} entries across "
+               f"{len(REACHES)} blocks")
+
     ok = 0
     for gen in (os.path.join(root, "docs", "06 DataModel", "generate.py"),
                 os.path.join(root, "docs", "03 PRD", "api", "generate_api.py"),
@@ -585,6 +633,11 @@ PLANTS = [
     # Asserted, with no warning framing anywhere near it — the shape that matters.
     ("day-one-value", "docs/02 BRD/SpendWise_BRD.md",
      lambda t: t + "\n\nPlanted: the daily average over the seeded fixture is 75809 paise.\n"),
+    # A third key in `scope`, which render_codes does not read — the exact shape
+    # of the bug: every reference resolves, and the text never reaches the page.
+    ("spec-completeness", "docs/03 PRD/api/contract.json",
+     lambda t: t.replace('"range_required":',
+                         '"planted_third_key": "this text reaches no page", "range_required":', 1)),
     ("contract-refs", "docs/03 PRD/api/contract.json",
      lambda t: t.replace('"response_model": "Summary"',
                          '"response_model": "SummaryThatDoesNotExist"', 1)),

@@ -37,7 +37,7 @@ This document is a **gate, not a spec.** The cited sources carry the full detail
 
 1. **The functional envelope is `docs/00 SourceOfTruth/SRC-001` plus the ADR records in
    `docs/01 ADR/all-ADRs/` as governed by the ledger.** No user-facing functionality beyond
-   those two locations. The ledger held **142** records on 2026-08-05; per Art XI.1 **the
+   those two locations. The ledger held **143** records on 2026-08-05; per Art XI.1 **the
    ledger, never this sentence, is the count of record** — stated as a location rather than a
    number so this clause cannot go stale again.
    *(Counts refreshed 2026-08-05 per `SW-ADR-133`; the rule is unchanged.)*
