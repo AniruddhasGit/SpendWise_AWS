@@ -39,7 +39,11 @@ REVOKE ALL ON FUNCTION admin_expense_stats(BIGINT) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION admin_expense_stats(BIGINT) TO spendwise_app;
 ```
 
-**`app.is_admin` is never set on a request-scoped connection.** It exists only for the `sessions` and `password_resets` policies of `SW-ADR-043`, set inside those admin service methods and nowhere else.**
+**`app.is_admin` is never set on a request-scoped connection — and as this pack now stands, it is never set at all.**
+
+`SW-ADR-043` reserved the GUC for policies on `sessions` and `password_resets`. Neither exists: `P-PRV-02`'s matrix gives `sessions` **no admin policy**, and `password_resets` sits **outside RLS entirely** (`SW-ADR-071`). So the GUC has no consumer anywhere in `security.sql`, which states exactly that.
+
+*(Corrected 2026-08-05, raised by the second uncoached slice as contradiction C8: the first draft of this record described the reservation as though those two policies were live. The record that closed an isolation hole was itself wrong about the shape of the fix.)***
 
 ## Consequences
 

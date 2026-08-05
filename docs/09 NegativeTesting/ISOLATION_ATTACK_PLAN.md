@@ -85,7 +85,7 @@ the API. A cross-person suite that never left the API layer has not tested the l
 
 ## Coverage in the case file
 
-`SIT_NegativeCases.tsv` — **70 cases, 46 of them severity one.**
+`SIT_NegativeCases.tsv` — **80 cases, 56 of them severity one.**
 
 | Class | Cases |
 |---|---|

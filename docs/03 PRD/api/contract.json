@@ -1,0 +1,431 @@
+{
+  "spec_of_record": true,
+  "source": "SW-ADR-138",
+  "note": "The API contract's spec of record. openapi.yaml, the PRD §6.1 worked payloads, and docs/06 DataModel/seed/expected_summary.json are all GENERATED from this file by generate_api.py. Hand-writing a payload into Markdown is exactly as driftable as the prose it replaces - the first attempt omitted a required field, contradicted itself on null vs 0, named two categories that do not exist, printed an array out of the order the same page mandates, and cited the wrong ADR for the one number that is never waivable. Verify with: py \"docs/03 PRD/api/generate_api.py\" --check",
+  "seed_fixture": {
+    "source": "SW-ADR-010 · docs/06 DataModel/seed/README.md · SW-ADR-092 (the category list)",
+    "note": "The category assignment was unstated until 2026-08-05, so any test asserting on by_category had to invent one. Assigned here, in the spec of record, so the seed and the expected payload cannot disagree.",
+    "today_mocked": "2026-08-05",
+    "timezone": "Asia/Kolkata",
+    "person": "A",
+    "expenses": [
+      {
+        "spent_on": "2026-08-01",
+        "amount_paise": 125000,
+        "category_id": 3,
+        "description": "Auto to office"
+      },
+      {
+        "spent_on": "2026-08-03",
+        "amount_paise": 34050,
+        "category_id": 5,
+        "description": "Pharmacy"
+      },
+      {
+        "spent_on": "2026-08-03",
+        "amount_paise": 210000,
+        "category_id": 1,
+        "description": "Weekly shop"
+      },
+      {
+        "spent_on": "2026-08-05",
+        "amount_paise": 9999,
+        "category_id": null,
+        "description": null
+      }
+    ]
+  },
+  "categories": {
+    "source": "SW-ADR-092 (the eight, in this order) · SW-ADR-131 (the synthetic bucket)",
+    "seeded": [
+      {
+        "id": 1,
+        "name": "Groceries",
+        "color": "#4a7c59"
+      },
+      {
+        "id": 2,
+        "name": "Food & Dining",
+        "color": "#b5543b"
+      },
+      {
+        "id": 3,
+        "name": "Transport",
+        "color": "#3e6b8f"
+      },
+      {
+        "id": 4,
+        "name": "Rent & Utilities",
+        "color": "#9c7a2f"
+      },
+      {
+        "id": 5,
+        "name": "Health",
+        "color": "#2e7d8a"
+      },
+      {
+        "id": 6,
+        "name": "Entertainment",
+        "color": "#7b4b94"
+      },
+      {
+        "id": 7,
+        "name": "Shopping",
+        "color": "#a04c72"
+      },
+      {
+        "id": 8,
+        "name": "Other",
+        "color": "#7d8471"
+      }
+    ],
+    "synthetic": {
+      "id": null,
+      "name": "Uncategorised",
+      "color": "#948c87",
+      "always_last": true
+    }
+  },
+  "gate": {
+    "source": "SW-ADR-010 · Bible E0-S9 · SIT-E0-S9-01",
+    "note": "The never-waivable day-one assertion. The range is 1-31 August, per SW-ADR-010 and the executable SIT case; an earlier hand-written example used 1-5 August and disagreed with both.",
+    "request": "GET /api/expenses/summary?from=2026-08-01&to=2026-08-31",
+    "from": "2026-08-01",
+    "to": "2026-08-31",
+    "assert_field": "daily_average_paise",
+    "assert_value": 75810,
+    "rounding": "half-up, in integers: (2*total + elapsed) // (2*elapsed)",
+    "rounding_source": "SW-ADR-010",
+    "range_inclusive_source": "SW-ADR-085",
+    "wrong_answers": {
+      "75809": "truncation instead of half-up - fails the gate by one paisa",
+      "94762": "dividing by count (4 rows) instead of days elapsed (5)"
+    }
+  },
+  "error_codes": {
+    "source": "SW-ADR-138, discharging SW-ADR-051's own consequence that a stable code is the only thing that lets the PRD write a binary acceptance criterion for an error path",
+    "envelope": "{\"error\": {\"code\": \"...\", \"message\": \"...\", \"field\": \"...\"}}",
+    "field_note": "`field` carries the CLIENT's name for the input - `amount`, never `amount_paise`.",
+    "codes": [
+      {
+        "code": "VALIDATION_ERROR",
+        "status": 422,
+        "has_field": true,
+        "when": "any input fails a stated rule"
+      },
+      {
+        "code": "NOT_FOUND",
+        "status": 404,
+        "has_field": false,
+        "when": "not-yours or not-found, on every verb (P-PRV-03)"
+      },
+      {
+        "code": "UNAUTHENTICATED",
+        "status": 401,
+        "has_field": false,
+        "when": "no credential presented"
+      },
+      {
+        "code": "SESSION_INVALID",
+        "status": 401,
+        "has_field": false,
+        "when": "credential presented but revoked, expired, idle-timed-out or signed with a rotated secret"
+      },
+      {
+        "code": "ACCOUNT_DEACTIVATED",
+        "status": 401,
+        "has_field": false,
+        "when": "valid session, is_active false"
+      },
+      {
+        "code": "FORBIDDEN",
+        "status": 403,
+        "has_field": false,
+        "when": "authenticated but the role does not hold the capability"
+      },
+      {
+        "code": "EMAIL_TAKEN",
+        "status": 409,
+        "has_field": true,
+        "when": "registration against an existing address, subject to SW-ADR-102's enumeration posture"
+      },
+      {
+        "code": "CONFLICT",
+        "status": 409,
+        "has_field": true,
+        "when": "duplicate category name; last-administrator guard"
+      },
+      {
+        "code": "RATE_LIMITED",
+        "status": 429,
+        "has_field": false,
+        "when": "a rate limit is hit; carries Retry-After"
+      },
+      {
+        "code": "BAD_REQUEST",
+        "status": 400,
+        "has_field": false,
+        "when": "malformed body that never reaches validation"
+      },
+      {
+        "code": "INTERNAL",
+        "status": 500,
+        "has_field": false,
+        "when": "unhandled; the message is generic and never carries detail"
+      }
+    ]
+  },
+  "models": {
+    "Expense": {
+      "source": "P-REC-01 · P-REC-02",
+      "fields": [
+        {
+          "name": "id",
+          "type": "integer",
+          "note": "server-assigned"
+        },
+        {
+          "name": "user_id",
+          "type": "integer",
+          "note": "the VERIFIED identity, never the request body (SW-ADR-130)"
+        },
+        {
+          "name": "category_id",
+          "type": "integer|null"
+        },
+        {
+          "name": "category_name",
+          "type": "string|null",
+          "note": "service-to-service from the categories module (SW-ADR-017)"
+        },
+        {
+          "name": "amount",
+          "type": "string",
+          "note": "display, rupees, always two decimals"
+        },
+        {
+          "name": "amount_paise",
+          "type": "integer",
+          "note": "the stored value; the client never divides by 100"
+        },
+        {
+          "name": "currency",
+          "type": "string",
+          "note": "snapshotted from users.currency at write time (SW-ADR-013)"
+        },
+        {
+          "name": "description",
+          "type": "string|null"
+        },
+        {
+          "name": "spent_on",
+          "type": "date"
+        },
+        {
+          "name": "receipt_key",
+          "type": "string|null"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamptz|null"
+        }
+      ]
+    },
+    "CategoryBucket": {
+      "source": "P-UND-05 · SW-ADR-055 · SW-ADR-131",
+      "fields": [
+        {
+          "name": "category_id",
+          "type": "integer|null"
+        },
+        {
+          "name": "category_name",
+          "type": "string"
+        },
+        {
+          "name": "color",
+          "type": "string",
+          "note": "required by P-UND-05"
+        },
+        {
+          "name": "total_paise",
+          "type": "integer"
+        },
+        {
+          "name": "count",
+          "type": "integer"
+        },
+        {
+          "name": "percent",
+          "type": "integer",
+          "note": "largest remainder, so printed percentages sum to exactly 100 (SW-ADR-055, Bible E3-S3)"
+        }
+      ],
+      "ordering": "total_paise DESC, category_name ASC; the synthetic null bucket ALWAYS last regardless of size (SW-ADR-131)"
+    },
+    "DayBucket": {
+      "source": "SRC-001 §7.4 — 'one row per calendar day including days where nothing was spent. Use generate_series for the empty days.'",
+      "note": "The field name `by_day` was unstated until 2026-08-05. Six documents required the series; none named the key, so SIT-E0-S9-05 asserted on a field that did not exist.",
+      "fields": [
+        {
+          "name": "date",
+          "type": "date"
+        },
+        {
+          "name": "total_paise",
+          "type": "integer"
+        },
+        {
+          "name": "count",
+          "type": "integer"
+        }
+      ]
+    },
+    "Summary": {
+      "source": "P-UND-01 … P-UND-06",
+      "fields": [
+        {
+          "name": "from",
+          "type": "date"
+        },
+        {
+          "name": "to",
+          "type": "date"
+        },
+        {
+          "name": "total_paise",
+          "type": "integer"
+        },
+        {
+          "name": "total",
+          "type": "string"
+        },
+        {
+          "name": "count",
+          "type": "integer",
+          "note": "expense ROWS, not days"
+        },
+        {
+          "name": "days_elapsed",
+          "type": "integer",
+          "note": "max(0, min(to, today) - from + 1), evaluated in Asia/Kolkata (SW-ADR-053, SW-ADR-096). This is the DIVISOR."
+        },
+        {
+          "name": "daily_average_paise",
+          "type": "integer|null",
+          "note": "NULL when days_elapsed is 0 - never 0, which would read as 'spent nothing' (SW-ADR-053, SW-ADR-054, P-UND-02, R-UND-04, SIT-E2-S6-03)"
+        },
+        {
+          "name": "daily_average",
+          "type": "string|null"
+        },
+        {
+          "name": "by_category",
+          "type": "CategoryBucket[]"
+        },
+        {
+          "name": "by_day",
+          "type": "DayBucket[]"
+        }
+      ]
+    }
+  },
+  "conventions": {
+    "source": "SW-ADR-139",
+    "note": "Each row is something a cold reader with only these documents had to GUESS. A guess is a document defect, so each is ruled here rather than left to be re-invented. The 'asked_by' column records which uncoached slice raised it.",
+    "rules": [
+      {
+        "id": "CV-01",
+        "question": "What is the session cookie called?",
+        "ruling": "`sw_session`. httpOnly, SameSite=Lax, Path=/, Secure driven by COOKIE_SECURE.",
+        "why": "SIT-E0-S5-02 asserts on a cookie the test must be able to find by name, and the name was never written down. Every attribute was specified exhaustively; the name was not.",
+        "source": "P-ACC-03 · SW-ADR-014",
+        "asked_by": "slice run 2, guess 3"
+      },
+      {
+        "id": "CV-02",
+        "question": "How is the uncategorised-only filter expressed?",
+        "ruling": "`?uncategorised=true`. It is mutually exclusive with `category_id`; sending both is 422.",
+        "why": "P-UND-05 makes the synthetic bucket clickable, so it needs a query parameter, and `category_id=null` is not expressible in a query string.",
+        "source": "P-UND-05 · SW-ADR-109",
+        "asked_by": "slice run 2, guess 9"
+      },
+      {
+        "id": "CV-03",
+        "question": "Does the day series re-scope under a category filter?",
+        "ruling": "Yes. The filter re-scopes the total, the count, the average, the day series and the entry list. ONLY `by_category` is left un-scoped.",
+        "why": "P-UND-01 says 're-scopes everything except the breakdown itself'; the breakdown is what you would be clicking, so re-scoping it would collapse the control.",
+        "source": "P-UND-01 · SW-ADR-109",
+        "asked_by": "slice run 2, guess 10"
+      },
+      {
+        "id": "CV-04",
+        "question": "Does \"1250.0000\" pass? Written scale, or numeric value?",
+        "ruling": "Rejected, 422. The rule is on the WRITTEN scale: more than two decimal places as typed is refused, even when the extra places are zeros.",
+        "why": "SW-ADR-112 refuses rather than rounds, and stricter wins (Art II.1). A value-based rule would silently accept input the person may have mistyped.",
+        "source": "SW-ADR-112 · NEG-M-04",
+        "asked_by": "slice run 2, guess 11"
+      },
+      {
+        "id": "CV-05",
+        "question": "Where does `currency` come from on insert?",
+        "ruling": "`get_current_user` returns a principal carrying `currency`; the expenses service reads it from the principal, never from the users table.",
+        "why": "SW-ADR-013 snapshots it at write time, and SRC-001 §3.4 forbids the expenses module touching `users`. The principal is the sanctioned carrier.",
+        "source": "SW-ADR-013 · SRC-001 §3.4",
+        "asked_by": "slice run 2, guess 12"
+      },
+      {
+        "id": "CV-06",
+        "question": "How is \"today\" mocked for the gate?",
+        "ruling": "`app/core/clock.py` exposes `today_ist()` behind a FastAPI dependency, overridden in tests. NOT a library that freezes the process clock.",
+        "why": "Freezing the process clock does not freeze `now()` inside Postgres, so session expiry and `spent_on` validation would disagree about what day it is.",
+        "source": "SW-ADR-096 · Bible E0-S9",
+        "asked_by": "slice run 2, guess 14"
+      },
+      {
+        "id": "CV-07",
+        "question": "Are `from` and `to` required on the summary?",
+        "ruling": "Both required. Omitting either is 422; there is no default range.",
+        "why": "P-UND-03: 'the server never guesses this month'. A default would be the server guessing.",
+        "source": "P-UND-03 · SW-ADR-108",
+        "asked_by": "slice run 2, guess 15"
+      },
+      {
+        "id": "CV-08",
+        "question": "Does the create response carry `category_name`?",
+        "ruling": "Yes. The sanctioned service-to-service crossing of SW-ADR-017 covers BOTH the summary and the create/update responses - two paths, not one.",
+        "why": "The client renders the new row immediately; without the name it would need a second request, which is the round trip SRC-001 asked to avoid.",
+        "source": "SW-ADR-017 · P-REC-01",
+        "asked_by": "slice run 2, guess 16"
+      },
+      {
+        "id": "CV-09",
+        "question": "What sets `updated_at`?",
+        "ruling": "The service, on PATCH only. No database trigger. A create leaves it null.",
+        "why": "A trigger would fire on the audit-log-adjacent writes too and make 'never edited' unrepresentable. Null means never edited, and that is a fact worth keeping.",
+        "source": "P-REC-03 · datamodel.json",
+        "asked_by": "slice run 2, guess 18"
+      },
+      {
+        "id": "CV-10",
+        "question": "Does a 201 carry a `Location` header?",
+        "ruling": "No. The created resource is in the body; there is no separate fetch to point at.",
+        "why": "One convention, stated once, rather than a per-endpoint judgement call.",
+        "source": "SW-ADR-051",
+        "asked_by": "slice run 2, guess 19"
+      },
+      {
+        "id": "CV-11",
+        "question": "Route ordering, and what a non-integer id returns",
+        "ruling": "`/api/expenses/summary` MUST be declared before `/api/expenses/{expense_id}`. A path parameter that fails integer coercion returns **404**, not 422.",
+        "why": "Declared the other way, the literal `summary` is eaten by the int path parameter and the endpoint 422s. And a malformed id is a not-found id: 422 would leak that the id space is integers, which P-PRV-03's uniform 404 exists to avoid.",
+        "source": "P-PRV-03 · SW-ADR-050",
+        "asked_by": "slice run 2, guess 20"
+      }
+    ]
+  }
+}

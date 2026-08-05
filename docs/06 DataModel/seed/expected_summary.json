@@ -1,0 +1,201 @@
+{
+  "from": "2026-08-01",
+  "to": "2026-08-31",
+  "total_paise": 379049,
+  "total": "3790.49",
+  "count": 4,
+  "days_elapsed": 5,
+  "daily_average_paise": 75810,
+  "daily_average": "758.10",
+  "by_category": [
+    {
+      "category_id": 1,
+      "category_name": "Groceries",
+      "color": "#4a7c59",
+      "total_paise": 210000,
+      "count": 1,
+      "percent": 55
+    },
+    {
+      "category_id": 3,
+      "category_name": "Transport",
+      "color": "#3e6b8f",
+      "total_paise": 125000,
+      "count": 1,
+      "percent": 33
+    },
+    {
+      "category_id": 5,
+      "category_name": "Health",
+      "color": "#2e7d8a",
+      "total_paise": 34050,
+      "count": 1,
+      "percent": 9
+    },
+    {
+      "category_id": null,
+      "category_name": "Uncategorised",
+      "color": "#948c87",
+      "total_paise": 9999,
+      "count": 1,
+      "percent": 3
+    }
+  ],
+  "by_day": [
+    {
+      "date": "2026-08-01",
+      "total_paise": 125000,
+      "count": 1
+    },
+    {
+      "date": "2026-08-02",
+      "total_paise": 0,
+      "count": 0
+    },
+    {
+      "date": "2026-08-03",
+      "total_paise": 244050,
+      "count": 2
+    },
+    {
+      "date": "2026-08-04",
+      "total_paise": 0,
+      "count": 0
+    },
+    {
+      "date": "2026-08-05",
+      "total_paise": 9999,
+      "count": 1
+    },
+    {
+      "date": "2026-08-06",
+      "total_paise": 0,
+      "count": 0
+    },
+    {
+      "date": "2026-08-07",
+      "total_paise": 0,
+      "count": 0
+    },
+    {
+      "date": "2026-08-08",
+      "total_paise": 0,
+      "count": 0
+    },
+    {
+      "date": "2026-08-09",
+      "total_paise": 0,
+      "count": 0
+    },
+    {
+      "date": "2026-08-10",
+      "total_paise": 0,
+      "count": 0
+    },
+    {
+      "date": "2026-08-11",
+      "total_paise": 0,
+      "count": 0
+    },
+    {
+      "date": "2026-08-12",
+      "total_paise": 0,
+      "count": 0
+    },
+    {
+      "date": "2026-08-13",
+      "total_paise": 0,
+      "count": 0
+    },
+    {
+      "date": "2026-08-14",
+      "total_paise": 0,
+      "count": 0
+    },
+    {
+      "date": "2026-08-15",
+      "total_paise": 0,
+      "count": 0
+    },
+    {
+      "date": "2026-08-16",
+      "total_paise": 0,
+      "count": 0
+    },
+    {
+      "date": "2026-08-17",
+      "total_paise": 0,
+      "count": 0
+    },
+    {
+      "date": "2026-08-18",
+      "total_paise": 0,
+      "count": 0
+    },
+    {
+      "date": "2026-08-19",
+      "total_paise": 0,
+      "count": 0
+    },
+    {
+      "date": "2026-08-20",
+      "total_paise": 0,
+      "count": 0
+    },
+    {
+      "date": "2026-08-21",
+      "total_paise": 0,
+      "count": 0
+    },
+    {
+      "date": "2026-08-22",
+      "total_paise": 0,
+      "count": 0
+    },
+    {
+      "date": "2026-08-23",
+      "total_paise": 0,
+      "count": 0
+    },
+    {
+      "date": "2026-08-24",
+      "total_paise": 0,
+      "count": 0
+    },
+    {
+      "date": "2026-08-25",
+      "total_paise": 0,
+      "count": 0
+    },
+    {
+      "date": "2026-08-26",
+      "total_paise": 0,
+      "count": 0
+    },
+    {
+      "date": "2026-08-27",
+      "total_paise": 0,
+      "count": 0
+    },
+    {
+      "date": "2026-08-28",
+      "total_paise": 0,
+      "count": 0
+    },
+    {
+      "date": "2026-08-29",
+      "total_paise": 0,
+      "count": 0
+    },
+    {
+      "date": "2026-08-30",
+      "total_paise": 0,
+      "count": 0
+    },
+    {
+      "date": "2026-08-31",
+      "total_paise": 0,
+      "count": 0
+    }
+  ]
+}

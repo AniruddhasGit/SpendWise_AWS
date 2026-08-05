@@ -196,6 +196,23 @@ def render_security(spec):
                 "REVOKE ALL ON FUNCTION {name}({argtypes}) FROM PUBLIC;\n"
                 "GRANT EXECUTE ON FUNCTION {name}({argtypes}) TO spendwise_app;\n".format(**fn))
 
+    # ── privileges ────────────────────────────────────────────────────────
+    # There were NO table grants here until 2026-08-05 (SW-ADR-137). Every query
+    # by the runtime role would have failed with permission denied, and
+    # verify_invariants.sql would still have printed all-green, because it only
+    # ever checked what the role CANNOT do. RLS narrows a grant; with no grant it
+    # was protecting a door already welded shut.
+    g = spec.get("grants")
+    if g:
+        out.append("-- ── privileges (SW-ADR-137) ──────────────────────────────────────────\n"
+                   "-- RLS only NARROWS what a grant already allows. Both are required, and the\n"
+                   "-- boot assertion checks this direction too, not only the dangerous one.")
+        for role in g.get("schema_usage", []):
+            out.append("GRANT USAGE ON SCHEMA public TO %s;" % role)
+        for t in g["tables"]:
+            out.append("-- %s\nGRANT %s ON %s TO %s;"
+                       % (t["why"], t["privileges"], ", ".join(t["on"]), t["to"]))
+
     out.append("""
 -- admin_audit_log: immutable (SW-ADR-083). Revoke AND a trigger, so the refusal
 -- is visible rather than a silent permission error.

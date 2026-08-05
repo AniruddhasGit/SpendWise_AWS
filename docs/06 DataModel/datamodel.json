@@ -542,5 +542,49 @@
         "body": "SELECT count(*)::bigint, max(spent_on)\n      FROM expenses WHERE user_id = target_user_id;"
       }
     ]
+  },
+  "grants": {
+    "source": "SW-ADR-137 · SW-ADR-081",
+    "note": "There were NO table grants at all until 2026-08-05, so every query by the runtime role would have failed with permission denied - and verify_invariants.sql would still have printed all-green, because it only ever checked what the role CANNOT do. RLS narrows a grant; with no grant it was protecting a door already welded shut.",
+    "schema_usage": [
+      "spendwise_app"
+    ],
+    "tables": [
+      {
+        "privileges": "SELECT, INSERT, UPDATE, DELETE",
+        "on": [
+          "expenses",
+          "categories",
+          "sessions"
+        ],
+        "to": "spendwise_app",
+        "why": "full CRUD, narrowed by RLS"
+      },
+      {
+        "privileges": "SELECT, INSERT, UPDATE",
+        "on": [
+          "users",
+          "password_resets"
+        ],
+        "to": "spendwise_app",
+        "why": "no DELETE: there is no user-deletion path in v1 (SW-ADR-107), and password_resets is pruned by the owner (SW-ADR-122)"
+      },
+      {
+        "privileges": "SELECT, INSERT",
+        "on": [
+          "admin_audit_log"
+        ],
+        "to": "spendwise_app",
+        "why": "append-only; UPDATE and DELETE are revoked and a trigger raises (SW-ADR-083)"
+      },
+      {
+        "privileges": "SELECT, UPDATE",
+        "on": [
+          "app_meta"
+        ],
+        "to": "spendwise_app",
+        "why": "one row; the signing-secret fingerprint is rewritten on rotation (SW-ADR-125)"
+      }
+    ]
   }
 }

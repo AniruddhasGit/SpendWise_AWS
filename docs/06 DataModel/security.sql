@@ -83,6 +83,18 @@ ALTER FUNCTION admin_expense_stats(BIGINT) OWNER TO spendwise_owner;
 REVOKE ALL ON FUNCTION admin_expense_stats(BIGINT) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION admin_expense_stats(BIGINT) TO spendwise_app;
 
+-- ── privileges (SW-ADR-137) ──────────────────────────────────────────
+-- RLS only NARROWS what a grant already allows. Both are required, and the
+-- boot assertion checks this direction too, not only the dangerous one.
+GRANT USAGE ON SCHEMA public TO spendwise_app;
+-- full CRUD, narrowed by RLS
+GRANT SELECT, INSERT, UPDATE, DELETE ON expenses, categories, sessions TO spendwise_app;
+-- no DELETE: there is no user-deletion path in v1 (SW-ADR-107), and password_resets is pruned by the owner (SW-ADR-122)
+GRANT SELECT, INSERT, UPDATE ON users, password_resets TO spendwise_app;
+-- append-only; UPDATE and DELETE are revoked and a trigger raises (SW-ADR-083)
+GRANT SELECT, INSERT ON admin_audit_log TO spendwise_app;
+-- one row; the signing-secret fingerprint is rewritten on rotation (SW-ADR-125)
+GRANT SELECT, UPDATE ON app_meta TO spendwise_app;
 
 -- admin_audit_log: immutable (SW-ADR-083). Revoke AND a trigger, so the refusal
 -- is visible rather than a silent permission error.

@@ -105,3 +105,24 @@ response would look identical. An empty result still audits; the admin looked.
 
 A 403 to a non-admin writes **nothing** here. The action allowlist is closed and has no
 denied-attempt type; refused attempts belong to the request log (`P-OPS-05`) and `SW-ADR-104`.
+
+## `set_config('app.user_id', …, true)` is TRANSACTION-local, and losing it is silent
+
+`SW-ADR-136`. The third argument `true` scopes the setting to the current transaction. If any
+repository opens a **second transaction**, the GUC is gone there — and every RLS-protected query
+then returns **zero rows instead of erroring**.
+
+That is the worst failure shape in this system: an empty dashboard is indistinguishable from a
+person who has spent nothing. Nothing goes red. One `AsyncSession`, one transaction per request,
+GUC set as the **first statement**, in the auth dependency.
+
+Related: the session lookup itself runs under that policy, so it must come **after** the
+`set_config`. `03_security_isolation.md` originally showed the reverse order, which returns zero
+rows for every request ever made — authentication that never succeeds.
+
+## A LEFT JOIN owner predicate belongs in `ON`, never `WHERE`
+
+The day series uses `generate_series` LEFT JOINed to `expenses`. Put `e.user_id = :uid` in the
+`WHERE` clause and the LEFT JOIN quietly degenerates to an INNER JOIN: the zero-spend days vanish,
+the series shortens, and **only `SIT-E0-S9-05` notices** — the totals and the average stay correct,
+so every other test still passes.

@@ -1,3 +1,8 @@
+# A PERSONA MATRIX - documentation of intent, NOT enforcement (SW-ADR-137).
+# Enforcement is security.sql: GRANTs plus row-level policies, both generated
+# from datamodel.json. Until 2026-08-05 this file described access that nothing
+# implemented - 'own row only' on a table with no RLS and no grant was true only
+# because no row was reachable at all.
 persona	entity	action	grant	source	status
 user	expenses	read/write	own rows only	SRC-001 §10.2	RULED
 user	categories	read/write	own rows only	SRC-001 §6.5	RULED

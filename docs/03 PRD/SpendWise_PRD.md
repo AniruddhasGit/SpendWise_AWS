@@ -5,7 +5,7 @@
 | Version | v0.1-draft |
 | Decision status | **NOT_DECIDED** (fail-closed) |
 | Release status | NOT_RELEASED |
-| Drafted | 2026-08-05 from `SRC-001`, `SRC-002`, `02 BRD` v0.2, `05 B DesignSystem`, and the 128 records in `docs/01 ADR/` |
+| Drafted | 2026-08-05 from `SRC-001`, `SRC-002`, `02 BRD` v0.3, `05 B DesignSystem`, and the 135 records in `docs/01 ADR/` |
 | Governed by | `spendwise-constitution@0.1.0` — **UNADOPTED**, see `OPEN-NAME-01` |
 
 > **This is the document the code is written from.** Every `P-` row states behaviour precisely
@@ -20,7 +20,7 @@ Every `P-` row carries **two** references: a `[SRC:]` tag (where the requirement
 a **BRD row** (which business requirement it satisfies). A row missing either is a defect:
 no `[SRC:]` means invented, no BRD row means scope creep.
 
-Citations resolve against **currently APPROVED** records only. 21 of the 135 ADRs are
+Citations resolve against **currently APPROVED** records only. 21 of the 139 ADRs are
 superseded or withdrawn and are not authority.
 
 **Status:** `RULED` (decided, cited) · `PROVISIONAL` (buildable, a dependency outstanding) ·
@@ -517,12 +517,24 @@ envelope — the framework default is not exposed.
 (`P-PRV-03`) · 409 conflict (duplicate email, duplicate category name, last-administrator guard)
 · 422 validation · 429 rate limited, with `Retry-After`.
 
+<!-- BEGIN GENERATED §6.1 — py "docs/03 PRD/api/generate_api.py" -->
+
 ### §6.1 — Two worked payloads
 
-The uncoached vertical slice of 2026-08-05 read this document cold and asked eighteen questions.
-Eight of them were the same question: *what does the JSON actually look like?* This document
-specified behaviour in prose for ~2,500 lines and contained one JSON block. These two examples
-are normative — where prose and payload disagree, that is a defect to be filed, not a choice.
+**Generated from `docs/03 PRD/api/contract.json`. Do not hand-edit — regenerate.**
+
+The first version of this section was hand-written to answer a cold reader who had asked
+eight variants of one question: *what does the JSON actually look like?* The next cold
+reader found that the hand-written answer omitted `by_day` (which `SRC-001 §7.4` requires
+and five other documents assert on), said `daily_average_paise: 0` where six documents say
+`null`, named two categories that do not exist, printed `by_category` out of the order the
+same page mandates, dropped `color` and `percent`, and cited the wrong ADR for the one
+number that is never waivable.
+
+**A hand-written example is exactly as driftable as the prose it replaces** — and once it
+is labelled normative it drifts with authority. So it is computed now, from the same spec
+that states the rules. These payloads are **normative**: where prose and payload disagree,
+that is a defect to be filed, not a choice.
 
 **Creating an expense.** `POST /api/expenses`, cookie-authenticated as user 7.
 
@@ -537,10 +549,11 @@ are normative — where prose and payload disagree, that is a defect to be filed
 }
 ```
 
-`amount` is a **decimal string**, in rupees, and is the only accepted form — a JSON number is
-rejected 422, because a float cannot hold ₹0.10 exactly `[SRC: SW-ADR-029]`. `user_id` and `id`
-are **silently discarded before validation**: the owner is the verified identity, never the body
-`[SRC: SW-ADR-130]`. Response **201**:
+`amount` is a **decimal string**, in rupees, and is the only accepted form — a JSON number
+is rejected 422, because a float cannot hold ₹0.10 exactly `[SRC: SW-ADR-029]`. More than
+two decimal places is rejected, never rounded `[SRC: SW-ADR-112]`. `user_id` and `id` are
+**silently discarded before validation**: the owner is the verified identity, never the
+body `[SRC: SW-ADR-130]`. Response **201**:
 
 ```json
 {
@@ -559,18 +572,21 @@ are **silently discarded before validation**: the owner is the verified identity
 }
 ```
 
-`user_id` is **7**, not the forged 99, and `id` is server-assigned. Both `amount` (display, rupees)
-and `amount_paise` (integer, the stored value) are returned: the client never divides by 100, and
-a test can assert on the exact integer. `created_at` is UTC with an offset; the *calendar* boundary
-is Asia/Kolkata `[SRC: SW-ADR-096]`.
+`user_id` is **7**, not the forged 99, and `id` is server-assigned. Both `amount` (display,
+rupees) and `amount_paise` (the stored integer) are returned: the client never divides by
+100, and a test can assert on the exact integer. `created_at` is UTC with an offset; the
+*calendar* boundary is Asia/Kolkata `[SRC: SW-ADR-096]`.
 
-**The day-one summary.** `GET /api/expenses/summary?from=2026-08-01&to=2026-08-05` against the
-seeded fixture, as user 7. This is the payload the never-waivable gate asserts on.
+**The day-one summary.** `GET /api/expenses/summary?from=2026-08-01&to=2026-08-31`
+
+Against the seeded fixture, as person A, today mocked to `2026-08-05` Asia/Kolkata. **This is
+the payload the never-waivable gate asserts on**, and every value below is computed
+from `contract.json` — none is typed.
 
 ```json
 {
   "from": "2026-08-01",
-  "to": "2026-08-05",
+  "to": "2026-08-31",
   "total_paise": 379049,
   "total": "3790.49",
   "count": 4,
@@ -578,29 +594,108 @@ seeded fixture, as user 7. This is the payload the never-waivable gate asserts o
   "daily_average_paise": 75810,
   "daily_average": "758.10",
   "by_category": [
-    {"category_id": 3,    "category_name": "Transport",     "total_paise": 125000, "count": 1},
-    {"category_id": 1,    "category_name": "Food",          "total_paise": 210000, "count": 1},
-    {"category_id": 5,    "category_name": "Bills",         "total_paise":  34050, "count": 1},
-    {"category_id": null, "category_name": "Uncategorised", "total_paise":   9999, "count": 1}
+    {
+      "category_id": 1,
+      "category_name": "Groceries",
+      "color": "#4a7c59",
+      "total_paise": 210000,
+      "count": 1,
+      "percent": 55
+    },
+    {
+      "category_id": 3,
+      "category_name": "Transport",
+      "color": "#3e6b8f",
+      "total_paise": 125000,
+      "count": 1,
+      "percent": 33
+    },
+    {
+      "category_id": 5,
+      "category_name": "Health",
+      "color": "#2e7d8a",
+      "total_paise": 34050,
+      "count": 1,
+      "percent": 9
+    },
+    {
+      "category_id": null,
+      "category_name": "Uncategorised",
+      "color": "#948c87",
+      "total_paise": 9999,
+      "count": 1,
+      "percent": 3
+    }
+  ],
+  "by_day": [
+    {"date": "2026-08-01", "total_paise": 125000, "count": 1},
+    {"date": "2026-08-02", "total_paise": 0, "count": 0},
+    {"date": "2026-08-03", "total_paise": 244050, "count": 2},
+    {"date": "2026-08-04", "total_paise": 0, "count": 0},
+    {"date": "2026-08-05", "total_paise": 9999, "count": 1},
+    {"date": "2026-08-06", "total_paise": 0, "count": 0},
+    … 2026-08-07 … 2026-08-31, all total_paise 0, count 0 — 31 rows in total
   ]
 }
 ```
 
-Every field, spelled out, because each was guessed at least once:
+Every field, spelled out, because each was guessed at least once by a cold reader:
 
-- `total_paise` **379049** = 125000 + 210000 + 34050 + 9999. Integers throughout `[SRC: SW-ADR-029]`.
-- `count` **4** — the number of expense rows, **not** the number of days.
-- `days_elapsed` **5** — inclusive of both ends, capped at today, evaluated in Asia/Kolkata.
-  This is the divisor and it is **days, not rows**; dividing by `count` gives 94762 and is the
-  single most common way to fail the gate.
-- `daily_average_paise` **75810** — `379049 / 5 = 75809.8`, rounded **half-up** to 75810
-  `[SRC: SW-ADR-085]`. Not truncated: truncation gives 75809 and the gate fails by one paisa.
-- `daily_average` **"758.10"** — the same value as a display string. Trailing zero kept.
-- `by_category` is ordered by `total_paise` descending, with the **synthetic `null` bucket always
-  last regardless of size** `[SRC: SW-ADR-131]`, labelled `Uncategorised` and rendered `#948c87`.
-  It is a bucket, not a row in `categories`; nothing joins to it.
-- Absent keys are absent, not null: a range with no rows returns `total_paise: 0`, `count: 0`,
-  and `by_category: []` — never `null`, and `daily_average_paise` is **0**, not a division by zero.
+- `total_paise` **379049** = 125000 + 34050 + 210000 + 9999. Integers throughout `[SRC: SW-ADR-029]`.
+- `count` **4** — the number of expense **rows**, not the number of days.
+- `days_elapsed` **5** — `max(0, min(to, today) − from + 1)`, inclusive of both ends
+  `[SRC: SW-ADR-085]`, capped at today, evaluated in Asia/Kolkata `[SRC: SW-ADR-053]`.
+  **This is the divisor, and it is days, not rows.**
+- `daily_average_paise` **75810** — `379049 / 5`, rounded **half-up** `[SRC: SW-ADR-010]`,
+  in integers: `(2·total + elapsed) // (2·elapsed)`. Two wrong answers to avoid —
+  **75809** is what truncation gives, and **94762** is what dividing by `count` gives.
+- `daily_average` **"758.10"** — the same value as a display string, trailing zero kept.
+- **`daily_average_paise` is `null`, never `0`, when `days_elapsed` is 0**
+  `[SRC: SW-ADR-053, SW-ADR-054]` — a future-dated range has no average, and `0` would
+  read as "spent nothing". `P-UND-02` renders it `—`; that dash is the client's.
+- `by_category` is ordered `total_paise` **descending**, then name ascending
+  `[SRC: SW-ADR-055]`, with the synthetic `null` bucket **always last regardless of size**
+  `[SRC: SW-ADR-131]`, labelled `Uncategorised` and rendered `#948c87`. It is a bucket, not a
+  row in `categories`; nothing joins to it. `percent` is largest-remainder, so the printed
+  percentages sum to exactly 100.
+- `by_day` carries **one row per calendar day, including days with no spending**
+  `[SRC: SRC-001 §7.4]` — 31 rows here. Build it with `generate_series` and a LEFT JOIN,
+  with the owner predicate in the **`ON`** clause: move it to `WHERE` and the LEFT JOIN
+  degenerates to an INNER JOIN, the zero days vanish, and only `SIT-E0-S9-05` notices.
+- Absent keys are absent, not null: a range with no rows returns `total_paise: 0`,
+  `count: 0`, `by_category: []`, and a `by_day` still full of zero rows.
+
+**Error codes** are enumerated in `docs/03 PRD/api/error_codes.md`, generated from the same
+spec. The list is closed: a code not on it cannot be returned.
+
+### §6.2 — Conventions a cold reader had to invent
+
+**Generated from `contract.json`. Do not hand-edit — regenerate.**
+
+Every row below is something an engineer with only these documents had to **guess**.
+A guess is a document defect, so each is ruled here rather than left to be
+re-invented differently by the next reader. The last column records which uncoached
+slice raised it — this table is a record of where the document set was thin, not
+only of what it now says.
+
+| | Question | Ruling | Why | Source | Raised by |
+|---|---|---|---|---|---|
+| `CV-01` | What is the session cookie called? | **`sw_session`. httpOnly, SameSite=Lax, Path=/, Secure driven by COOKIE_SECURE.** | SIT-E0-S5-02 asserts on a cookie the test must be able to find by name, and the name was never written down. Every attribute was specified exhaustively; the name was not. | P-ACC-03 · SW-ADR-014 | slice run 2, guess 3 |
+| `CV-02` | How is the uncategorised-only filter expressed? | **`?uncategorised=true`. It is mutually exclusive with `category_id`; sending both is 422.** | P-UND-05 makes the synthetic bucket clickable, so it needs a query parameter, and `category_id=null` is not expressible in a query string. | P-UND-05 · SW-ADR-109 | slice run 2, guess 9 |
+| `CV-03` | Does the day series re-scope under a category filter? | **Yes. The filter re-scopes the total, the count, the average, the day series and the entry list. ONLY `by_category` is left un-scoped.** | P-UND-01 says 're-scopes everything except the breakdown itself'; the breakdown is what you would be clicking, so re-scoping it would collapse the control. | P-UND-01 · SW-ADR-109 | slice run 2, guess 10 |
+| `CV-04` | Does "1250.0000" pass? Written scale, or numeric value? | **Rejected, 422. The rule is on the WRITTEN scale: more than two decimal places as typed is refused, even when the extra places are zeros.** | SW-ADR-112 refuses rather than rounds, and stricter wins (Art II.1). A value-based rule would silently accept input the person may have mistyped. | SW-ADR-112 · NEG-M-04 | slice run 2, guess 11 |
+| `CV-05` | Where does `currency` come from on insert? | **`get_current_user` returns a principal carrying `currency`; the expenses service reads it from the principal, never from the users table.** | SW-ADR-013 snapshots it at write time, and SRC-001 §3.4 forbids the expenses module touching `users`. The principal is the sanctioned carrier. | SW-ADR-013 · SRC-001 §3.4 | slice run 2, guess 12 |
+| `CV-06` | How is "today" mocked for the gate? | **`app/core/clock.py` exposes `today_ist()` behind a FastAPI dependency, overridden in tests. NOT a library that freezes the process clock.** | Freezing the process clock does not freeze `now()` inside Postgres, so session expiry and `spent_on` validation would disagree about what day it is. | SW-ADR-096 · Bible E0-S9 | slice run 2, guess 14 |
+| `CV-07` | Are `from` and `to` required on the summary? | **Both required. Omitting either is 422; there is no default range.** | P-UND-03: 'the server never guesses this month'. A default would be the server guessing. | P-UND-03 · SW-ADR-108 | slice run 2, guess 15 |
+| `CV-08` | Does the create response carry `category_name`? | **Yes. The sanctioned service-to-service crossing of SW-ADR-017 covers BOTH the summary and the create/update responses - two paths, not one.** | The client renders the new row immediately; without the name it would need a second request, which is the round trip SRC-001 asked to avoid. | SW-ADR-017 · P-REC-01 | slice run 2, guess 16 |
+| `CV-09` | What sets `updated_at`? | **The service, on PATCH only. No database trigger. A create leaves it null.** | A trigger would fire on the audit-log-adjacent writes too and make 'never edited' unrepresentable. Null means never edited, and that is a fact worth keeping. | P-REC-03 · datamodel.json | slice run 2, guess 18 |
+| `CV-10` | Does a 201 carry a `Location` header? | **No. The created resource is in the body; there is no separate fetch to point at.** | One convention, stated once, rather than a per-endpoint judgement call. | SW-ADR-051 | slice run 2, guess 19 |
+| `CV-11` | Route ordering, and what a non-integer id returns | **`/api/expenses/summary` MUST be declared before `/api/expenses/{expense_id}`. A path parameter that fails integer coercion returns **404**, not 422.** | Declared the other way, the literal `summary` is eaten by the int path parameter and the endpoint 422s. And a malformed id is a not-found id: 422 would leak that the id space is integers, which P-PRV-03's uniform 404 exists to avoid. | P-PRV-03 · SW-ADR-050 | slice run 2, guess 20 |
+
+A convention absent from this table and from §6.1 is **not** a licence to choose one.
+It is an `OPEN` item: escalate, never invent (`CONSTITUTION.md` Art X).
+
+<!-- END GENERATED §6.1 -->
 
 ---
 

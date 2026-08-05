@@ -1,6 +1,6 @@
 # harness/ — how a row becomes a runnable test
 
-`SIT_TestCases.tsv` holds **178 cases, one per acceptance criterion in the Bible**. They are
+`SIT_TestCases.tsv` holds **195 cases, one per acceptance criterion in the Bible**. They are
 written before the code, so the code is built to pass a test that already exists.
 
 ## The rules

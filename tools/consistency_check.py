@@ -374,7 +374,7 @@ def check_all(root: str) -> Report:
 
     COUNTS = [
         (r"\*\*(\d+) decision records\*\*", len(adr_files), "ADR files"),
-        (r"the (\d+) records in `docs/01 ADR/all-ADRs/`", len(adr_files), "ADR files"),
+        (r"the (\d+) records in `docs/01 ADR/", len(adr_files), "ADR files"),
         (r"(\d+) of the (?:\d+) ADRs are\s*\n?\s*superseded", len(dead), "superseded ADRs"),
         (r"of the (\d+) ADRs are", len(ledger_ids), "ledger rows"),
         (r"\((\d+) live,", live, "live ADRs"),
@@ -388,6 +388,11 @@ def check_all(root: str) -> Report:
     ]
     WORDS = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6,
              "seven": 7, "eight": 8, "nine": 9, "ten": 10, "eleven": 11, "twelve": 12}
+    # A provenance line - "Drafted 2026-08-05 from the 22 records" - is a true
+    # statement about the past, and SW-ADR-133 rules it must NOT be refreshed:
+    # rewriting it would destroy a fact to fix a count.
+    PROV = re.compile(r"\|\s*Drafted\s*\||drafted (?:on|from)|as of \d|at the time|"
+                      r"originally|when (?:this|it) was (?:written|drafted)|v0\.\d marked", re.I)
     checked = 0
     for f, t in corpus.items():
         if f.startswith("docs/01 ADR/all-ADRs/"):
@@ -400,6 +405,10 @@ def check_all(root: str) -> Report:
                 claimed = WORDS.get(g, None) if not g.isdigit() else int(g)
                 if claimed is None:
                     continue
+                ls = t.rfind("\n", 0, m.start()) + 1
+                le = t.find("\n", m.end())
+                if PROV.search(t[ls: le if le != -1 else len(t)]):
+                    continue   # historical provenance, not a live claim
                 checked += 1
                 if claimed != actual:
                     r.fail("stated-count",
@@ -447,6 +456,7 @@ def check_all(root: str) -> Report:
 
     ok = 0
     for gen in (os.path.join(root, "docs", "06 DataModel", "generate.py"),
+                os.path.join(root, "docs", "03 PRD", "api", "generate_api.py"),
                 os.path.join(root, "tools", "generate_docs_readme.py")):
         if not os.path.isfile(gen):
             r.fail("generated-artifact",
@@ -461,7 +471,7 @@ def check_all(root: str) -> Report:
                     r.fail("generated-artifact", line.rstrip())
         else:
             ok += out.stdout.count("PASS")
-    r.note(f"generated artifacts verified by regeneration: {ok} of 4")
+    r.note(f"generated artifacts verified by regeneration: {ok} of 8")
 
     return r
 
