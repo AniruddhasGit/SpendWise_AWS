@@ -24,6 +24,7 @@ goes red. Run it before trusting a green.
 from __future__ import annotations
 
 import argparse
+import collections
 import csv
 import hashlib
 import io
@@ -410,6 +411,40 @@ def check_all(root: str) -> Report:
     # existed. Under that cover it grew an admin policy absent from the spec of
     # record - the isolation hole SW-ADR-129 closes. The banner was the defect's
     # hiding place, so the banner is now executable.
+    # -- 11b. the day-one acceptance value agrees with itself, everywhere ---
+    # 75810 paise is the never-waivable gate, asserted across seventeen files and
+    # derived from four fixture amounts. If the fixture ever changes, every one of
+    # those goes stale at once. So the arithmetic is recomputed, not trusted.
+    FIX = [125000, 210000, 34050, 9999]
+    DAYS = 5
+    total = sum(FIX)
+    avg = (total * 2 + DAYS) // (DAYS * 2)          # half-up, in integers
+    # A document that WARNS about the wrong value is doing its job. Only an
+    # assertion of it is a defect - the same exemption shape as check 10.
+    WARN = re.compile(r"\bnot\b|never|wrong|fail|truncat|instead of|gives|rather than|"
+                      r"rounded|half-up|would be|mistak", re.I)
+    seen, bad = collections.Counter(), []
+    for f, t in corpus.items():
+        for m in re.finditer(r"\b(7581[0-9]|758[0-9][0-9]|9476[0-9]|379,?049)\b", t):
+            v = m.group(1).replace(",", "")
+            seen[v] += 1
+            if v in (str(avg), str(total)):
+                continue
+            # The LINE, not a character window: a document that warns about the
+            # wrong value says so in the same sentence. A wider window would let
+            # unrelated prose two paragraphs away excuse a bare assertion.
+            ls = t.rfind("\n", 0, m.start()) + 1
+            le = t.find("\n", m.end())
+            if not WARN.search(t[ls: le if le != -1 else len(t)]):
+                bad.append((f, v))
+    for f, v in bad:
+        r.fail("day-one-value",
+               f"{f}: asserts {v} where the day-one gate is {avg} paise "
+               f"(total {total} over {DAYS} days elapsed, half-up). {v} is what "
+               f"truncation or dividing by the row count gives")
+    r.note(f"day-one acceptance value recomputed: {total} / {DAYS} = {avg} paise "
+           f"(asserted in {seen.get(str(avg), 0)} place(s))")
+
     ok = 0
     for gen in (os.path.join(root, "docs", "06 DataModel", "generate.py"),
                 os.path.join(root, "tools", "generate_docs_readme.py")):
@@ -465,6 +500,9 @@ PLANTS = [
      lambda t: t + "\n\nPlanted: this pack holds **7 decision records**.\n"),
     ("generated-artifact", "docs/06 DataModel/security.sql",
      lambda t: t + "\nCREATE POLICY planted_hole ON expenses FOR SELECT USING (true);\n"),
+    # Asserted, with no warning framing anywhere near it — the shape that matters.
+    ("day-one-value", "docs/02 BRD/SpendWise_BRD.md",
+     lambda t: t + "\n\nPlanted: the daily average over the seeded fixture is 75809 paise.\n"),
 ]
 
 

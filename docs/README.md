@@ -56,7 +56,7 @@ resolved but were not true, one of which had silently withdrawn a live decision.
 **4. Incorporation is tracked, not assumed.** The ledger's `included_in_brd` / `_prd` / `_bible` /
 `_datamodel` columns prove a decision actually *landed* in each document rather than being decided
 and forgotten. They are **derived from the citations present in each target**, never asserted:
-23 records land in the BRD, 80 in the PRD, 9 in the Bible, 37 in the
+21 records land in the BRD, 78 in the PRD, 8 in the Bible, 35 in the
 data model.
 
 ## Fingerprints
