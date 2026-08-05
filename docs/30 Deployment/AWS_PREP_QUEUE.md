@@ -47,7 +47,9 @@ Not on the critical path — but doing it later means redoing every resource's o
 | Public access | **Yes** for now — see item 4 | the build session must reach it |
 | Backups | **7 days** | a restore drill is on the go-live checklist |
 | Deletion protection | **Off** while learning | you will want to delete and rebuild this |
-| Master username | anything except `admin`, `root`, `postgres` | RDS reserves some names and rejects them at the *end* of the wizard |
+| Credentials management | **Self managed** — NOT AWS Secrets Manager | Secrets Manager bills ~$0.40/secret/month where SSM Parameter Store is free. `SW-ADR-014` rejected it by name, and the RDS wizard warns about the charge on the page itself. |
+| Create method | **Standard create**, not Easy create | Easy create hides public access, storage autoscaling, backups and deletion protection — three of which this table needs set differently from their defaults. Storage autoscaling in particular defaults **ON** and silently crosses the 20 GB free-tier line. |
+| Master username | anything except `admin`, `root`, `postgres` — e.g. `swadmin` | **This instance is publicly reachable, and `postgres` is the first username anyone tries.** (An earlier version of this row said RDS *reserves* those names. For the PostgreSQL engine that is reliably true of `rdsadmin`, not of `postgres` — corrected 2026-08-05 rather than left as a plausible-sounding reason that is not the real one.) |
 
 **Report back:** endpoint, port, Postgres major version, master username. **Not the password.**
 
