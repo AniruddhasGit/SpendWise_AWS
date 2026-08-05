@@ -317,11 +317,13 @@ class AccountService(AuthService):
     async def deactivate_self(self, principal: Principal) -> None:
         """`SW-ADR-148`. Deactivation, not deletion.
 
-        `SW-ADR-107` rules that user deletion does not exist in v1 — deleting a
-        person's financial history is the clearest one-way door in the register.
-        This is the reversible half of what a person means when they ask to
-        leave: sign-in refused, every session revoked, the record intact and
-        restorable by an administrator.
+        `SW-ADR-107` ruled that user deletion did not exist in v1 — and has
+        since been superseded by `SW-ADR-150`, so it does. Deactivation did not
+        become redundant when it arrived: **pause me** and **close it** are
+        different requests, and `delete_self` below is the other one.
+
+        This is the pause: sign-in refused, every session revoked, the record
+        intact, `deleted_at` untouched, restorable by an administrator.
 
         The last active administrator cannot do this to themselves, for the same
         reason they cannot demote themselves: it leaves a system nobody can
@@ -351,10 +353,11 @@ class AccountService(AuthService):
         only one of them says so on the tin.
 
         **What is NOT deleted: everything.** Every expense, every category, every
-        audit row, and the person record itself survive untouched. `SW-ADR-107`
-        called hard deletion the clearest one-way door in the register and the
-        client asked for the soft form by name, which is the version that does
-        not walk through it.
+        audit row, and the person record itself survive untouched.
+
+        `SW-ADR-107`, superseded by `SW-ADR-150`, called hard deletion the
+        clearest one-way door in the register. The client asked for the soft
+        form by name, and that is the version which does not walk through it.
 
         The last active administrator cannot do this — same guard, same code and
         same field as `deactivate_self`, because it is the same failure: a system

@@ -106,10 +106,14 @@ export function yearOf(iso) {
  * hand or lands on a shared link — it is a STATE, not a sixth chip, because a
  * chip would imply a picker that does not exist yet.
  *
- * ORDER MATTERS: `identify` returns the first match, and every range here is
- * distinct on (from, to) except by coincidence — 1 January is both "this month"
- * and, for a single day, nothing else. Appending rather than inserting keeps
- * the three original ids first, so no existing link or test changes meaning.
+ * ORDER MATTERS, because two periods CAN describe the same range and `identify`
+ * returns the first that does. On the last day of a 30-day month — four days a
+ * year — "this month" and "last 30 days" are byte-identical, and the chip that
+ * lights up is whichever is listed first. That is pre-existing and harmless:
+ * both labels are true of that range. The reason the two new periods are
+ * APPENDED is that inserting one ahead of the others would silently hand those
+ * four days to a different chip, and change which one an existing link appears
+ * to have been sent from. Neither new range collides with anything.
  */
 export const PERIODS = [
   { id: 'this-month', label: 'This month', range: (t) => monthOf(t) },

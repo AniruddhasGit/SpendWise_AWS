@@ -252,7 +252,12 @@ class AdminOverview(BaseModel):
 
     accounts_total: int
     accounts_active: int
+    # PAUSED but not closed, and `accounts_deleted` is closed. The three sum to
+    # `accounts_total`; before `CR-001` they were two figures that overlapped,
+    # because closing an account sets `is_active = false` as well and a closed
+    # account was therefore reported as a paused one (`CR-001 §5.2`).
     accounts_deactivated: int
+    accounts_deleted: int
     admins: int
     sessions_live: int
     expenses_recorded: int

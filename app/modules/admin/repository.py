@@ -238,8 +238,22 @@ class AdminRepository:
             select(func.count()).select_from(User).where(User.is_active.is_(True))) or 0
         admins = await self.db.scalar(
             select(func.count()).select_from(User).where(User.role == "admin")) or 0
+        deleted = await self.db.scalar(
+            select(func.count()).select_from(User)
+            .where(User.deleted_at.is_not(None))) or 0
+        # THREE numbers that sum to the total, not two that overlap.
+        #
+        # `deactivated` was `total - active`, which was exact until CR-001 —
+        # closing an account sets `is_active = false` too, so from that day a
+        # closed account was reported as a paused one and the dashboard had no
+        # way to say how many people had actually left. Paused now means
+        # **paused and not closed**, and the arithmetic is stated here rather
+        # than left to a reader to derive from two figures that quietly
+        # double-count (`CR-001 §5.2`).
         return {"total": int(total), "active": int(active),
-                "deactivated": int(total) - int(active), "admins": int(admins)}
+                "deleted": int(deleted),
+                "deactivated": int(total) - int(active) - int(deleted),
+                "admins": int(admins)}
 
     async def signups_by_day(self, since: date) -> list[tuple[date, int]]:
         """New accounts per day — the one time series an admin can honestly

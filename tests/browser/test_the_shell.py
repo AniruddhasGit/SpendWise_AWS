@@ -473,6 +473,17 @@ async def _open_the_detail_pane(page, seeded, test_urls, who="A"):
     await page.get_by_test_id(f"view-{seeded[who]['id']}").click()
     pane = page.get_by_test_id("admin-user-detail")
     await pane.wait_for(timeout=20000)
+
+    # **The pane exists before its figures do.** The header, the status and the
+    # period chips are drawn from the row the accounts table already held; the
+    # total, the count, the average and the plot say "Loading…" until
+    # `GET /api/admin/users/{id}/spending` answers. Reading the text at
+    # `pane.wait_for()` is therefore a race, and it fails ASYMMETRICALLY: an
+    # assertion that something is PRESENT reports "no line plot" when the truth
+    # is "you looked too early", and — far worse — an assertion that a category
+    # name is ABSENT passes trivially against a pane that has rendered nothing.
+    # A false green on the one boundary `CR-001` exists to hold.
+    await pane.get_by_test_id("admin-user-total").wait_for(timeout=20000)
     return pane
 
 
@@ -593,21 +604,35 @@ async def test_the_time_filter_changes_the_total_on_the_detail_pane(
     wired to the chips but not to the request would keep 3,790.49 on screen and
     look entirely convincing.
 
-    The chips come from `PERIODS` in `lib/period.js` (`CR-001 §3`), which is why
-    this can use the same `period-*` test ids the dashboard picker uses.
+    The chips come from `PERIODS` in `lib/period.js` (`CR-001 §3`) but carry
+    `admin-period-*` ids rather than the dashboard picker's `period-*`: the pane
+    does not reuse `PeriodPicker`, because that component also writes the range
+    into the URL — and an administrator glancing at somebody's year would
+    silently rewrite their own dashboard's period. The shared thing is the LIST,
+    which is the part that could actually drift.
     """
     pane = await _open_the_detail_pane(page, seeded, test_urls)
-    assert "₹3,790.49" in await pane.inner_text()
+    total = pane.get_by_test_id("admin-user-total")
+    before = (await total.inner_text()).strip()
+    assert before == "₹3,790.49", before
 
-    await pane.get_by_test_id("period-last-month").click()
+    await pane.get_by_test_id("admin-period-last-month").click()
+    # Waits for the total to SETTLE, not merely to change. The element is
+    # replaced by "Loading…" while the new range is in flight, so a wait for
+    # "the text no longer says ₹3,790.49" is satisfied by the loading state and
+    # the assertion below then races it — which is how a correct filter fails a
+    # test intermittently and gets "fixed" by loosening the assertion.
     await page.wait_for_function(
-        "!document.querySelector('[data-testid=admin-user-detail]')"
-        ".innerText.includes('₹3,790.49')", timeout=20000)
+        """(prev) => {
+             const el = document.querySelector('[data-testid=admin-user-total]')
+             return !!el && el.innerText.trim() !== prev
+           }""", arg=before, timeout=20000)
 
-    after = await pane.inner_text()
-    assert "₹0.00" in after, (
+    after = (await total.inner_text()).strip()
+    assert after != before
+    assert after == "₹0.00", (
         f"July holds none of person A's expenses, so the total should read "
-        f"₹0.00: {after[:400]!r}")
+        f"₹0.00, not {after!r}")
 
 
 async def test_a_closed_account_shows_as_closed_and_can_be_restored(

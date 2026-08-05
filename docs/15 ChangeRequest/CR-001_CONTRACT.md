@@ -144,9 +144,15 @@ longer", "previously". The checker looks for exactly that vocabulary, and it is 
 citation of a dead record with no acknowledgement that it is dead is indistinguishable from one
 written before it died.
 
-The same rule applies to the day-one value. `75809` and `94762` may appear **only on a line that
-also says they are wrong** ("not", "never", "truncated", "instead of"). The line, not the
-paragraph — a warning two sentences away excuses nothing.
+The same rule applies to the day-one value. A wrong figure such as `75809` (truncation) or
+`94762` (dividing by the row count) may appear **only on a line that also says it is wrong** —
+"not", "never", "truncated", "instead of". The LINE, not the paragraph: a warning two sentences
+away excuses nothing.
+
+This paragraph failed that check on its first draft, which is the best demonstration of it
+available. The two figures sat on one line and the words "they are wrong" wrapped onto the next,
+so the checker saw a bare assertion of the truncated value in a document about the day-one gate —
+and it was right to. Each figure now carries its own disqualifier on its own line.
 
 ### 5.2 A closed account is not a paused one, and the overview must stop conflating them
 

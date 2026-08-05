@@ -1,6 +1,7 @@
 """`CR-001` / `SW-ADR-150` — closing an account, without losing it.
 
-`SW-ADR-107` ruled that user deletion does not exist in v1:
+`SW-ADR-107` ruled that user deletion does not exist in v1 — and has since been
+superseded by `SW-ADR-150`, which is why this file exists at all:
 
 > Deleting a person's financial history is the clearest one-way door in the
 > register. […] When deletion comes, it arrives as a client-run runbook plus a
@@ -123,7 +124,8 @@ async def test_closing_your_account_is_204_clears_the_cookie_and_kills_the_sessi
 async def test_closing_an_account_keeps_every_row(client, clean_db, test_urls) -> None:
     """**The whole change request, in one assertion.**
 
-    `SW-ADR-107` called hard deletion the clearest one-way door in the register;
+    `SW-ADR-107` — superseded by `SW-ADR-150` — called hard deletion the clearest
+    one-way door in the register;
     `CR-001` asked for the soft form by name. So: the expenses are there, the
     categories are there, the person's own row is there — and the only
     difference is two columns.

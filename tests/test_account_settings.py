@@ -2,11 +2,16 @@
 
 Change your name, change your password, take your data, leave.
 
-**Leaving is DEACTIVATION, not deletion.** `SW-ADR-107` rules that user deletion
-does not exist in v1 — *"Deleting a person's financial history is the clearest
-one-way door in the register."* This is the reversible half of what someone
-means when they ask to leave, and `/api/auth/export` is the counterweight: no
-deletion, but you can always take the record with you.
+**This file covers DEACTIVATION.** `SW-ADR-107` previously ruled that user
+deletion did not exist in v1 — *"Deleting a person's financial history is the
+clearest one-way door in the register."* It has since been superseded by
+`SW-ADR-150`, and closing an account now exists in its soft form; that path is
+covered by `test_soft_delete.py`.
+
+Deactivation did not go away when deletion arrived, and the two remain
+genuinely different: **pause me** and **close it**. `/api/auth/export` is the
+counterweight to both — nothing is erased either way, and you can always take
+the record with you.
 """
 from __future__ import annotations
 
@@ -164,10 +169,15 @@ async def test_deactivating_ends_the_session_and_refuses_sign_in(client,
 
 
 async def test_deactivating_keeps_every_row(client, clean_db, test_urls) -> None:
-    """**`SW-ADR-107`, and the reason this is not a delete button.**
+    """Deactivation keeps everything, and it is still not the delete button.
 
-    The account is switched off; the expenses, the categories and the person
-    record are all still there, and an administrator can switch it back on.
+    `SW-ADR-107` — superseded by `SW-ADR-150` — is why this was once the ONLY
+    way out. It no longer is, and the assertion did not change: the account is
+    switched off; the expenses, the categories and the person record are all
+    still there, and an administrator can switch it back on.
+
+    What `SW-ADR-150` added beside it is `deleted_at`, and the test that closing
+    is distinct from pausing lives in `test_soft_delete.py`.
     """
     from sqlalchemy import text
     from sqlalchemy.ext.asyncio import create_async_engine

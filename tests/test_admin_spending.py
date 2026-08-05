@@ -168,8 +168,8 @@ async def test_the_admin_sees_the_person_s_real_total_and_THEIR_average(
 
     assert got["daily_average_paise"] == mine["daily_average_paise"], (
         "the admin's average is not the person's own — CR-001 §2 says the same "
-        "half-up helper computes both, and two implementations of half-up is "
-        "how 75809 happens")
+        "half-up helper computes both, and a second implementation is how a "
+        "truncating average appears (75810 becomes 75809, wrongly)")
     assert got["daily_average"] == mine["daily_average"]
     assert got["days_elapsed"] == mine["days_elapsed"]
     assert got["total_paise"] == mine["total_paise"]
@@ -443,7 +443,12 @@ async def test_the_answer_is_the_TARGET_S_money_and_not_the_CALLER_S(
     made = await _make_admin(client, clean_db, test_urls)
     a, b = made["A"]["id"], made["B"]["id"]
 
-    theirs = (await client.get(_spending(a))).json()
+    r = await client.get(_spending(a))
+    # Status FIRST. Indexing an error envelope raises `KeyError: 'user'`, which
+    # reports a missing field on a response that was never a spending response
+    # — and sends the reader looking at the schema instead of at the 401.
+    assert r.status_code == 200, r.text
+    theirs = r.json()
     assert theirs["user"]["id"] == a
     assert theirs["total_paise"] == A_TOTAL, (
         f"asked for user #{a}'s August and got {theirs['total_paise']} — "
@@ -454,7 +459,9 @@ async def test_the_answer_is_the_TARGET_S_money_and_not_the_CALLER_S(
         "every day is zero: the plot would render as a flat line and the screen "
         "would report it as 'this person spent nothing'")
 
-    mine = (await client.get(_spending(b))).json()
+    own = await client.get(_spending(b))
+    assert own.status_code == 200, own.text
+    mine = own.json()
     assert mine["total_paise"] == B_TOTAL and mine["count"] == B_COUNT, (
         "the administrator's own figures are wrong too — the swap did not "
         "restore app.user_id")

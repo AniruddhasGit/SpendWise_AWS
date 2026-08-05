@@ -104,8 +104,13 @@ function Overview() {
       <section className="cards" aria-label="Totals" data-testid="admin-overview">
         <Stat label="Accounts" value={data.accounts_total} testId="stat-accounts"
               hint={`${data.admins} administrator${data.admins === 1 ? '' : 's'}`} />
+        {/* PAUSED and CLOSED are separate figures, and the hint says both.
+            They were one number until `CR-001 §5.2` — closing an account sets
+            `is_active = false` too, so a closed account was reported as a
+            paused one and the dashboard could not say how many people had
+            actually left. The three now sum to `accounts_total`. */}
         <Stat label="Active" value={data.accounts_active} testId="stat-active"
-              hint={`${data.accounts_deactivated} deactivated`} />
+              hint={`${data.accounts_deactivated} paused · ${data.accounts_deleted} closed`} />
         <Stat label="Signed in now" value={data.sessions_live} testId="stat-sessions"
               hint="live sessions across all accounts" />
         <Stat label="Expenses recorded" value={data.expenses_recorded}

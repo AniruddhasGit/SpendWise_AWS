@@ -281,12 +281,15 @@ class AdminService:
         account list. A new action type is a migration, deliberately.
         """
         counts = await self.repo.account_counts()
-        # `deleted=None`, so the dashboard's figures mean exactly what they meant
-        # before `CR-001`. A closed account is already counted as deactivated by
-        # `account_counts` (deletion sets `is_active = false` in the same
-        # transaction), and its expenses still exist and are still recorded — so
-        # filtering them out here would drop rows from `expenses_recorded` and
-        # make the dashboard's history shrink whenever somebody left.
+        # `deleted=None` — closed accounts are INCLUDED in this walk. Their
+        # expenses still exist and are still recorded, so filtering them out
+        # would drop rows from `expenses_recorded` and make the dashboard's
+        # history shrink whenever somebody left.
+        #
+        # The COUNTS are a different question, and `account_counts` now answers
+        # it in three parts rather than two: paused and closed were the same
+        # number until `CR-001 §5.2`, because closing sets `is_active = false`
+        # as well.
         rows, _ = await self.repo.list_users(limit=LIMIT_MAX, offset=0, q=None,
                                              role=None, active=None, deleted=None)
 
@@ -312,7 +315,8 @@ class AdminService:
 
         return AdminOverview(
             accounts_total=counts["total"], accounts_active=counts["active"],
-            accounts_deactivated=counts["deactivated"], admins=counts["admins"],
+            accounts_deactivated=counts["deactivated"],
+            accounts_deleted=counts["deleted"], admins=counts["admins"],
             sessions_live=len(await self._live_sessions(None)),
             expenses_recorded=recorded,
             accounts_active_last_7_days=active_7,
