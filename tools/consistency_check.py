@@ -486,6 +486,46 @@ def check_all(root: str) -> Report:
                    f"docs/03 PRD/api/contract.json")
         r.note(f"routes named by a test or journey: {named} across {len(declared)} declared")
 
+        # -- 12c. the spec of record's own cross-references resolve ----------
+        # contract.json became the least-reviewed document in the set: every
+        # remaining defect the fifth slice found lived inside it, and each had
+        # one shape - a hand-written cell asserting something about another
+        # document, never checked against it. The generator proves
+        # contract.json -> PRD in one direction. Nothing proved
+        # contract.json -> the documents it cites.
+        defined = set(contract.get("models", {})) | set(
+            contract.get("request_models", {}).get("models", {}))
+        for rt in contract.get("routes", {}).get("routes", []):
+            for key in ("request_model", "response_model"):
+                m = rt.get(key)
+                if not m:
+                    continue
+                base = m.rstrip("[]")
+                if base not in defined:
+                    r.fail("contract-refs",
+                           f"contract.json: route `{rt['method']} {rt['path']}` names "
+                           f"{key} `{m}`, which no model block defines")
+
+        # every P- row, SW-ADR, Bible story and OPEN id named anywhere in the
+        # spec of record must resolve
+        prd_specs = set(re.findall(r"\*\*`(P-[A-Z]+-\d+)`",
+                                   corpus_all.get("docs/03 PRD/SpendWise_PRD.md", "")))
+        bible_ids = set()
+        bp = corpus_all.get("docs/05 Bible/SpendWise_Bible.csv", "")
+        if bp:
+            bible_ids = {b["ID"] for b in csv.DictReader(io.StringIO(bp))}
+        blob = read(contract_p)
+        for pid in sorted(set(re.findall(r"\b(P-[A-Z]+-\d+)\b", blob))):
+            if prd_specs and pid not in prd_specs:
+                r.fail("contract-refs",
+                       f"contract.json: cites `{pid}`, which is not a specification in the PRD")
+        for bid in sorted(set(re.findall(r"\b(E\d+-S\d+)\b", blob))):
+            if bible_ids and bid not in bible_ids:
+                r.fail("contract-refs",
+                       f"contract.json: cites Bible story `{bid}`, which does not exist")
+        r.note(f"spec-of-record cross-references: {len(defined)} models defined, "
+               f"{len(set(re.findall(r'P-[A-Z]+-[0-9]+', blob)))} P- rows cited")
+
     ok = 0
     for gen in (os.path.join(root, "docs", "06 DataModel", "generate.py"),
                 os.path.join(root, "docs", "03 PRD", "api", "generate_api.py"),
@@ -545,6 +585,9 @@ PLANTS = [
     # Asserted, with no warning framing anywhere near it — the shape that matters.
     ("day-one-value", "docs/02 BRD/SpendWise_BRD.md",
      lambda t: t + "\n\nPlanted: the daily average over the seeded fixture is 75809 paise.\n"),
+    ("contract-refs", "docs/03 PRD/api/contract.json",
+     lambda t: t.replace('"response_model": "Summary"',
+                         '"response_model": "SummaryThatDoesNotExist"', 1)),
     ("route-contract", "docs/09 NegativeTesting/SIT_NegativeCases.tsv",
      lambda t: t + "NEG-Z-99\tplanted\tSEV-3\tplanted route\tPERSON B\t"
                    "PATCH /api/expenses/{id}/nonexistent\t404\t-\t-\tplanted\tNotRun\n"),

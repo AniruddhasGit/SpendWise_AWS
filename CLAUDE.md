@@ -33,7 +33,7 @@ Numbered in dependency order. Each is derived from the ones above it and **cites
 | Folder | What it holds | State |
 |---|---|---|
 | `00 SourceOfTruth/` | `SRC-001` the client's requirements + `SRC-002` their rulings — **frozen and hashed**. **10 errata.** | **written** |
-| `01 ADR/` | **141 decision records** (120 live, 21 superseded or withdrawn) + the fail-closed ledger. | **written** |
+| `01 ADR/` | **142 decision records** (121 live, 21 superseded or withdrawn) + the fail-closed ledger. | **written** |
 | `02 BRD/` | 76 business requirements, each citing a source. | **written** |
 | `03 PRD/` | **42 specifications — the document the code is written from.** Plus the API contract and the §9 coverage map. | **written** |
 | `05 Bible/` | 48 stories, **195 binary acceptance criteria**. The scope arbiter. | **written** |

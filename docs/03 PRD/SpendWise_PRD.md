@@ -20,7 +20,7 @@ Every `P-` row carries **two** references: a `[SRC:]` tag (where the requirement
 a **BRD row** (which business requirement it satisfies). A row missing either is a defect:
 no `[SRC:]` means invented, no BRD row means scope creep.
 
-Citations resolve against **currently APPROVED** records only. 21 of the 141 ADRs are
+Citations resolve against **currently APPROVED** records only. 21 of the 142 ADRs are
 superseded or withdrawn and are not authority.
 
 **Status:** `RULED` (decided, cited) · `PROVISIONAL` (buildable, a dependency outstanding) ·
@@ -720,6 +720,9 @@ only of what it now says.
 | `CV-18` | What does a foreign category_id filter return on the summary? | **The filter APPLIES and matches nothing: total_paise 0, count 0, by_day all zeros, daily_average_paise computed over the elapsed days (so 0, not null). `by_category` stays un-scoped per CV-03 and is non-empty.** | NEG-X-08 said both 'B's OWN summary' and 'an unknown category_id filters to nothing' in one cell - the first reads as ignore the filter, the second as total 0. | NEG-X-08 · CV-03 · P-PRV-03 | slice run 3, guess 12 |
 | `CV-19` | May an optional field be sent as explicit null? | **Yes. Explicit `null` and omission are equivalent on input. Unknown keys are discarded, never rejected.** | `extra="forbid"` would 422 the forged `user_id` of NEG-X-10, which must return 201. | SW-ADR-130 · SW-ADR-141 | slice run 4, guess 6 |
 | `CV-20` | What format does APP_TODAY_OVERRIDE take? | **`APP_TODAY_OVERRIDE=2026-08-05` — a bare ISO date, parsed with `date.fromisoformat`, read as an Asia/Kolkata calendar date. Malformed: refuse to start (P-OPS-01 fails fast).** | CV-14 exists because the in-process override of CV-06 cannot reach a browser-observed run, and it stopped one line short of being executable. | CV-14 · SW-ADR-096 | slice run 4, guess 8 |
+| `CV-21` | Which rule owns a non-string `amount` that is not a number either? | **`amount.grammar` owns EVERY non-conforming amount - boolean, array, object, number. `amount` is modelled as `Any` and grammar-checked; it never reaches `field.type`.** | One concept, one sentence. The `amount` row of the field.type placeholder table is therefore unreachable and is removed. | NEG-M-06 · SW-ADR-142 | slice run 5, guess 6 |
+| `CV-22` | Is `description` trimmed, and is 500 measured before or after? | **Whitespace-only becomes `null` FIRST; the length is then measured on the survivor. A non-empty description is stored **verbatim** - never trimmed.** | SW-ADR-115 says normalised to null, not stripped. Trimming would silently alter what the person typed, which SW-ADR-112 refuses to do for amounts. | SW-ADR-115 · SW-ADR-112 | slice run 5, guess 7 |
+| `CV-23` | How is `today ± N years` computed at the boundary? | **Calendar arithmetic (`relativedelta`), clamping 29 February to 28 February. Never fixed day counts.** | Every other date rule here is calendar-based and Asia/Kolkata-anchored; the two readings differ by up to three days, exactly on the boundary NEG-M-08/09 probe. | SW-ADR-111 · SW-ADR-096 | slice run 5, guess 8 |
 
 A convention absent from this table and from §6.1 is **not** a licence to choose one.
 It is an `OPEN` item: escalate, never invent (`CONSTITUTION.md` Art X).
@@ -733,9 +736,9 @@ It is an `OPEN` item: escalate, never invent (`CONSTITUTION.md` Art X).
 | **Money** | `amount` and `total` and `daily_average` are decimal STRINGS in rupees with exactly two places. `*_paise` fields are integers. The client never divides by 100. |
 | **Nulls** | An absent value is `null`, never omitted, never an empty string. |
 | **Unknown body keys** | `extra="ignore"` model-wide. An unknown key is discarded, never 422 - `extra="forbid"` would reject the forged `user_id` of NEG-X-10, which must return 201 (SW-ADR-130). |
-| **`amount` grammar** | `^-?[0-9]{1,15}(\.[0-9]{1,2})?$` — applied **before** `Decimal()`. Applied BEFORE Decimal(). CV-04 rules on written scale, which is necessary and not sufficient: Decimal('1.25e3') has scale 0 and would pass a scale-only check, and Decimal(' 12.50 ') parses where a strict pattern refuses. Rejects scientific notation, surrounding whitespace, a leading '+', and a bare '.50'. |
+| **`amount` grammar** | `^-?[0-9]{1,15}(\.[0-9]+)?$` — applied **before** `Decimal()`. Applied BEFORE Decimal(). It checks SHAPE, not scale: decimal places are counted by `amount.scale`, which owns the sentence P-REC-01 quotes. An earlier pattern capped the fraction at two digits AND was ordered before amount.scale, which made amount.scale unreachable dead text - so `12.345` returned 'Amount must be a decimal string' instead of 'Amount must have at most two decimal places.', the sentence P-REC-01 states. Found by the fifth uncoached slice, contradiction C1. Rejects scientific notation, surrounding whitespace, a leading '+', and a bare '.50'. |
 
-Rejected by that pattern: `1.25e3`, ` 12.50 `, `+12.50`, `.50`, `1250.0000`, `abc`.
+Rejected by that pattern: `1.25e3`, ` 12.50 `, `+12.50`, `.50`, `abc`, `1,250.00`.
 
 <!-- END GENERATED §6.1 -->
 

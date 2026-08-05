@@ -33,7 +33,7 @@ One message per rule. The `field` column names which input a pairwise rule repor
 
 | Rule | `field` | Message |
 |---|---|---|
-| `field.required` | `<the missing key>` | {field} is required. |
+| `field.required` | `<the missing or null body key>` | {field} is required. |
 | `field.type` | `<the ill-typed key>` | {field} must be {expected}, for example {example}. |
 | `amount.scale` | `amount` | Amount must have at most two decimal places. |
 | `amount.grammar` | `amount` | Amount must be a decimal string, for example "1250.00". |
@@ -44,14 +44,13 @@ One message per rule. The `field` column names which input a pairwise rule repor
 | `range.order` | `to` | The end date must not be before the start date. |
 | `range.span` | `to` | A range may span at most 400 days. |
 | `range.floor` | `from` | The start date must be on or after 2000-01-01. |
-| `range.required` | `from` | Both from and to are required; there is no default range. |
+| `range.required` | `<from or to, whichever is missing>` | Both from and to are required; there is no default range. |
 | `filter.exclusive` | `uncategorised` | category_id and uncategorised cannot both be given. |
 
 **Placeholders.** `{field}`, `{expected}` and `{example}` are substituted at render time. The rendered sentence is what a test asserts on, so the substitutions are part of the contract.
 
 | `{field}` | `{expected}` | `{example}` |
 |---|---|---|
-| `amount` | a decimal string | `"1250.00"` |
 | `spent_on` | a date | `"2026-08-01"` |
 | `category_id` | an integer or null | `3` |
 | `description` | a string or null | `"Auto to office"` |

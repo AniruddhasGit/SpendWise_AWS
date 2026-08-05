@@ -42,7 +42,7 @@
         "password": "correct-horse-battery-staple",
         "role": "user",
         "registration_order": 1,
-        "why": "A registers FIRST. expected_summary.json names category_id 1, 3 and 5, which are only A's Groceries/Transport/Health if A's eight seeded categories take identity values 1-8. Seed B first and the whole gate payload stops matching."
+        "why": "A registers FIRST. expected_summary.json names category_id 1, 3 and 5, which are only A's Groceries/Transport/Health if A's eight seeded categories take identity values 1-8."
       },
       {
         "person": "B",
@@ -52,17 +52,65 @@
         "role": "user",
         "registration_order": 2,
         "why": "B exists because a single-person seed cannot prove isolation, which is what the gate is for. B owns their own expenses and their own eight categories (ids 9-16)."
-      },
-      {
-        "person": "ADMIN",
-        "email": "admin@spendwise.test",
-        "display_name": "Bootstrap Admin",
-        "password": "correct-horse-battery-staple",
-        "role": "admin",
-        "registration_order": 3,
-        "why": "A THIRD account is the bootstrap admin, not A or B. P-ACC-02 refuses to start with zero admins, so the gate environment must set BOOTSTRAP_ADMIN_EMAIL - and whoever it names gets a 30-minute idle window instead of 14 days (P-ACC-04), which would change what NEG-X-20 is testing."
       }
-    ]
+    ],
+    "bootstrap_admin": {
+      "email": "admin@spendwise.test",
+      "registered": false,
+      "note": "`BOOTSTRAP_ADMIN_EMAIL` is set in the gate environment to an address NOBODY REGISTERS. The seed creates exactly TWO people.",
+      "why": "An earlier version of this block seeded a third ADMIN account and justified it as 'P-ACC-02 refuses to start with zero admins'. **That misread P-ACC-02**, which says the application refuses to start when no administrator exists *and the variable is unset*. Setting the variable with zero administrators starts perfectly well - setting it is what P-ACC-02 requires; registering a third account is not. On the strength of that misreading the block contradicted `SRC-001` ERRATUM E-6 ('two users seeded'), CONSTITUTION Art IX.4 and the binary criterion Bible E0-S4 AC1 ('exactly 2 people') - overriding the TOP of the authority order from a document one level below it. Found by the fifth uncoached slice, contradiction C2.",
+      "source": "SRC-001 ERRATUM E-6 · CONSTITUTION Art IX.4 · Bible E0-S4 · P-ACC-02"
+    },
+    "expenses_by_person": {
+      "note": "Person A's four expenses are the gate fixture. Person B's two exist so that Bible E0-S7 AC6 - 'as B, the list endpoint returns exactly B's seeded count and no row of A's' - has an expected value. It had none until 2026-08-05: the seed README said B has 'their own separate expenses' and never said which, so that criterion could not be written as a failing test first, which Art IX.1 requires.",
+      "A": [
+        {
+          "spent_on": "2026-08-01",
+          "amount_paise": 125000,
+          "category_id": 3,
+          "description": "Auto to office"
+        },
+        {
+          "spent_on": "2026-08-03",
+          "amount_paise": 34050,
+          "category_id": 5,
+          "description": "Pharmacy"
+        },
+        {
+          "spent_on": "2026-08-03",
+          "amount_paise": 210000,
+          "category_id": 1,
+          "description": "Weekly shop"
+        },
+        {
+          "spent_on": "2026-08-05",
+          "amount_paise": 9999,
+          "category_id": null,
+          "description": null
+        }
+      ],
+      "B": [
+        {
+          "spent_on": "2026-08-02",
+          "amount_paise": 50000,
+          "category_id": 9,
+          "description": "B's groceries",
+          "note": "category 9 is B's OWN Groceries - B's eight categories take ids 9-16"
+        },
+        {
+          "spent_on": "2026-08-04",
+          "amount_paise": 75000,
+          "category_id": null,
+          "description": null,
+          "note": "uncategorised, so B exercises the synthetic bucket too"
+        }
+      ],
+      "counts": {
+        "A": 4,
+        "B": 2,
+        "why": "Deliberately different, so a test that leaks A's rows into B's list fails on the count alone."
+      }
+    }
   },
   "categories": {
     "source": "SW-ADR-092 (the eight, in this order) · SW-ADR-131 (the synthetic bucket)",
@@ -209,7 +257,7 @@
       "rules": [
         {
           "rule": "field.required",
-          "field": "<the missing key>",
+          "field": "<the missing or null body key>",
           "message": "{field} is required."
         },
         {
@@ -255,7 +303,9 @@
         {
           "rule": "range.span",
           "field": "to",
-          "message": "A range may span at most 400 days."
+          "message": "A range may span at most 400 days.",
+          "formula": "span = (to - from).days + 1  # the number of by_day rows; 422 when > 400",
+          "note": "Inclusive of both ends (SW-ADR-085), so the span equals the number of `by_day` rows. SW-ADR-118 equating a year with '366 day rows' is the signal. Stated as a formula because P-UND-02 gets one and prose two rules later produced an off-by-one exactly where the only test sits."
         },
         {
           "rule": "range.floor",
@@ -264,7 +314,7 @@
         },
         {
           "rule": "range.required",
-          "field": "from",
+          "field": "<from or to, whichever is missing>",
           "message": "Both from and to are required; there is no default range."
         },
         {
@@ -276,11 +326,6 @@
       "placeholders": {
         "note": "`{field}`, `{expected}` and `{example}` are substituted at render time. The rendered sentence is what a test asserts on, so the substitutions are part of the contract.",
         "types": [
-          {
-            "field": "amount",
-            "expected": "a decimal string",
-            "example": "\"1250.00\""
-          },
           {
             "field": "spent_on",
             "expected": "a date",
@@ -328,7 +373,12 @@
         "filter.exclusive",
         "category.not_owned"
       ],
-      "why": "Presence before type before value, then fields in the order §6.1's worked payload lists them. `category.not_owned` is last because it is raised by the database, after every in-process rule has already passed."
+      "why": "Presence before type before value, then fields in the order §6.1's worked payload lists them. `category.not_owned` is last because it is raised by the database, after every in-process rule has already passed.",
+      "scope": {
+        "field_required": "BODY keys only. A required key that is absent OR sent as explicit `null` is `field.required`, never `field.type` - presence is checked before type, and a null in a required slot is an absence of a value, not a wrong type (G3).",
+        "range_required": "The summary's QUERY pair only. A missing `from` or `to` is `range.required`, with `field` set to the key that is actually missing - not `field.required`, which would otherwise make `range.required` unreachable (G2).",
+        "note": "Both rules were live and `field.required` was first in the order, which read literally made `range.required` dead text. A rule that can never fire is the same defect as a missing one, and CV-07 exists precisely to describe the query-pair case."
+      }
     }
   },
   "models": {
@@ -486,6 +536,199 @@
         {
           "name": "by_day",
           "type": "DayBucket[]"
+        }
+      ]
+    },
+    "Category": {
+      "source": "P-REC-05",
+      "fields": [
+        {
+          "name": "id",
+          "type": "integer"
+        },
+        {
+          "name": "user_id",
+          "type": "integer"
+        },
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "color",
+          "type": "string"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz"
+        }
+      ]
+    },
+    "ExpensePage": {
+      "source": "P-REC-02",
+      "fields": [
+        {
+          "name": "items",
+          "type": "Expense[]"
+        },
+        {
+          "name": "total",
+          "type": "integer",
+          "note": "the row count, not a money total"
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "note": "default 50, maximum 200"
+        },
+        {
+          "name": "offset",
+          "type": "integer"
+        }
+      ],
+      "note": "`total` here is a COUNT. The money total lives on Summary as `total_paise`."
+    },
+    "AdminUser": {
+      "source": "P-ADM-01",
+      "fields": [
+        {
+          "name": "id",
+          "type": "integer"
+        },
+        {
+          "name": "email",
+          "type": "string"
+        },
+        {
+          "name": "display_name",
+          "type": "string"
+        },
+        {
+          "name": "role",
+          "type": "string"
+        },
+        {
+          "name": "is_active",
+          "type": "boolean"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz"
+        },
+        {
+          "name": "expense_count",
+          "type": "integer",
+          "note": "from admin_expense_stats() - SW-ADR-129"
+        },
+        {
+          "name": "last_activity",
+          "type": "date|null",
+          "note": "from admin_expense_stats()"
+        }
+      ],
+      "note": "NO field capable of holding an amount or a description. That is the control (P-PRV-02)."
+    },
+    "AdminSession": {
+      "source": "P-ADM-02",
+      "fields": [
+        {
+          "name": "id",
+          "type": "integer"
+        },
+        {
+          "name": "user_id",
+          "type": "integer"
+        },
+        {
+          "name": "issued_at",
+          "type": "timestamptz"
+        },
+        {
+          "name": "last_seen_at",
+          "type": "timestamptz"
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamptz"
+        },
+        {
+          "name": "revoked_at",
+          "type": "timestamptz|null"
+        }
+      ],
+      "note": "NO ip and NO user_agent field (SW-ADR-106, NEG-R-10)."
+    },
+    "ResetToken": {
+      "source": "P-ADM-04",
+      "fields": [
+        {
+          "name": "token",
+          "type": "string",
+          "note": "shown ONCE, never logged, never stored in the clear"
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamptz",
+          "note": "one hour"
+        }
+      ]
+    },
+    "UploadUrl": {
+      "source": "P-RCP-01",
+      "fields": [
+        {
+          "name": "url",
+          "type": "string"
+        },
+        {
+          "name": "fields",
+          "type": "object",
+          "note": "presigned POST fields - E-10"
+        },
+        {
+          "name": "staging_key",
+          "type": "string"
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamptz",
+          "note": "5 minutes"
+        }
+      ]
+    },
+    "SignedUrl": {
+      "source": "P-RCP-02",
+      "fields": [
+        {
+          "name": "url",
+          "type": "string"
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamptz",
+          "note": "5 minutes"
+        }
+      ]
+    },
+    "AuditPage": {
+      "source": "P-ADM-08",
+      "fields": [
+        {
+          "name": "items",
+          "type": "object[]",
+          "note": "the nine action types of SW-ADR-105"
+        },
+        {
+          "name": "total",
+          "type": "integer"
+        },
+        {
+          "name": "limit",
+          "type": "integer"
+        },
+        {
+          "name": "offset",
+          "type": "integer"
         }
       ]
     }
@@ -653,6 +896,30 @@
         "why": "CV-14 exists because the in-process override of CV-06 cannot reach a browser-observed run, and it stopped one line short of being executable.",
         "source": "CV-14 · SW-ADR-096",
         "asked_by": "slice run 4, guess 8"
+      },
+      {
+        "id": "CV-21",
+        "question": "Which rule owns a non-string `amount` that is not a number either?",
+        "ruling": "`amount.grammar` owns EVERY non-conforming amount - boolean, array, object, number. `amount` is modelled as `Any` and grammar-checked; it never reaches `field.type`.",
+        "why": "One concept, one sentence. The `amount` row of the field.type placeholder table is therefore unreachable and is removed.",
+        "source": "NEG-M-06 · SW-ADR-142",
+        "asked_by": "slice run 5, guess 6"
+      },
+      {
+        "id": "CV-22",
+        "question": "Is `description` trimmed, and is 500 measured before or after?",
+        "ruling": "Whitespace-only becomes `null` FIRST; the length is then measured on the survivor. A non-empty description is stored **verbatim** - never trimmed.",
+        "why": "SW-ADR-115 says normalised to null, not stripped. Trimming would silently alter what the person typed, which SW-ADR-112 refuses to do for amounts.",
+        "source": "SW-ADR-115 · SW-ADR-112",
+        "asked_by": "slice run 5, guess 7"
+      },
+      {
+        "id": "CV-23",
+        "question": "How is `today ± N years` computed at the boundary?",
+        "ruling": "Calendar arithmetic (`relativedelta`), clamping 29 February to 28 February. Never fixed day counts.",
+        "why": "Every other date rule here is calendar-based and Asia/Kolkata-anchored; the two readings differ by up to three days, exactly on the boundary NEG-M-08/09 probe.",
+        "source": "SW-ADR-111 · SW-ADR-096",
+        "asked_by": "slice run 5, guess 8"
       }
     ]
   },
@@ -1099,15 +1366,19 @@
     "money": "`amount` and `total` and `daily_average` are decimal STRINGS in rupees with exactly two places. `*_paise` fields are integers. The client never divides by 100.",
     "nulls": "An absent value is `null`, never omitted, never an empty string.",
     "amount_grammar": {
-      "pattern": "^-?[0-9]{1,15}(\\.[0-9]{1,2})?$",
-      "note": "Applied BEFORE Decimal(). CV-04 rules on written scale, which is necessary and not sufficient: Decimal('1.25e3') has scale 0 and would pass a scale-only check, and Decimal(' 12.50 ') parses where a strict pattern refuses. Rejects scientific notation, surrounding whitespace, a leading '+', and a bare '.50'.",
+      "pattern": "^-?[0-9]{1,15}(\\.[0-9]+)?$",
+      "note": "Applied BEFORE Decimal(). It checks SHAPE, not scale: decimal places are counted by `amount.scale`, which owns the sentence P-REC-01 quotes. An earlier pattern capped the fraction at two digits AND was ordered before amount.scale, which made amount.scale unreachable dead text - so `12.345` returned 'Amount must be a decimal string' instead of 'Amount must have at most two decimal places.', the sentence P-REC-01 states. Found by the fifth uncoached slice, contradiction C1. Rejects scientific notation, surrounding whitespace, a leading '+', and a bare '.50'.",
       "rejected_examples": [
         "1.25e3",
         " 12.50 ",
         "+12.50",
         ".50",
+        "abc",
+        "1,250.00"
+      ],
+      "rejected_by_scale_not_grammar": [
         "1250.0000",
-        "abc"
+        "12.345"
       ]
     },
     "extra_fields": "`extra=\"ignore\"` model-wide. An unknown key is discarded, never 422 - `extra=\"forbid\"` would reject the forged `user_id` of NEG-X-10, which must return 201 (SW-ADR-130).",
@@ -1214,10 +1485,163 @@
           {
             "name": "is_active",
             "type": "boolean"
+          },
+          {
+            "name": "receipts_enabled",
+            "type": "boolean",
+            "note": "Required by P-ACC-06 so the client can hide the receipt control when storage is unconfigured rather than letting it fail. It was MISSING from this model, which SW-ADR-141 added to the spec of record in order to stop drift - and which drifted in the same commit. Bible E1-S8 AC2, SIT-E1-S8-02, SIT-E5-S3-01, P-RCP-03 and 08_failure_modes.md all assert it. Found by the fifth uncoached slice, C3."
           }
         ],
         "note": "A response model, but listed here because the route table names it and `models` did not define it."
+      },
+      "RegisterRequest": {
+        "source": "P-ACC-01",
+        "fields": [
+          {
+            "name": "email",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "password",
+            "type": "string",
+            "required": true,
+            "note": "12-72 bytes (SW-ADR-103)"
+          },
+          {
+            "name": "display_name",
+            "type": "string",
+            "required": true
+          }
+        ]
+      },
+      "LoginRequest": {
+        "source": "P-ACC-03",
+        "fields": [
+          {
+            "name": "email",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "password",
+            "type": "string",
+            "required": true
+          }
+        ]
+      },
+      "ResetCompleteRequest": {
+        "source": "P-ACC-07",
+        "fields": [
+          {
+            "name": "token",
+            "type": "string",
+            "required": true,
+            "note": "the raw code; the row stores its SHA-256"
+          },
+          {
+            "name": "password",
+            "type": "string",
+            "required": true
+          }
+        ]
+      },
+      "CategoryCreate": {
+        "source": "P-REC-05",
+        "fields": [
+          {
+            "name": "name",
+            "type": "string",
+            "required": true,
+            "note": "1-50 chars, unique per person case-insensitively"
+          },
+          {
+            "name": "color",
+            "type": "string",
+            "required": true,
+            "note": "^#[0-9a-f]{6}$"
+          }
+        ]
+      },
+      "CategoryUpdate": {
+        "source": "SW-ADR-114",
+        "fields": [
+          {
+            "name": "name",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "color",
+            "type": "string",
+            "required": false
+          }
+        ],
+        "note": "At least one must be present or 422 field.required with field='body'."
+      },
+      "UploadUrlRequest": {
+        "source": "P-RCP-01",
+        "fields": [
+          {
+            "name": "content_type",
+            "type": "string",
+            "required": true,
+            "note": "allowlist: jpeg, png, webp, pdf"
+          },
+          {
+            "name": "content_length",
+            "type": "integer",
+            "required": true,
+            "note": "<= 10 MB"
+          }
+        ],
+        "note": "The object key is NEVER accepted from the client (P-RCP-02); it is server-derived."
+      },
+      "AttachRequest": {
+        "source": "P-RCP-01",
+        "fields": [
+          {
+            "name": "expense_id",
+            "type": "integer",
+            "required": true
+          },
+          {
+            "name": "staging_key",
+            "type": "string",
+            "required": true,
+            "note": "must be under staging/{caller_id}/"
+          }
+        ]
+      },
+      "ActiveRequest": {
+        "source": "P-ADM-05",
+        "fields": [
+          {
+            "name": "is_active",
+            "type": "boolean",
+            "required": true
+          }
+        ]
+      },
+      "RoleRequest": {
+        "source": "P-ADM-06",
+        "fields": [
+          {
+            "name": "role",
+            "type": "string",
+            "required": true,
+            "note": "`user` or `admin`; last-admin guard is 409"
+          }
+        ]
       }
     }
+  },
+  "transaction": {
+    "source": "SW-ADR-142",
+    "commit": "The session dependency commits ONCE, after the handler returns (CV-12).",
+    "isolation": "**REPEATABLE READ** on any request that reads the summary.",
+    "why": "`SRC-001 §7.4` asked for one round trip and `SW-ADR-017` split it into three queries - headline, breakdown, day series - and nothing then re-established atomicity. Under PostgreSQL's default READ COMMITTED each statement takes a NEW snapshot, so a concurrent insert landing between the headline and the breakdown breaks 'the breakdown sums exactly to the headline total' - an invariant P-UND-05, 06_summary_sequence.md and both SIT-E0-S9-04 and SIT-E2-S5-03 assert unqualified. Invisible in every single-user test; it fails only in production, intermittently, on the one number the product is about.",
+    "alternative": "A single CTE-unified statement would also work and would restore SRC-001 §7.4's one round trip. REPEATABLE READ is chosen because it keeps the three queries readable and the module boundary of SW-ADR-017 intact.",
+    "write_path": "READ COMMITTED is correct for the create path: it takes one snapshot per statement and there is only one statement inside the savepoint."
   }
 }
