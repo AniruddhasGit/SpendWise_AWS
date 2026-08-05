@@ -312,3 +312,50 @@ no keyboard equivalent.
 
 **Blockers:** `OPEN-NAME-01` · `OPEN-CAT-01` · `OPEN-MIGRATE-01` · `OPEN-CREDS-01` ·
 `OPEN-MODEL-01` · AWS prep queue items 0–9.
+
+---
+
+## 2026-08-05 · Session 1 (cont.) · Escalation to Fable 5, and GOAL_04
+
+**All 38 Article X rows escalated to Fable 5 and ruled** — `SW-ADR-091`…`SW-ADR-128`.
+36 decided; 2 declined as genuinely client-only (a signature, and legal sub-processor posture)
+with working defaults so nothing blocks.
+
+**Four flagged for the client digest** — each formally crosses a line the register reserved,
+ruled under the client's escalation grant and reversible by one message:
+`OPEN-TZ-01` (irreversible on the write path — the veto window closes when the first real
+expense row is written) · `OPEN-USERSRLS-01` (a quality-check waiver) · `OPEN-PRUNE-01`
+(deletes rows) · `OPEN-CAT-01` (product content).
+
+**`OPEN-MIGRATE-01` resolved for `SW-ADR-019`** — migrations run at container start. Fable's
+reasoning: Art II.1 puts raw `SRC-001` above any ADR, and `§11.6` is the client's own hand
+saying "at container start, before uvicorn binds the port". The losing sentence in
+`SW-ADR-005` is a drafter's gloss inside a decision about *who writes what*, not about
+migration timing — and against a hand-deployed single instance it is also the worse answer.
+
+**GOAL_04 — the design system.** `DESIGN-SYSTEM.md` + `tokens.css`, 59 custom properties.
+
+**Every contrast figure was computed, not asserted** — and one failed:
+
+```
+Uncategorised  #a8a29e   2.36:1   FAIL   (needs 3:1 — it is a UI component, not text)
+               #948c87   3.09:1   ok     darkened within hue
+```
+
+`SW-ADR-092` had anticipated exactly this: *"MUST verify each at >=3:1 against the paper
+surface, adjusting tone within hue if any fails."* The instruction was followed rather than
+the number taken on trust. **A document that asserted compliance instead of computing it would
+have shipped a band nobody could see.** All 11 text pairs and all 9 bands now pass.
+
+`tokens.css` validated: braces balanced, 59 properties, **no raw hex outside the token block**
+— so no component can reference a colour directly.
+
+**The ribbon is now a real control** (`SW-ADR-118`): each band a native `<button>`, one Tab
+stop with roving tabindex, arrow-key navigation, `aria-pressed`, and selection signalled by
+**two** cues — an outline marker plus dimming — so it survives colour blindness. A sliver band
+is still reachable by arrow key and still announces its full name, which is the keyboard
+equivalent of a pointer target too small to hit.
+
+**In progress:** GOAL_04 written and self-verified; its fresh-agent QA has not yet run.
+
+**Open / next:** QA GOAL_04, then GOAL_05 (the PRD — the largest artifact in the project).
