@@ -1,5 +1,8 @@
 # SW-ADR-042 — The users table sits outside RLS, deliberately and in writing
 
+> **⚠ NOT CURRENT AUTHORITY.** The ledger records this record as `RETIRED`. The text
+> below is history — for status trust the ledger (Art XI.1).
+
 > **⚠ WITHDRAWN 2026-08-05 by `SW-ADR-090`.** This ruling waived a quality check, which
 > Art IX.6 reserves to the client. The question is now `OPEN-USERSRLS-01`. The analysis
 > below stands; the decision does not.
@@ -9,7 +12,7 @@
 | ADR | `SW-ADR-042` |
 | Pack | `SPENDWISE_V1` |
 | Type | SECURITY |
-| Decision status | **APPROVED** |
+| Decision status | **RETIRED** |
 | Decision outcome | APPROVED_FOR_IMPLEMENTATION |
 | Decided by | BUILD_SESSION (under `SW-ADR-015`) |
 | Decision date | 2026-08-05 |

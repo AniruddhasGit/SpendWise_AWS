@@ -4,10 +4,10 @@
 |---|---|
 | ADR | `SW-ADR-088` |
 | Pack | `SPENDWISE_V1` |
-| Type | REMEDIATION |
+| Type | ANNOTATION |
 | Decision status | **APPROVED** |
 | Decision outcome | APPROVED_FOR_IMPLEMENTATION |
-| Supersedes | `SW-ADR-023` |
+| Supersedes | — (annotation; corrected by `SW-ADR-132`) |
 | Raised by | QA FINDING-19 (MEDIUM) |
 | Decided by | BUILD_SESSION (under `SW-ADR-015`) |
 | Decision date | 2026-08-05 |
@@ -30,5 +30,6 @@ Art VIII.3 requires every claim the build session makes about AWS behaviour to b
 
 ---
 
-*A superseding record, not an edit. `SW-ADR-023` keeps its original text with a banner pointing here —
-Art III.2: accepted decisions are immutable, reversal happens by a new record.*
+*An annotation, not a supersession. The six records named above keep their decisions in full;
+only their AWS-touching claims gain a label. `SW-ADR-132` corrects the `Supersedes` field that
+had wrongly withdrawn `SW-ADR-023`.*

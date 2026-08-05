@@ -9,7 +9,7 @@
 | ADR | `SW-ADR-046` |
 | Pack | `SPENDWISE_V1` |
 | Type | SECURITY |
-| Decision status | **APPROVED** |
+| Decision status | **SUPERSEDED** |
 | Decision outcome | APPROVED_FOR_IMPLEMENTATION |
 | Decided by | BUILD_SESSION (under `SW-ADR-015`) |
 | Decision date | 2026-08-05 |

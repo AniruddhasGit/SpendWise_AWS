@@ -12,7 +12,9 @@ graph LR
 ```
 
 **What SpendWise talks to:** a Postgres database, an object store for receipt images, and a
-parameter store for two secrets. That is the entire list.
+parameter store for **three** secrets — the runtime database URL, the migration database
+URL, and the signing secret. That is the entire list. Two database ROLES (`SW-ADR-081`) mean
+two connection strings; counting them as one is what made this read "two".
 
 **What it deliberately does not talk to:** no email provider · no payment provider · no bank or
 Account Aggregator · no analytics · no error-tracking vendor · no AI model at runtime.

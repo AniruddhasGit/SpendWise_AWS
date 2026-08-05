@@ -20,7 +20,7 @@ Every `P-` row carries **two** references: a `[SRC:]` tag (where the requirement
 a **BRD row** (which business requirement it satisfies). A row missing either is a defect:
 no `[SRC:]` means invented, no BRD row means scope creep.
 
-Citations resolve against **currently APPROVED** records only. 20 of the 128 ADRs are
+Citations resolve against **currently APPROVED** records only. 21 of the 135 ADRs are
 superseded or withdrawn and are not authority.
 
 **Status:** `RULED` (decided, cited) · `PROVISIONAL` (buildable, a dependency outstanding) ·
@@ -142,7 +142,7 @@ Input: amount, date, optional description, optional category.
 · **Amount** is parsed as an exact decimal at the boundary and converted to integer paise in a
 validator. **More than two decimal places → 422, "Amount must have at most two decimal
 places."** — never rounded `[SRC: SW-ADR-112]`. Must be **> 0** `[SRC: SRC-001 §6.6]` and
-≤ 10¹² paise `[SRC: SW-ADR-036]`.
+≤ 10¹² paise `[SRC: SW-ADR-079]`.
 · **Date** must satisfy `today − 10 years ≤ spent_on ≤ today + 1 year`, evaluated in
 **Asia/Kolkata** `[SRC: SW-ADR-096, SW-ADR-111]`. Never defaulted server-side — the browser
 always sends it.
@@ -155,7 +155,7 @@ checks bypass row security entirely `[SRC: SW-ADR-072]`.
 id in the request body is ignored.
 
 **`P-REC-02` List expenses** — BRD `R-REC-01` · `[SRC: SRC-001 §7.3, SW-ADR-038]`
-Filters: date range (inclusive both ends `[SRC: SW-ADR-052]`), optional category, and an
+Filters: date range (inclusive both ends `[SRC: SW-ADR-085]`), optional category, and an
 explicit **uncategorised** filter. Sorted `spent_on DESC, created_at DESC, id DESC` — the id
 tiebreak is what makes the order total, without which pagination duplicates and skips rows.
 Limit default 50, maximum 200. Returns `{items, total, limit, offset}`.
@@ -212,7 +212,7 @@ month"**.
 **`P-UND-04` Range validation** — BRD `R-UND-12` · `[SRC: SW-ADR-118]`
 `from > to` → 422 · span > **400 days** → 422 naming the cap · `from < 2000-01-01` → 422.
 
-**`P-UND-05` The category breakdown** — BRD `R-UND-09` · `[SRC: SW-ADR-113]`
+**`P-UND-05` The category breakdown** — BRD `R-UND-09` · `[SRC: SW-ADR-131]`
 Returns `category_id`, name, colour, total, and percentage. Names come from the categories
 service, not a join — the expenses repository returns ids and totals, the **service** stitches
 `[SRC: SW-ADR-017]`. One request for the browser; the module seam stays intact.
@@ -327,10 +327,40 @@ parameter** — `SET LOCAL` cannot take one, and interpolating would be the f-st
 · `users` and `password_resets` sit outside row-level security, deliberately and with four
 compensating controls `[SRC: SW-ADR-097]`.
 
-**`P-PRV-02` What an administrator may see** — BRD `R-PRV-02` · `[SRC: SRC-001 §4.5, SW-ADR-077]`
-Counts and dates. **Never amounts, never descriptions, never receipts.** Enforced structurally,
-not by memory: the admin-facing response model has no field capable of holding an amount, and
-the database policy admits only aggregate reads.
+**`P-PRV-02` What an administrator may see** — BRD `R-PRV-02` ·
+`[SRC: SRC-001 §4.5, SW-ADR-129]`
+Counts and dates. **Never amounts, never descriptions, never receipts.**
+
+Enforced structurally, not by memory — but by the **return type of a function**, not by a policy.
+A PostgreSQL row-level policy filters *rows*; it has no column dimension, so "aggregate reads
+only" is not a shape a policy can have. The superseded `SW-ADR-077` tried, and what it produced
+was an unqualified permissive policy that returned every column of every row to any connection
+with `app.is_admin` set.
+
+An admin reads expense activity through exactly one path:
+
+```sql
+SELECT expense_count, last_activity FROM admin_expense_stats(:target_user_id);
+```
+
+a `SECURITY DEFINER` function returning `(expense_count BIGINT, last_activity DATE)`. **An amount
+cannot come back through it because there is no column for one.** No policy on `expenses` or
+`categories` consults `app.is_admin`, and `app.is_admin` is never set on a request-scoped
+connection `[SRC: SW-ADR-129]`.
+
+**Per-table policy matrix** — required by `SW-ADR-043`, published here as it directed:
+
+| Table | User policy | Admin policy | Commands | RLS |
+|---|---|---|---|---|
+| `expenses` | `expenses_owner` — `user_id` = request identity | **none** | `FOR ALL`, `USING` + `WITH CHECK` | `FORCE` |
+| `categories` | `categories_owner` — same | **none** | `FOR ALL`, `USING` + `WITH CHECK` | `FORCE` |
+| `sessions` | `sessions_owner` — same | **none**; admin revocation goes through the admin service, which does not read another person's money | `FOR ALL`, `USING` + `WITH CHECK` | `FORCE` |
+| `users` | — | — | outside RLS, four compensating controls | off `[SRC: SW-ADR-097]` |
+| `password_resets` | — | — | outside RLS; redeeming a code is unauthenticated by definition | off `[SRC: SW-ADR-071]` |
+| `admin_audit_log` | — | append + read | `UPDATE`/`DELETE` revoked, trigger raises | off `[SRC: SW-ADR-083]` |
+| `app_meta` | — | — | one row, no person-owned data | off |
+
+**`app.is_admin` appears in no row of this table.** That is the decision, not an omission.
 
 **`P-PRV-03` Not-yours is indistinguishable from not-found** — BRD `R-PRV-01` ·
 `[SRC: SW-ADR-050]`
@@ -348,7 +378,7 @@ rolls back. **Nine action types, each with a typed detail shape**, validated bef
 **Prohibited under any type, enforced by the schemas: tokens, password material, amounts,
 descriptions, receipt keys, free text.** An action type not on the list cannot be written.
 The table is immutable at the database — UPDATE and DELETE are revoked and a trigger raises
-`[SRC: SW-ADR-031]` — and carries **no foreign keys**, so a person can be removed without the
+`[SRC: SW-ADR-083]` — and carries **no foreign keys**, so a person can be removed without the
 record following them `[SRC: SW-ADR-083]`.
 
 **`P-PRV-05` Authorisation** — BRD `R-PRV-07` · `[SRC: SRC-001 §4.2, §4.3, §9.1]`
@@ -370,7 +400,7 @@ required key aborts startup. `.env.example` is the committed manifest, each line
 required or optional with its default. A variable whose absence *degrades* rather than aborts —
 today only the storage bucket — logs one WARN naming the disabled feature.
 
-**`P-OPS-02` Startup** — BRD `R-OPS-01` · `[SRC: SW-ADR-093, SW-ADR-044, SW-ADR-081]`
+**`P-OPS-02` Startup** — BRD `R-OPS-01` · `[SRC: SW-ADR-093, SW-ADR-081]`
 In order: load settings → **assert against the catalog that the runtime database role owns no
 table, is not superuser, holds no `BYPASSRLS`, and cannot disable row security** → run
 migrations under `pg_advisory_xact_lock` using the **separate migration credential** → print the
@@ -487,6 +517,91 @@ envelope — the framework default is not exposed.
 (`P-PRV-03`) · 409 conflict (duplicate email, duplicate category name, last-administrator guard)
 · 422 validation · 429 rate limited, with `Retry-After`.
 
+### §6.1 — Two worked payloads
+
+The uncoached vertical slice of 2026-08-05 read this document cold and asked eighteen questions.
+Eight of them were the same question: *what does the JSON actually look like?* This document
+specified behaviour in prose for ~2,500 lines and contained one JSON block. These two examples
+are normative — where prose and payload disagree, that is a defect to be filed, not a choice.
+
+**Creating an expense.** `POST /api/expenses`, cookie-authenticated as user 7.
+
+```json
+{
+  "amount": "1250.00",
+  "category_id": 3,
+  "description": "Auto to office",
+  "spent_on": "2026-08-01",
+  "user_id": 99,
+  "id": 4242
+}
+```
+
+`amount` is a **decimal string**, in rupees, and is the only accepted form — a JSON number is
+rejected 422, because a float cannot hold ₹0.10 exactly `[SRC: SW-ADR-029]`. `user_id` and `id`
+are **silently discarded before validation**: the owner is the verified identity, never the body
+`[SRC: SW-ADR-130]`. Response **201**:
+
+```json
+{
+  "id": 8801,
+  "user_id": 7,
+  "category_id": 3,
+  "category_name": "Transport",
+  "amount": "1250.00",
+  "amount_paise": 125000,
+  "currency": "INR",
+  "description": "Auto to office",
+  "spent_on": "2026-08-01",
+  "receipt_key": null,
+  "created_at": "2026-08-01T09:14:22.481Z",
+  "updated_at": null
+}
+```
+
+`user_id` is **7**, not the forged 99, and `id` is server-assigned. Both `amount` (display, rupees)
+and `amount_paise` (integer, the stored value) are returned: the client never divides by 100, and
+a test can assert on the exact integer. `created_at` is UTC with an offset; the *calendar* boundary
+is Asia/Kolkata `[SRC: SW-ADR-096]`.
+
+**The day-one summary.** `GET /api/expenses/summary?from=2026-08-01&to=2026-08-05` against the
+seeded fixture, as user 7. This is the payload the never-waivable gate asserts on.
+
+```json
+{
+  "from": "2026-08-01",
+  "to": "2026-08-05",
+  "total_paise": 379049,
+  "total": "3790.49",
+  "count": 4,
+  "days_elapsed": 5,
+  "daily_average_paise": 75810,
+  "daily_average": "758.10",
+  "by_category": [
+    {"category_id": 3,    "category_name": "Transport",     "total_paise": 125000, "count": 1},
+    {"category_id": 1,    "category_name": "Food",          "total_paise": 210000, "count": 1},
+    {"category_id": 5,    "category_name": "Bills",         "total_paise":  34050, "count": 1},
+    {"category_id": null, "category_name": "Uncategorised", "total_paise":   9999, "count": 1}
+  ]
+}
+```
+
+Every field, spelled out, because each was guessed at least once:
+
+- `total_paise` **379049** = 125000 + 210000 + 34050 + 9999. Integers throughout `[SRC: SW-ADR-029]`.
+- `count` **4** — the number of expense rows, **not** the number of days.
+- `days_elapsed` **5** — inclusive of both ends, capped at today, evaluated in Asia/Kolkata.
+  This is the divisor and it is **days, not rows**; dividing by `count` gives 94762 and is the
+  single most common way to fail the gate.
+- `daily_average_paise` **75810** — `379049 / 5 = 75809.8`, rounded **half-up** to 75810
+  `[SRC: SW-ADR-085]`. Not truncated: truncation gives 75809 and the gate fails by one paisa.
+- `daily_average` **"758.10"** — the same value as a display string. Trailing zero kept.
+- `by_category` is ordered by `total_paise` descending, with the **synthetic `null` bucket always
+  last regardless of size** `[SRC: SW-ADR-131]`, labelled `Uncategorised` and rendered `#948c87`.
+  It is a bucket, not a row in `categories`; nothing joins to it.
+- Absent keys are absent, not null: a range with no rows returns `total_paise: 0`, `count: 0`,
+  and `by_category: []` — never `null`, and `daily_average_paise` is **0**, not a division by zero.
+
 ---
 
 ## §7 — Cross-cutting floors
@@ -496,8 +611,8 @@ envelope — the framework default is not exposed.
 | **Isolation** | `P-PRV-01`. Two layers, every command, `WITH CHECK`. Red-proofed. |
 | **Money** | Integer paise. Exact decimal at the boundary only. `SUM()` cast back to a bounded integer — the numeric sum cannot overflow, but the cast can, which the `≤ 10¹²` constraint keeps safe `[SRC: SW-ADR-079]`. |
 | **Time** | Asia/Kolkata for every calendar boundary. All timestamps stored with a timezone, in UTC. `spent_on` is a plain date the person chose. |
-| **Modules** | A module touches only its own tables. The one sanctioned crossing is the summary's category names, service-to-service `[SRC: SW-ADR-017]`. Ownership map in `SW-ADR-077`, which supersedes `SW-ADR-030`'s unimplementable version. |
-| **Rate limits** | `SW-ADR-128`. Effective figures; configured at half because the store is per-process across two workers. Client IP from the socket unless a trusted proxy is declared `[SRC: SW-ADR-048]`. |
+| **Modules** | A module touches only its own tables. The one sanctioned crossing is the summary's category names, service-to-service `[SRC: SW-ADR-017]`. Per-table ownership and policy map in `P-PRV-02` above, as `SW-ADR-043` directed and `SW-ADR-129` settled. |
+| **Rate limits** | `SW-ADR-128`. **Global: 120/min per authenticated user id, 60/min per IP on unauthenticated API paths** (configured 60 and 30); static assets unlimited. Per-route floors are stated on `P-ACC-01` (register 5/min per IP **and 20/day per IP**), `P-ACC-03` (login 10/min per IP and 10/min per email) and `P-ACC-07` (reset 6/min per IP). Effective figures; configured at half because the store is per-process across two workers. Client IP from the socket unless a trusted proxy is declared `[SRC: SW-ADR-048]`. |
 | **Errors** | One envelope. One convention. Every code is testable. |
 
 ---
@@ -600,6 +715,6 @@ Both directions are recomputed on every change — see this goal's evidence.
 | `N-UX-02` | §5, design system |
 | `N-A11Y-01` | §5.2, design system §6 |
 
-**77 BRD rows, all covered.** Where the satisfying entry is a section rather than a
+**76 BRD rows, all covered.** Where the satisfying entry is a section rather than a
 `P-` row, that is deliberate: cross-cutting rules (money, isolation, modules, phone width) are
 stated once in §5 or §7 rather than repeated into every specification that depends on them.

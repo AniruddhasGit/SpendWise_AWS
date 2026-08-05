@@ -10,6 +10,17 @@ verified identity, and row-level security filters again at the database. Attack 
 
 ---
 
+## Cross-person coverage, route by route
+
+`CROSS_PERSON_COVERAGE.tsv` beside this file maps **all 25 API routes** to the case ids that
+satisfy this plan's goal — *make person B observe any data belonging to person A*. Every row is
+non-empty, which is what makes Bible `E6-S3`'s second criterion auditable **as written**
+(`SW-ADR-134`).
+
+Coverage sometimes arrives under a different class label — `NEG-R-*` for the admin surface,
+`NEG-T-*` for reset-token takeover, `NEG-A-*` for forged tokens. The matrix names those explicitly
+rather than leaving a reader to rediscover them and conclude there is a gap.
+
 ## The rule for reading results
 
 | Result | Verdict |
@@ -49,7 +60,7 @@ exists rather than trusting that it does.
 possession of the image, so a signed URL returned for a key you supplied is a total compromise.
 
 **The admin surface.** Every admin endpoint, as a `user`. Then, as an admin: does any response
-carry an amount, a description, or a receipt? `SW-ADR-077` makes the response model structurally
+carry an amount, a description, or a receipt? `SW-ADR-129` makes the return type of `admin_expense_stats()` structurally
 incapable of it — confirm the model, do not trust the prose.
 
 **Error messages.** A validation error that echoes back the row it rejected. A conflict that names

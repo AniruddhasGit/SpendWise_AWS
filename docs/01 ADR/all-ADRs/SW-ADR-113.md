@@ -1,11 +1,15 @@
 # SW-ADR-113 — Uncategorised spending is a real bucket
 
+> **⚠ AMENDED 2026-08-05 by `SW-ADR-131`.** The colour below is `#a8a29e`, which
+> measures **2.36:1** against paper — under the 3:1 floor. It is `#948c87` (3.09:1).
+> Every other ruling here stands, including 'always ordered last'.
+
 | Field | Value |
 |---|---|
 | ADR | `SW-ADR-113` |
 | Pack | `SPENDWISE_V1` |
 | Type | ESCALATED_RULING |
-| Decision status | **APPROVED** |
+| Decision status | **SUPERSEDED_IN_PART** |
 | Decision outcome | APPROVED_FOR_IMPLEMENTATION |
 | Closes | `OPEN-UNCAT-01` |
 | Decided by | **FABLE_5** (escalation tier above the build session) |

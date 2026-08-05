@@ -1,9 +1,9 @@
 object	source_id	status
 tables/users	SRC-001 §6.2	RULED
 tables/users.id	SW-ADR-023	RULED
-tables/users.email	SRC-001 §6.2 · SW-ADR-026	RULED
+tables/users.email	SRC-001 §6.2 · SW-ADR-084	RULED
 tables/users.password_hash	SRC-001 §6.2	RULED
-tables/users.display_name	SRC-001 §6.2 · SW-ADR-026	RULED
+tables/users.display_name	SRC-001 §6.2 · SW-ADR-084	RULED
 tables/users.role	SRC-001 §4.1 · SW-ADR-028	RULED
 tables/users.currency	SW-ADR-029	RULED
 tables/users.is_active	SRC-001 §6.2	RULED
@@ -27,17 +27,17 @@ tables/password_resets.created_by_admin_id	SRC-001 §6.4	RULED
 tables/categories	SRC-001 §6.5	RULED
 tables/categories.id	SW-ADR-023	RULED
 tables/categories.user_id	SRC-001 §6.5	RULED
-tables/categories.name	SW-ADR-026	RULED
+tables/categories.name	SW-ADR-084	RULED
 tables/categories.color	SW-ADR-034 · SW-ADR-084	RULED
 tables/categories.created_at	SW-ADR-076	RULED
 tables/expenses	SRC-001 §6.6	RULED
 tables/expenses.id	SW-ADR-023	RULED
 tables/expenses.user_id	SRC-001 §6.6	RULED
 tables/expenses.category_id	SRC-001 §6.6 — nullable; §7.2 nulls it on category delete	RULED
-tables/expenses.amount_paise	SW-ADR-029 · SW-ADR-036	RULED
+tables/expenses.amount_paise	SW-ADR-029 · SW-ADR-079	RULED
 tables/expenses.currency	SW-ADR-013 — snapshotted at write time	RULED
 tables/expenses.description	SW-ADR-115	RULED
-tables/expenses.spent_on	SRC-001 §6.6 · SW-ADR-114	RULED
+tables/expenses.spent_on	SRC-001 §6.6 · SW-ADR-111	RULED
 tables/expenses.receipt_key	SRC-001 §6.6	RULED
 tables/expenses.created_at	SW-ADR-076	RULED
 tables/expenses.updated_at	SW-ADR-076 — NULLABLE until first update	RULED
@@ -52,21 +52,22 @@ tables/app_meta	SW-ADR-125	RULED
 tables/app_meta.id	SW-ADR-125 — single row enforced by the check	RULED
 tables/app_meta.jwt_secret_fingerprint	SW-ADR-125	RULED
 tables/app_meta.updated_at	SW-ADR-076	RULED
-fk/sessions.user_id	SRC-001 §6.9	RULED
-fk/password_resets.user_id	SRC-001 §6.9	RULED
-fk/categories.user_id	SRC-001 §6.9	RULED
-fk/expenses.user_id	SRC-001 §6.9	RULED
-fk/expenses.category_id_user_id	SW-ADR-072	RULED
-index/users/UNIQUE (lower(email))	SW-ADR-027	RULED
-index/sessions/(user_id)	SRC-001 §6.8	RULED
-index/sessions/(last_seen_at)	SRC-001 §6.8	RULED
-index/sessions/(revoked_at) WHERE revoked_at IS NULL	SW-ADR-039	RULED
-index/password_resets/UNIQUE (token_hash)	SW-ADR-032	RULED
-index/password_resets/(user_id, expires_at)	SW-ADR-039	RULED
-index/categories/UNIQUE (id, user_id)	SW-ADR-072	RULED
-index/categories/UNIQUE (user_id, lower(name))	SW-ADR-033	RULED
-index/categories/(user_id)	SW-ADR-039	RULED
-index/expenses/(user_id, spent_on DESC)	SRC-001 §6.8	RULED
-index/expenses/(user_id, category_id)	SRC-001 §6.8	RULED
-index/admin_audit_log/(admin_id, created_at DESC)	SW-ADR-039	RULED
-index/admin_audit_log/(target_user_id)	SW-ADR-039	RULED
+foreign_keys/fk_sessions_user_id	SRC-001 §6.9	RULED
+foreign_keys/fk_password_resets_user_id	SRC-001 §6.9	RULED
+foreign_keys/fk_categories_user_id	SRC-001 §6.9	RULED
+foreign_keys/fk_expenses_user_id	SRC-001 §6.9	RULED
+foreign_keys/fk_expenses_category_id_user_id	SW-ADR-072 — composite. NO ACTION because SET NULL would null user_id too, which is NOT NULL. The service nulls category_id explicitly inside the delete transaction.	RULED
+indexes/uq_users_lower_email	SW-ADR-027 — case-insensitive identity	RULED
+indexes/ix_sessions_user_id	SRC-001 §6.8	RULED
+indexes/ix_sessions_last_seen_at	SRC-001 §6.8	RULED
+indexes/ix_sessions_revoked_at__where_revoked_at_is_null	SW-ADR-039 — partial; satisfiable only because SW-ADR-076 made the column nullable	RULED
+indexes/uq_password_resets_token_hash	SW-ADR-032	RULED
+indexes/ix_password_resets_user_id__expires_at	SW-ADR-039	RULED
+indexes/uq_categories_id__user_id	SW-ADR-072 — the target of the composite FK	RULED
+indexes/uq_categories_user_id__lower_name	SW-ADR-033	RULED
+indexes/ix_categories_user_id	SW-ADR-039	RULED
+indexes/ix_expenses_user_id__spent_on_desc	SRC-001 §6.8	RULED
+indexes/ix_expenses_user_id__category_id	SRC-001 §6.8	RULED
+indexes/ix_admin_audit_log_admin_id__created_at_desc	SW-ADR-039	RULED
+indexes/ix_admin_audit_log_target_user_id	SW-ADR-039	RULED
+functions/admin_expense_stats	SW-ADR-129 (supersedes SW-ADR-129, restores SW-ADR-043) · SRC-001 §4.5	RULED

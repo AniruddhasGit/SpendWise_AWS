@@ -1,8 +1,9 @@
 # SW-ADR-023 — Primary keys are BIGINT identity columns
 
-> **⚠ AMENDED 2026-08-05 by `SW-ADR-088` (QA FINDING-19 (MEDIUM)).**
-> The text below is retained unedited. Where it conflicts with the superseding
-> record, the superseding record governs (Art III.2).
+> **⚠ LABELLED 2026-08-05 by `SW-ADR-088`, and NOT superseded.** `SW-ADR-088` marks
+> this record's AWS-touching claim `UNVERIFIED — reasoned, not observed`. It replaces
+> nothing. **The primary-key decision below is live authority** — see `SW-ADR-132`,
+> which corrects a bookkeeping error that had withdrawn it.
 
 | Field | Value |
 |---|---|

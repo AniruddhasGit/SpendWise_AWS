@@ -41,13 +41,13 @@ A policy keyed on the request identity cannot serve a lookup that happens *befor
 sign-in reads by email, and code redemption reads by token hash. Both are unauthenticated by
 definition. Four compensating controls are MUSTs.
 
-**This is a recorded waiver.** It reduces the `SW-ADR-018` promise and says so.
+**This is a recorded waiver.** It reduces the `SW-ADR-082` promise and says so.
 
 ## Three things that would silently defeat it
 
 | | Why it collapses | Closed by |
 |---|---|---|
-| One `DATABASE_URL` for migrations and runtime | the runtime connection owns the tables, and an owner can `ALTER TABLE … NO FORCE` | `SW-ADR-044` — two URLs + a boot assertion |
+| One `DATABASE_URL` for migrations and runtime | the runtime connection owns the tables, and an owner can `ALTER TABLE … NO FORCE` | `SW-ADR-081` — two URLs + a boot assertion |
 | A `FOR SELECT`-only policy | writes are refused for *everyone* — loud, not silent — but a weak `WITH CHECK` is silent | `SW-ADR-078` — `FOR ALL`, both clauses |
 | A foreign key to another person's row | **FK checks always bypass RLS** | `SW-ADR-072` — composite FK |
 

@@ -1,15 +1,16 @@
 # SW-ADR-041 — RLS covers every command, with WITH CHECK
 
-> **⚠ AMENDED 2026-08-05 by `SW-ADR-071` (QA FINDING-1 (CRITICAL)) · `SW-ADR-078` (QA FINDING-4 (HIGH) — premise, not decision).**
-> The text below is retained unedited. Where it conflicts with the superseding
-> record, the superseding record governs (Art III.2).
+> **⚠ SUPERSEDED 2026-08-05 by `SW-ADR-078`**, which corrects this record's premise
+> about RLS write behaviour. `SW-ADR-071` additionally amends it on a narrower point
+> (`password_resets` leaves RLS). Read `SW-ADR-078` first — `SW-ADR-132` corrects a
+> banner that named only the incidental successor.
 
 | Field | Value |
 |---|---|
 | ADR | `SW-ADR-041` |
 | Pack | `SPENDWISE_V1` |
 | Type | SECURITY |
-| Decision status | **APPROVED** |
+| Decision status | **SUPERSEDED** |
 | Decision outcome | APPROVED_FOR_IMPLEMENTATION |
 | Decided by | BUILD_SESSION (under `SW-ADR-015`) |
 | Decision date | 2026-08-05 |

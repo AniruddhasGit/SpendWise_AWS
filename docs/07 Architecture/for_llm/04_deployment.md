@@ -26,7 +26,7 @@ no Secrets Manager. Roughly $50/month of components, none of which this project 
 | One instance, one host port | two tasks cannot coexist, so **every deploy is a visible outage.** Deployment min-healthy must be 0 or the first redeploy deadlocks. |
 | In-process rate limiting | the effective limit multiplies by worker count and resets on restart. Accepted knowingly. |
 
-**Boot order** (`SW-ADR-093`, `SW-ADR-044`, `SW-ADR-081`, `SW-ADR-125`):
+**Boot order** (`SW-ADR-093`, `SW-ADR-081`, `SW-ADR-125`):
 settings → **catalog assertion** → migrations under `pg_advisory_xact_lock` with
 `row_security = off` on that connection only → print current and target revision → compare the
 signing-secret fingerprint and revoke every session if it moved → bind the port.

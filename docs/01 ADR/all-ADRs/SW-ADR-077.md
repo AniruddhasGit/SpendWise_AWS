@@ -1,11 +1,16 @@
 # SW-ADR-077 — Admin expense counts: a COUNT-only policy
 
+> **⚠ AMENDED 2026-08-05 by `SW-ADR-129`.** The decision below is **not
+> implementable as specified** — a row-level policy has no column dimension, so
+> "aggregate reads only" cannot be expressed as one. Replaced by a
+> `SECURITY DEFINER` function whose *return type* is the guard.
+
 | Field | Value |
 |---|---|
 | ADR | `SW-ADR-077` |
 | Pack | `SPENDWISE_V1` |
 | Type | REMEDIATION |
-| Decision status | **APPROVED** |
+| Decision status | **SUPERSEDED** |
 | Decision outcome | APPROVED_FOR_IMPLEMENTATION |
 | Supersedes | `SW-ADR-030` |
 | Raised by | QA FINDING-11 (HIGH) |

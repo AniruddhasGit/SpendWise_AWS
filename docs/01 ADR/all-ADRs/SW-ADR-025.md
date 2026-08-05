@@ -1,5 +1,8 @@
 # SW-ADR-025 — Asia/Kolkata is the application calendar
 
+> **⚠ NOT CURRENT AUTHORITY.** The ledger records this record as `RETIRED`. The text
+> below is history — for status trust the ledger (Art XI.1).
+
 > **⚠ WITHDRAWN 2026-08-05 by `SW-ADR-089`.** This ruling exceeded the build session's
 > authority — it is IRREVERSIBLE by its own text. The question is now `OPEN-TZ-01`, for the
 > client. The analysis below stands; the decision does not.
@@ -9,7 +12,7 @@
 | ADR | `SW-ADR-025` |
 | Pack | `SPENDWISE_V1` |
 | Type | PRODUCT_RULE |
-| Decision status | **APPROVED** |
+| Decision status | **RETIRED** |
 | Decision outcome | APPROVED_FOR_IMPLEMENTATION |
 | Decided by | BUILD_SESSION (under `SW-ADR-015`) |
 | Decision date | 2026-08-05 |

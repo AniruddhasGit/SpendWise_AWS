@@ -31,6 +31,7 @@ import json
 import os
 import re
 import shutil
+import subprocess
 import sys
 import tempfile
 
@@ -312,6 +313,121 @@ def check_all(root: str) -> Report:
     r.note(f"topical drift: {len(adr_kw)} ADRs indexed, {drift} citation(s) to eyeball "
            f"(heuristic - reported, never a gate)")
 
+    # -- 10. no live document rests authority on a non-APPROVED record ------
+    # Check 2 proves a reference RESOLVES. It cannot prove the record is still
+    # authority. X-01 found 80 references to superseded records, including
+    # CONSTITUTION Art IV.1 resting the product's central security promise on a
+    # withdrawn one - and every single reference passed check 2. This gates.
+    dead = {row["adr_id"] for row in ledger_rows
+            if row.get("decision_status") not in ("APPROVED", "")}
+    # A record NAMING what it superseded is correct and must not fire. The
+    # distinction is whether the sentence is about the past.
+    # Stems, not whole words: "superseding" does not contain "supersede", and the
+    # first version of this check failed a correctly-worded sentence for it.
+    HIST = re.compile(
+        r"supersed|supercede|withdraw|withdrew|amend|retir|histor|restat|"
+        r"was ruled|no longer|replac|former|previous|used to|"
+        r"not current authority|keeps its (?:original )?text|worked example",
+        re.I)
+    stale = 0
+    for f, t in corpus.items():
+        if f.startswith("docs/01 ADR/all-ADRs/") or "LEDGER" in f:
+            continue
+        row_scoped = f.endswith((".tsv", ".csv"))
+        for m in re.finditer(r"\bSW-ADR-(\d{3})\b", t):
+            aid = "SW-ADR-" + m.group(1)
+            if aid not in dead:
+                continue
+            if row_scoped:
+                ls = t.rfind(chr(10), 0, m.start()) + 1
+                le = t.find(chr(10), m.end())
+                window = t[ls: le if le != -1 else len(t)]
+            else:
+                # a whole paragraph: a supersession is usually narrated a
+                # sentence or two away from the identifier itself
+                ps = t.rfind("\n\n", 0, m.start()) + 2
+                pe = t.find("\n\n", m.end())
+                window = t[ps: pe if pe != -1 else len(t)]
+            if HIST.search(window):
+                continue
+            stale += 1
+            r.fail("adr-status",
+                   f"{f}: rests authority on {aid} ({_title(corpus_all, aid)}), which the "
+                   f"ledger records as not APPROVED")
+    r.note(f"citations of non-APPROVED records: {stale} (of {len(dead)} dead records)")
+
+    # -- 11. a stated count matches the thing it counts ---------------------
+    # Six of X-01's twenty-one findings were a number typed into prose that had
+    # since drifted: 22 ADRs (130), seven errata (ten), 44 stories (48), 178
+    # criteria (194), 76 BRD rows (77), nine admin endpoints (seven). A count
+    # that is asserted rather than derived is a fact with no owner.
+    bible_p = "docs/05 Bible/SpendWise_Bible.csv"
+    bible_rows = list(csv.DictReader(io.StringIO(corpus_all.get(bible_p, "")))) \
+        if bible_p in corpus_all else []
+    n_stories = sum(1 for b in bible_rows if b.get("Type") == "Story")
+    n_ac = sum(len([x for x in (b.get("AcceptanceCriteria") or "").split("|") if x.strip()])
+               for b in bible_rows)
+    brd_t = corpus_all.get("docs/02 BRD/SpendWise_BRD.md", "")
+    n_brd = len(set(re.findall(r"^\|\s*`([RN]-[A-Z]+-\d+)`", brd_t, re.M)))
+    live = len(ledger_ids) - len(dead)
+
+    COUNTS = [
+        (r"\*\*(\d+) decision records\*\*", len(adr_files), "ADR files"),
+        (r"the (\d+) records in `docs/01 ADR/all-ADRs/`", len(adr_files), "ADR files"),
+        (r"(\d+) of the (?:\d+) ADRs are\s*\n?\s*superseded", len(dead), "superseded ADRs"),
+        (r"of the (\d+) ADRs are", len(ledger_ids), "ledger rows"),
+        (r"\((\d+) live,", live, "live ADRs"),
+        (r"\*\*(\d+) errata", len(errata), "errata"),
+        (r"(\w+) errata now exist", len(errata), "errata"),
+        (r"\*\*(\d+) business requirements", n_brd, "BRD rows"),
+        (r"(\d+) BRD rows, all covered", n_brd, "BRD rows"),
+        (r"\|\s*(\d+) stories,", n_stories, "Bible stories"),
+        (r"\*\*(\d+) binary acceptance criteria\*\*", n_ac, "acceptance criteria"),
+        (r"\*\*(\d+) positive cases\*\*", n_ac, "SIT positive cases"),
+    ]
+    WORDS = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6,
+             "seven": 7, "eight": 8, "nine": 9, "ten": 10, "eleven": 11, "twelve": 12}
+    checked = 0
+    for f, t in corpus.items():
+        if f.startswith("docs/01 ADR/all-ADRs/"):
+            continue           # an ADR states what was true when it was decided
+        for rx, actual, what in COUNTS:
+            if actual == 0:
+                continue
+            for m in re.finditer(rx, t, re.I):
+                g = m.group(1).lower()
+                claimed = WORDS.get(g, None) if not g.isdigit() else int(g)
+                if claimed is None:
+                    continue
+                checked += 1
+                if claimed != actual:
+                    r.fail("stated-count",
+                           f"{f}: claims {claimed} {what}; the artifacts hold {actual}")
+    r.note(f"stated counts verified against the artifacts: {checked}")
+
+    # -- 12. a file that says GENERATED really is ---------------------------
+    # security.sql carried a GENERATED banner for a generator that no longer
+    # existed. Under that cover it grew an admin policy absent from the spec of
+    # record - the isolation hole SW-ADR-129 closes. The banner was the defect's
+    # hiding place, so the banner is now executable.
+    ok = 0
+    for gen in (os.path.join(root, "docs", "06 DataModel", "generate.py"),
+                os.path.join(root, "tools", "generate_docs_readme.py")):
+        if not os.path.isfile(gen):
+            r.fail("generated-artifact",
+                   os.path.relpath(gen, root).replace("\\", "/") + " is missing, so every "
+                   "GENERATED banner it backs is an unfalsifiable claim")
+            continue
+        out = subprocess.run([sys.executable, gen, "--check"],
+                             capture_output=True, text=True, cwd=root)
+        if out.returncode != 0:
+            for line in (out.stdout + out.stderr).strip().split("\n"):
+                if line.strip():
+                    r.fail("generated-artifact", line.rstrip())
+        else:
+            ok += out.stdout.count("PASS")
+    r.note(f"generated artifacts verified by regeneration: {ok} of 4")
+
     return r
 
 
@@ -341,6 +457,14 @@ PLANTS = [
          "Per `SW-ADR-118`.\n")),
     ("dangling-citation", "docs/01 ADR/all-ADRs/SW-ADR-002.md",
      lambda t: t.replace("| Sources |", "| Sources | `Client statement, 2026-08-05` ·", 1)),
+    # The plant must be a bare authority claim with NO historical framing, or it
+    # proves only that the history exemption works.
+    ("adr-status", "docs/02 BRD/SpendWise_BRD.md",
+     lambda t: t + "\n\nPlanted: isolation is enforced twice, per `SW-ADR-018`.\n"),
+    ("stated-count", "docs/02 BRD/SpendWise_BRD.md",
+     lambda t: t + "\n\nPlanted: this pack holds **7 decision records**.\n"),
+    ("generated-artifact", "docs/06 DataModel/security.sql",
+     lambda t: t + "\nCREATE POLICY planted_hole ON expenses FOR SELECT USING (true);\n"),
 ]
 
 

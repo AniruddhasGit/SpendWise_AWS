@@ -14,7 +14,7 @@ document set exists to prevent.**
 
 **2. Authority order on conflict.** raw `SRC-001` wording → an explicit client ruling → an
 `APPROVED` ADR → `03 PRD` → `02 BRD` → `05 Bible` → everything else. **Stricter always wins.**
-20 of the 128 ADRs are superseded or withdrawn — **check the ledger's `decision_status` before
+21 of the 135 ADRs are superseded or withdrawn — **check the ledger's `decision_status` before
 citing one.** A superseded record is not authority, and citing one has already caused a defect on
 this project once.
 
@@ -70,7 +70,7 @@ sign-in and code redemption both do. Four compensating controls are MUSTs, liste
 `SW-ADR-097`. **This is a recorded waiver, not an oversight.**
 
 **`admin_audit_log` carries no foreign keys** (`SW-ADR-083`) so it outlives its subjects, and is
-immutable at the database (`SW-ADR-031`) — `UPDATE` and `DELETE` are revoked *and* a trigger
+immutable at the database (`SW-ADR-083`) — `UPDATE` and `DELETE` are revoked *and* a trigger
 raises, so the refusal is visible rather than a silent permission error.
 
 **The composite foreign key on `expenses` is `ON DELETE NO ACTION`, not `SET NULL`**

@@ -35,8 +35,12 @@ This document is a **gate, not a spec.** The cited sources carry the full detail
 
 ## Article I — Scope
 
-1. **The functional envelope is `docs/00 SourceOfTruth/SRC-001` plus the 22 records in
-   `docs/01 ADR/all-ADRs/`.** No user-facing functionality beyond those two locations.
+1. **The functional envelope is `docs/00 SourceOfTruth/SRC-001` plus the ADR records in
+   `docs/01 ADR/all-ADRs/` as governed by the ledger.** No user-facing functionality beyond
+   those two locations. The ledger held **135** records on 2026-08-05; per Art XI.1 **the
+   ledger, never this sentence, is the count of record** — stated as a location rather than a
+   number so this clause cannot go stale again.
+   *(Counts refreshed 2026-08-05 per `SW-ADR-133`; the rule is unchanged.)*
    Envelope ≠ approval: Article III still controls what is approved to *build*.
 2. **Hard exclusions** (`SRC-001 §12`) MUST NOT enter scope: no native mobile app; no reading bank
    SMS; no Account Aggregator or bank API integration; no pulling from Google Pay or Blinkit.
@@ -57,8 +61,9 @@ This document is a **gate, not a spec.** The cited sources carry the full detail
    **Stricter always wins.**
 2. `SRC-001` is a **frozen input.** It MUST NOT be edited. The only permitted modification is a
    clearly-marked `ERRATUM` block appended at its foot.
-3. **Errata govern over the text they correct.** Seven exist (`E-1`…`E-7`), each citing the ADR
-   that ruled it.
+3. **Errata govern over the text they correct.** They are enumerated in `SRC-001 §E`
+   (`E-1`…`E-10` as of 2026-08-05), each citing the ADR that ruled it.
+   *(Counts refreshed 2026-08-05 per `SW-ADR-133`; the rule is unchanged.)*
 4. **Fingerprints are the evidence of record.** `docs/00 SourceOfTruth/fingerprints.json` holds a
    SHA-256 per frozen source. If a hash changes, every artifact derived from that source is
    **invalidated and MUST be re-derived**, never silently reused.
@@ -77,8 +82,11 @@ This document is a **gate, not a spec.** The cited sources carry the full detail
    retained unedited and marked.
 3. The ledger's four `included_in_*` columns are the **anti-drift mechanism**: a decision is not
    merely decided, it must be shown to have *landed* in the BRD, PRD, Bible and data model. Flip a
-   cell to `INCLUDED` only with the carrying section cited in `notes`. **All 22 rows read
-   `NOT_INCLUDED` today**, correctly — those documents do not yet exist.
+   cell to `INCLUDED` only with the carrying section cited in `notes`. **The derivation
+   documents `02`–`11` now exist and are populated**, and the cells are derived from the
+   citations actually present in each. The ledger is live state, not a snapshot: read it,
+   never this sentence.
+   *(Counts refreshed 2026-08-05 per `SW-ADR-133`; the rule is unchanged.)*
 4. **Credentials MUST NEVER appear in an ADR, the ledger, or any committed file.**
 5. **Status law**, applied to every schema, API and specification artifact:
 
@@ -91,7 +99,7 @@ This document is a **gate, not a spec.** The cited sources carry the full detail
 
 ## Article IV — Security & Isolation Floors
 
-1. **Per-user isolation is enforced twice** (`SW-ADR-018`): every query filters on the user id from
+1. **Per-user isolation is enforced twice** (`SW-ADR-078`, `SW-ADR-082` — superseding `SW-ADR-018`): every query filters on the user id from
    the verified token, **and** Postgres row-level security enforces it at the database.
    A controller-only check is the classic false green and does not satisfy this article.
 2. `FORCE ROW LEVEL SECURITY` MUST be on for every protected table. A table's owner bypasses RLS
@@ -193,7 +201,7 @@ Every session, human or model, is bound by these. They are the honesty floor.
 5. **Clean-clone evidence is a four-line ladder, never one tick** (`SW-ADR-009`). A check may be
    substituted in the open; it may not be quietly redefined.
 6. Waiving any quality check is **reserved to the client**. Adopting a *stricter* option is not a
-   waiver and needs no signature — that is why `SW-ADR-018` could be ruled by the build session.
+   waiver and needs no signature — that is why the isolation rule could be ruled by the build session (`SW-ADR-078`, superseding `SW-ADR-018`).
 
 ## Article X — Open Decisions Register (explicitly NOT legislated here)
 
@@ -205,7 +213,7 @@ is offered and why. The client should be able to rule any row in under five minu
 
 `GOAL_02`'s five-lens sweep found **127 undetermined decisions** across data shape, security, money
 and time, user-visible behaviour, and operations. **48 were technical and are now ruled** as
-`SW-ADR-023`…`SW-ADR-070` under `SW-ADR-015`. The rest are below: they change what the product *is*,
+`SW-ADR-023`…`SW-ADR-070` were ruled under `SW-ADR-015` (a historical range; several have since been superseded — for status read the ledger). The rest are below: they change what the product *is*,
 they are irreversible, or they collide with a decision the client already made.
 
 **Owner is the client on every row.** The build session raised them; it may not close them.
@@ -246,9 +254,9 @@ they are irreversible, or they collide with a decision the client already made.
 | `OPEN-RESETUI-01` | **RULED — see `SW-ADR-110`.**  **Where does the user type the reset token?** `SW-ADR-012` kept the "complete a password reset" endpoint but `§9.1`'s page list has no screen for it. Built literally, the locked-out user — the exact person the admin role exists for — receives a token and a dead end. | reserved: product | A third mode on the sign-in page. Whichever is chosen must also specify what an expired, used, or wrong token shows. |
 | `OPEN-FUTURE-01` | **RULED — see `SW-ADR-111`.**  May `spent_on` be in the future, and how far into the past? A future-dated expense enters the average's numerator while `SW-ADR-053`'s denominator is capped at today, so one rent entry dated next week inflates the average until that date passes. A mistyped year is accepted silently and sits outside every chip range. | reserved: product | Allow within a documented window (today − 10 years … today + 1 year) as a CHECK constraint; keep the numerator whole so total ÷ elapsed always reconciles. |
 | `OPEN-DECIMALS-01` | **RULED — see `SW-ADR-112`.**  What happens to an amount with more than two decimal places — reject, or round? The discarded digit is stored nowhere, so a later change of mind cannot reconstruct what the user typed. | reserved: product | Reject with 422, with the React input restricted to two decimals so rejection is never the user's first encounter with the rule. No rounding on the write path at all. |
-| `OPEN-UNCAT-01` | **RULED — see `SW-ADR-113`.**  Does uncategorised spend appear as a bucket in the breakdown? Null `category_id` rows are guaranteed, not exotic — deleting a category nulls it on every historical expense. If the stitch drops them, the breakdown sums to less than the total on the same screen. | reserved: product | A synthetic "Uncategorised" bucket, clickable, always last — so the total always equals the sum of its own breakdown. |
+| `OPEN-UNCAT-01` | **RULED — see `SW-ADR-131`**, which supersedes `SW-ADR-113` and restates it in full.**  Does uncategorised spend appear as a bucket in the breakdown? Null `category_id` rows are guaranteed, not exotic — deleting a category nulls it on every historical expense. If the stitch drops them, the breakdown sums to less than the total on the same screen. | reserved: product | A synthetic "Uncategorised" bucket, clickable, always last — so the total always equals the sum of its own breakdown. |
 | `OPEN-RENAME-01` | **RULED — see `SW-ADR-114`.**  **May a category be renamed?** `SRC-001 §7.2` lists only list/create/delete — yet justifies its own delete behaviour with "I don't want to lose history because I renamed something", so the prose assumes a capability the endpoint list omits. Same defect shape as `OPEN-USERDEL-01`: a behaviour implied by the reasoning and absent from the surface. | reserved: scope | Allow rename; renaming never affects the spending recorded against the category. Confirm explicitly rather than letting the PRD decide it silently. |
-| `OPEN-DESC-01` | **RULED — see `SW-ADR-115`.**  Is `expenses.description` required? May it be empty? | reserved: product | Optional, maximum 500 characters (`SW-ADR-026`). |
+| `OPEN-DESC-01` | **RULED — see `SW-ADR-115`.**  Is `expenses.description` required? May it be empty? | reserved: product | Optional, maximum 500 characters (`SW-ADR-115`). |
 | `OPEN-USEREDIT-01` | **RULED — see `SW-ADR-116`.**  May a user change their own email, display name, or password? No endpoint in `§7.1` offers it, so as specified the answer is no — which means a user who wants to change their password must ask an admin. | reserved: scope | Confirm "no" for v1 explicitly, rather than leaving it an accident of the endpoint list. |
 | `OPEN-A11Y-01` | **RULED — see `SW-ADR-117`.**  `§9.4` asks for visible focus and respected reduced-motion and defines neither, so neither is testable. Worse: **the category ribbon has no keyboard or screen-reader equivalent at all** — the app's primary filter control is mouse-only. | reserved: product | Name WCAG 2.1 AA; specify a focus ring at ≥3:1; define reduced-motion as "appears instantly"; make each band a real focusable control. The ribbon needs deciding **before** the design system is written. |
 | `OPEN-RANGECAP-01` | **RULED — see `SW-ADR-118`.**  Is the custom date range bounded? `§7.4` returns one row per calendar day, so a 2020–2026 range returns ~2,400 rows and ~2,400 sub-pixel bars in a fixed-width container. | reserved: product | 422 on `from > to`; a documented maximum span; coarser buckets above it as fast-follow. |
@@ -260,7 +268,7 @@ they are irreversible, or they collide with a decision the client already made.
 |---|---|---|---|
 | `OPEN-DEPLOY-01` | **RULED — see `SW-ADR-120`.**  With one EC2 instance and a fixed host port, **two tasks cannot run at once** — so ECS's default deployment configuration deadlocks on the port. The client must set minimum-healthy to 0 and accept a hard downtime window on every deploy. Owed as advance notice under Art VIII.2 and not yet in the prep queue. *(Reasoned, not observed.)* | reserved: product | Expand-contract as a standing rule: a migration may only add; destructive changes wait one release. Then image rollback is always safe. |
 | `OPEN-DOWNGRADE-01` | **RULED — see `SW-ADR-121`.**  Must every migration carry a working `downgrade()`, and may a downgrade destroy data? Proving up/down/up on an *empty* schema proves nothing about downgrading a populated column. | **IRREVERSIBLE** | Forward-only for anything destructive, with rollback being restore-from-backup, stated plainly. A `downgrade()` that has never run against data is decoration — which Art VII.1 forbids. |
-| `OPEN-PRUNE-01` | **RULED — see `SW-ADR-122`.**  Are `sessions` and `password_resets` rows ever deleted? `sessions` gains a row per login and never loses one, on a 20 GB instance with autoscaling deliberately off. | **IRREVERSIBLE** (deleting data) | Opportunistic pruning at login; never prune the audit log (`SW-ADR-031` makes it immutable anyway). Deleting rows is reserved, so this needs a signature before it ships. |
+| `OPEN-PRUNE-01` | **RULED — see `SW-ADR-122`.**  Are `sessions` and `password_resets` rows ever deleted? `sessions` gains a row per login and never loses one, on a 20 GB instance with autoscaling deliberately off. | **IRREVERSIBLE** (deleting data) | Opportunistic pruning at login; never prune the audit log (`SW-ADR-083` makes it immutable anyway). Deleting rows is reserved, so this needs a signature before it ships. |
 | `OPEN-S3LIFE-01` | **RULED — see `SW-ADR-123`.**  What happens to S3 objects uploaded but never attached, and to receipts when an expense is deleted? The presigned design means the browser writes before the server knows the key exists, so any interrupted upload leaves an object nothing can ever enumerate. *(Supersedes `OPEN-DELETE-01`, which covered only the user-deletion path.)* | **IRREVERSIBLE** | A `staging/` prefix with a 1-day expiry lifecycle rule; attach moves the key to its permanent prefix. The expiry window is the client's to name. |
 | `OPEN-RESTORE-01` | **RULED — see `SW-ADR-124`.**  What does restoring from backup actually involve? RDS point-in-time restore produces a **new instance with a new endpoint**, so it changes `DATABASE_URL` and needs a redeploy — and the free tier covers roughly one instance. S3 is not in the snapshot, so a restore resurrects `receipt_key` values pointing at objects that may since have been deleted. The prep queue promises a restore drill against a go-live checklist that does not exist. | **IRREVERSIBLE** | Write the procedure before it is needed. Restore is a one-way door executed under pressure. |
 | `OPEN-ROTATE-01` | **RULED — see `SW-ADR-125`.**  Rotating `JWT_SECRET` signs every user out instantly with no overlap window, while their `sessions` rows keep `revoked_at IS NULL` forever — so the admin dashboard then reports active sessions that do not exist. | reserved: product | Document rotation as a deliberate mass-logout, and revoke all sessions as part of the procedure. Note it in the prep queue when SSM is created — that is when the client first has a rotate button. |

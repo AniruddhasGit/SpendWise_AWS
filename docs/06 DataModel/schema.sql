@@ -1,6 +1,10 @@
--- schema.sql — GENERATED from datamodel.json. DO NOT HAND-EDIT.
+-- schema.sql — GENERATED from datamodel.json by generate.py. DO NOT HAND-EDIT.
+-- Regenerate:  py "docs/06 DataModel/generate.py"
+-- Verify:      py "docs/06 DataModel/generate.py" --check
 -- SW-ADR-066: a hand patch to a generated file is erased by the next build, silently.
--- Naming convention (SW-ADR-040) is set on the SQLAlchemy MetaData, not here.
+-- Naming convention (SW-ADR-040) is set on the SQLAlchemy MetaData, not here;
+-- generate.py reproduces it so the DDL and the ORM agree on every identifier.
+
 
 -- users  [SRC-001 §6.2]  Outside RLS by SW-ADR-097 — a policy keyed on the request identity cannot serve a pre-authentication lookup.
 CREATE TABLE users (
@@ -77,7 +81,7 @@ CREATE TABLE expenses (
     CONSTRAINT ck_expenses_receipt_key CHECK (receipt_key IS NULL OR char_length(receipt_key) <= 512)
 );
 
--- admin_audit_log  [SRC-001 §6.7]  No RLS: admin-only, and immutable at the database (SW-ADR-031). Carries NO foreign keys (SW-ADR-083) so it outlives its subjects.
+-- admin_audit_log  [SRC-001 §6.7]  No RLS: admin-only, and immutable at the database (SW-ADR-083). Carries NO foreign keys (SW-ADR-083) so it outlives its subjects.
 CREATE TABLE admin_audit_log (
     id BIGINT GENERATED ALWAYS AS IDENTITY NOT NULL,
     admin_id BIGINT NOT NULL,

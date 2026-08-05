@@ -30,7 +30,9 @@ decisions must be reversed together or not at all.
 
 ## On granularity, so a two-way check does not misread it
 
-This map groups where the PRD enumerates: `/api/admin/*` here is nine endpoints in
+This map groups where the PRD enumerates: `/api/admin/*` here is **seven** endpoints in (nine is the count of `P-ADM-*`
+specifications, a different set, and `P-ADM-09` specifies an endpoint that deliberately does
+not exist)
 `03 PRD` §6, and `/api/receipts/*` is four. That is deliberate — **this document orients a
 session; the PRD is the contract.**
 

@@ -33,14 +33,14 @@ Numbered in dependency order. Each is derived from the ones above it and **cites
 | Folder | What it holds | State |
 |---|---|---|
 | `00 SourceOfTruth/` | `SRC-001` the client's requirements + `SRC-002` their rulings — **frozen and hashed**. **10 errata.** | **written** |
-| `01 ADR/` | **128 decision records** (108 live, 20 superseded or withdrawn) + the fail-closed ledger. | **written** |
+| `01 ADR/` | **135 decision records** (114 live, 21 superseded or withdrawn) + the fail-closed ledger. | **written** |
 | `02 BRD/` | 76 business requirements, each citing a source. | **written** |
 | `03 PRD/` | **42 specifications — the document the code is written from.** Plus the API contract and the §9 coverage map. | **written** |
-| `05 Bible/` | 44 stories, **178 binary acceptance criteria**. The scope arbiter. | **written** |
+| `05 Bible/` | 48 stories, **195 binary acceptance criteria**. The scope arbiter. | **written** |
 | `05 B DesignSystem/` | Tokens + real CSS. Every contrast figure computed, not claimed. | **written** |
 | `06 DataModel/` | A **package**: `datamodel.json` (spec of record) → generated `schema.sql`, `security.sql`, `TRACEABILITY.tsv`, plus `AGENT_CONTRACT.md` and runnable invariant checks. | **written** |
 | `07 Architecture/` | `for_llm/` 8 docs, 11 diagrams · `for_humans/` overview, decisions owed, **the accepted weaknesses**. | **written** |
-| `08 SIT/` · `09 NegativeTesting/` | 178 positive cases (one per acceptance criterion) + 70 negative, **19 cross-person, 46 severity one**. | **written** |
+| `08 SIT/` · `09 NegativeTesting/` | **195 positive cases** (one per acceptance criterion) + 80 negative, **29 cross-person, 56 severity one**. | **written** |
 | `10 EngineeringLedger/` | Derived from the Bible. **`/ss` reads this for the frontier** — verified: the hook finds it and prints the milestone matrix. Only `Status` is hand-edited. | **written** |
 | `11 Journeys/` | Two personas, 16 walks, each naming the seam it crosses. | **written** |
 | `12 DesignReview/` | The consolidated exit gate + the uncoached slice. | in progress |
@@ -83,7 +83,7 @@ The shared folder is `core`, never `platform` — that name shadows a stdlib mod
 
 ## Non-negotiable invariants — enforce in CODE, never via a prompt
 
-- **Isolation twice** (`SW-ADR-018`): every query filters on the user id from the verified token,
+- **Isolation twice** (`SW-ADR-082`, `SW-ADR-078`): every query filters on the user id from the verified token,
   **and** Postgres RLS enforces it at the database with `FORCE ROW LEVEL SECURITY` on.
   A controller-only check is the classic false green.
 - **The runtime DB role does not own the tables, is not superuser, holds no `BYPASSRLS`.**
@@ -137,7 +137,8 @@ Money · anything irreversible or public · secrets · legal and data protection
 quality check** · anything marked `[HUMAN]`.
 
 No timeout defaults past these. Adopting a *stricter* option is **not** a waiver and needs no
-signature — that is why `SW-ADR-018` could be ruled by the build session.
+signature — that is why the isolation rule could be ruled by the build session (`SW-ADR-078`,
+superseding `SW-ADR-018`).
 
 Under `SW-ADR-015` the build session decides technical questions and logs each as one
 `[JUDGMENT CALL]` line; reversible reserved matters are decided then **batched** for the client to

@@ -57,7 +57,7 @@ Options when you get there: one instance with three databases inside it; stop in
 (RDS stops for up to 7 days, storage still bills, instance-hours don't); or accept the cost. Decide
 before building the second one.
 
-### 3. Two database roles — **load-bearing for the day-one gate** (`SW-ADR-018`)
+### 3. Two database roles — **load-bearing for the day-one gate** (`SW-ADR-082`)
 
 Not one connection string. Two roles:
 
@@ -126,7 +126,7 @@ opaque browser error and no response body the app can read.
 Allow `PUT` and `POST` from the application's origin, with the headers the presigned policy
 signs, and `ETag` exposed. **Needed by:** the first receipt upload (`GOAL_08` onwards).
 
-### 7. Both SSM parameters as `SecureString`  (`SW-ADR-045`)
+### 7. **Three** SSM parameters, all as `SecureString`  (`SW-ADR-080`, `SW-ADR-081`)
 
 `DATABASE_URL` and `JWT_SECRET`. A plain `String` parameter is **unencrypted**, is returned to
 anything holding broad SSM read permission, and — unlike `SecureString` — needs no KMS grant, so
@@ -140,7 +140,7 @@ and rebuilds the schema from empty — run against a single database that destro
 were working with. Costs nothing extra; it is two `CREATE DATABASE` statements.
 **Needed by:** the first test run, which is before any application code.
 
-### 9. An ECS task-definition health check  (`SW-ADR-070`, `OPEN-MONITOR-01`)
+### 9. An ECS task-definition health check  (`SW-ADR-127`, `OPEN-MONITOR-01`)
 
 `SRC-001 §7.7` justified `/healthz` by "that's what the load balancer calls" — and `SW-ADR-014`
 removed the load balancer. **`/healthz` currently exists and nothing calls it.** Point the task
@@ -164,6 +164,53 @@ crash loop destroys the record of the crash that caused it.
 
 Retention is a cost dial and therefore yours; 30 days sits well inside the free allowance at this
 volume. *(Approximate and unverified by the build session.)*
+
+---
+
+## ADDED 2026-08-05 (later) — four items owed, found by the GOAL_13 exit gate
+
+`SW-ADR-127` asserted in its own text that **both** its items "are prep-queue rows". One was.
+`SW-ADR-123` and `SW-ADR-120` were never queued at all. Art VIII.2 makes advance notice the
+obligation traded for the code-only boundary, so an unqueued dependency is a broken promise,
+not a small omission.
+
+### 11. A CloudWatch alarm on the service running at all  (`SW-ADR-127`)
+
+One alarm on the ECS service's `RunningTaskCount < 1` for **2 consecutive minutes**, notifying an
+SNS topic with your email subscribed and **confirmed** (an unconfirmed subscription is silent).
+
+**Needed by:** the first deploy. **Force it once** — stop the task by hand and check the mail
+actually arrives. An alarm nobody has seen fire is an assumption, not a control.
+
+The health check of item 9 restarts a container that has *stopped answering*. This alarm covers the
+case it cannot: the container is gone and nothing is restarting it. There is no ALB, so nothing
+else notices.
+
+### 12. An S3 lifecycle rule expiring `staging/`  (`SW-ADR-123`)
+
+One rule on the receipts bucket: **expire objects under the `staging/` prefix after 1 day.**
+
+**Needed by:** the first receipt upload. An upload that is abandoned between the presigned POST and
+the attach call leaves an orphan under `staging/`. `P-RCP-01` and `08_failure_modes.md` both promise
+those "expire after one day" — a promise that rests entirely on this rule existing.
+
+### 13. ECS deployment configuration: minimum-healthy **0**  (`SW-ADR-120`)
+
+On the service: **minimum healthy percent 0, maximum percent 100.**
+
+**Needed by:** the first *re*deploy — not the first deploy. One EC2 instance, one host port: the
+new task cannot start until the old one stops. At the default minimum-healthy 100 ECS waits for a
+healthy new task before stopping the old one, and the deploy **deadlocks silently** until it times
+out. This costs one short outage per deploy, which is the correct trade at this size.
+
+### 14. A third SSM parameter for the migration credential  (`SW-ADR-081`)
+
+`MIGRATION_DATABASE_URL`, `SecureString`, alongside `DATABASE_URL` and `JWT_SECRET`.
+
+**Needed by:** the first deploy — before it, not after. `P-OPS-02`'s boot sequence runs migrations
+under the **owner** role and then serves traffic under the **runtime** role, and asserts at startup
+that the runtime role owns no table. Two roles with different passwords are two connection strings.
+The prep queue said "both parameters", which quietly assumed one.
 
 ---
 

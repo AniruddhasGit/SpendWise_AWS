@@ -88,3 +88,20 @@ distinction that matters.
 - **A blanket "you decide everything" instruction quietly repeals the constitution.** *Fix:*
   technical calls are the session's, reserved matters stay reserved, and reversible reserved matters
   get decided-then-batched for reversal rather than blocking (`SW-ADR-015`).
+
+## The three audited admin GETs can never be served from a read-only path
+
+`SW-ADR-135`. `/api/admin/users`, `/api/admin/sessions` and `/api/admin/audit` each write one
+`admin_audit_log` row **per request**, inside the same transaction as the read, and the response is
+serialised **only after `COMMIT`**.
+
+So they are **primary-only, read-write**. Not a read-only transaction — the `INSERT` fails. Not a
+replica — cross-node atomicity does not exist. Not a cache — a hit would disclose without its
+one-row-per-request record.
+
+This is written down because the optimisation is so obvious: *these are GETs, put them on a
+read-only path.* Doing that silently breaks `SRC-001 §10.8`, and nothing would go red — the
+response would look identical. An empty result still audits; the admin looked.
+
+A 403 to a non-admin writes **nothing** here. The action allowlist is closed and has no
+denied-attempt type; refused attempts belong to the request log (`P-OPS-05`) and `SW-ADR-104`.

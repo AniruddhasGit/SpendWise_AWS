@@ -90,9 +90,9 @@ band is a UI component, not text.
 **All bands pass.**
 
 "Uncategorised" is `#948c87` — a warm stone grey, deliberately distinct from the seeded
-"Other" `#7d8471`, and it always sorts last regardless of size (`SW-ADR-113`).
+"Other" `#7d8471`, and it always sorts last regardless of size (`SW-ADR-131`).
 
-> **Adjusted here, and why that is the process working.** `SW-ADR-113` specified `#a8a29e`.
+> **Adjusted here, and why that is the process working.** the **superseded** `SW-ADR-113` specified `#a8a29e`; `SW-ADR-131` replaced it and records why.
 > Measured against paper it is **2.36:1** — below the 3:1 floor a UI component needs. It was
 > darkened within the same hue to the value above. `SW-ADR-092` anticipated this exact case:
 > *"the design system adopts these as tokens and MUST verify each at >=3:1 against the paper
@@ -216,4 +216,6 @@ desktop.
 ## §8 — What this document does not decide
 
 It binds presentation. It is **not** a schema source, and it does not decide behaviour — which
-numbers move when a band is selected is `SW-ADR-113`, not this page.
+numbers move when a band is selected is `SW-ADR-109`, not this page.
+(This pointer read `SW-ADR-131` until 2026-08-05 — the Uncategorised bucket, not the
+re-scoping rule. §5.1 above had it right all along.)

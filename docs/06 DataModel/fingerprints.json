@@ -1,15 +1,17 @@
 {
   "generated": "2026-08-05",
-  "note": "schema.sql, security.sql and TRACEABILITY.tsv are generated from datamodel.json. If a generated file's hash moves without datamodel.json moving, someone hand-edited it - which SW-ADR-066 forbids because the next build erases it silently.",
+  "note": "schema.sql, security.sql and TRACEABILITY.tsv are generated from datamodel.json by generate.py. A hash moving without datamodel.json moving means someone hand-edited a generated file, which SW-ADR-066 forbids. NOTE: a hash comparison is the WEAKER check — it cannot see content the spec never contained, which is how the SW-ADR-129 isolation hole survived. The authoritative check is `py \"docs/06 DataModel/generate.py\" --check`, which compares content, and tools/consistency_check.py runs it.",
   "files": {
     ".gitkeep": "e3b0c44298fc1c14",
-    "AGENT_CONTRACT.md": "656664b324046c5d",
-    "TRACEABILITY.tsv": "df88f1dc058d580b",
-    "datamodel.json": "60f6c0207ba8ac88",
-    "permissions.tsv": "36ca3ccc90e3774b",
-    "schema.sql": "079d80f85fde48c9",
-    "security.sql": "fc442edadf1e527c",
+    "AGENT_CONTRACT.md": "7bf836ccf7697ae6",
+    "TRACEABILITY.tsv": "1de7bafce35a60c4",
     "checks/verify_invariants.sql": "04b970edd20c5edd",
+    "datamodel.json": "048c265d7960b3cb",
+    "generate.py": "3454a95ee3f92df9",
+    "permissions.tsv": "11598b8ea9d19cb1",
+    "schema.sql": "090a84702fab6498",
+    "security.sql": "d97947909380bc02",
     "seed/README.md": "7694dce8b0b411cb"
-  }
+  },
+  "algorithm": "sha256, first 16 hex characters, over the file's exact bytes"
 }

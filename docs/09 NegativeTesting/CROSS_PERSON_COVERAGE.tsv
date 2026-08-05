@@ -1,0 +1,26 @@
+method	path	cross_person_cases	coverage_under_another_class	verdict
+POST	/api/auth/register	NEG-X-27	NEG-L-03, NEG-E-01	COVERED
+POST	/api/auth/login	NEG-X-28	NEG-L-01, NEG-L-02, NEG-I-04	COVERED
+POST	/api/auth/logout	NEG-X-26	NEG-A-03	COVERED
+GET	/api/auth/me	NEG-X-25	NEG-A-01, NEG-A-04	COVERED
+POST	/api/auth/reset/complete	NEG-X-29	NEG-T-01…05	COVERED
+GET	/api/categories	NEG-X-23	—	COVERED
+POST	/api/categories	NEG-X-24	—	COVERED
+PATCH	/api/categories/{id}	NEG-X-04	—	COVERED
+DELETE	/api/categories/{id}	NEG-X-05	—	COVERED
+GET	/api/expenses	NEG-X-09, NEG-X-13, NEG-X-14	NEG-X-17 (at the database)	COVERED
+POST	/api/expenses	NEG-X-10, NEG-X-11	NEG-X-18, NEG-X-19 (at the database)	COVERED
+PATCH	/api/expenses/{id}	NEG-X-02	—	COVERED
+DELETE	/api/expenses/{id}	NEG-X-03	—	COVERED
+GET	/api/expenses/summary	NEG-X-08, NEG-X-20	NEG-X-21 (GUC red-proof)	COVERED
+POST	/api/receipts/upload-url	NEG-X-16	NEG-S-01, NEG-S-02	COVERED
+POST	/api/receipts/attach	NEG-X-15	—	COVERED
+GET	/api/receipts/{expense_id}/url	NEG-X-06	—	COVERED
+DELETE	/api/receipts/{expense_id}	NEG-X-07	—	COVERED
+GET	/api/admin/users	NEG-R-01, NEG-R-08	NEG-X-22 (the stats function)	COVERED
+GET	/api/admin/sessions	NEG-R-02, NEG-R-08	NEG-R-10 (no ip, no user agent)	COVERED
+POST	/api/admin/users/{id}/revoke-sessions	NEG-R-03	—	COVERED
+POST	/api/admin/users/{id}/reset	NEG-R-04	NEG-T-01…05	COVERED
+POST	/api/admin/users/{id}/active	NEG-R-05	NEG-A-04	COVERED
+POST	/api/admin/users/{id}/role	NEG-R-06	NEG-A-05	COVERED
+GET	/api/admin/audit	NEG-R-07, NEG-R-08	—	COVERED

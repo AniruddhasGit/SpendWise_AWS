@@ -1,12 +1,12 @@
 {
   "spec_of_record": true,
-  "note": "Hand-maintained. schema.sql, security.sql and TRACEABILITY.tsv are GENERATED from this file (SW-ADR-066). A hand patch to a generated file is erased by the next build, silently.",
+  "note": "schema.sql, security.sql and TRACEABILITY.tsv are GENERATED from this file by generate.py (SW-ADR-066). A hand patch to a generated file is erased by the next build, silently — and until 2026-08-05 there WAS no next build, so a hand patch simply became the artifact. That is how the isolation hole SW-ADR-129 closes got in. Verify with: py \"docs/06 DataModel/generate.py\" --check",
   "postgres_minimum": "14",
   "tables": {
     "users": {
       "rls": false,
-      "source": "SRC-001 \u00a76.2",
-      "note": "Outside RLS by SW-ADR-097 \u2014 a policy keyed on the request identity cannot serve a pre-authentication lookup.",
+      "source": "SRC-001 §6.2",
+      "note": "Outside RLS by SW-ADR-097 — a policy keyed on the request identity cannot serve a pre-authentication lookup.",
       "columns": [
         {
           "name": "id",
@@ -22,7 +22,7 @@
           "nullability": "NOT NULL",
           "default": null,
           "check": "char_length(email) <= 254",
-          "source": "SRC-001 \u00a76.2 \u00b7 SW-ADR-026"
+          "source": "SRC-001 §6.2 · SW-ADR-084"
         },
         {
           "name": "password_hash",
@@ -30,7 +30,7 @@
           "nullability": "NOT NULL",
           "default": null,
           "check": null,
-          "source": "SRC-001 \u00a76.2"
+          "source": "SRC-001 §6.2"
         },
         {
           "name": "display_name",
@@ -38,7 +38,7 @@
           "nullability": "NOT NULL",
           "default": null,
           "check": "char_length(display_name) BETWEEN 1 AND 100",
-          "source": "SRC-001 \u00a76.2 \u00b7 SW-ADR-026"
+          "source": "SRC-001 §6.2 · SW-ADR-084"
         },
         {
           "name": "role",
@@ -46,7 +46,7 @@
           "nullability": "NOT NULL",
           "default": "'user'",
           "check": "role IN ('user','admin')",
-          "source": "SRC-001 \u00a74.1 \u00b7 SW-ADR-028"
+          "source": "SRC-001 §4.1 · SW-ADR-028"
         },
         {
           "name": "currency",
@@ -62,7 +62,7 @@
           "nullability": "NOT NULL",
           "default": "true",
           "check": null,
-          "source": "SRC-001 \u00a76.2"
+          "source": "SRC-001 §6.2"
         },
         {
           "name": "created_at",
@@ -76,7 +76,7 @@
     },
     "sessions": {
       "rls": true,
-      "source": "SRC-001 \u00a76.3",
+      "source": "SRC-001 §6.3",
       "note": "Protected. The identity column is user_id.",
       "columns": [
         {
@@ -93,7 +93,7 @@
           "nullability": "NOT NULL",
           "default": null,
           "check": null,
-          "source": "SRC-001 \u00a76.3"
+          "source": "SRC-001 §6.3"
         },
         {
           "name": "issued_at",
@@ -125,7 +125,7 @@
           "nullability": "NULL",
           "default": null,
           "check": null,
-          "source": "SW-ADR-076 \u2014 NULLABLE: SRC-001 \u00a75.3 defines active as revoked_at IS NULL"
+          "source": "SW-ADR-076 — NULLABLE: SRC-001 §5.3 defines active as revoked_at IS NULL"
         },
         {
           "name": "user_agent",
@@ -133,7 +133,7 @@
           "nullability": "NULL",
           "default": null,
           "check": "user_agent IS NULL OR char_length(user_agent) <= 500",
-          "source": "SRC-001 \u00a76.3"
+          "source": "SRC-001 §6.3"
         },
         {
           "name": "ip",
@@ -141,14 +141,15 @@
           "nullability": "NULL",
           "default": null,
           "check": null,
-          "source": "SRC-001 \u00a76.3 \u00b7 never returned by any admin model (SW-ADR-106)"
+          "source": "SRC-001 §6.3 · never returned by any admin model (SW-ADR-106)"
         }
-      ]
+      ],
+      "identity_column": "user_id"
     },
     "password_resets": {
       "rls": false,
-      "source": "SRC-001 \u00a76.4",
-      "note": "Outside RLS by SW-ADR-071 \u2014 redeeming a code is unauthenticated by definition.",
+      "source": "SRC-001 §6.4",
+      "note": "Outside RLS by SW-ADR-071 — redeeming a code is unauthenticated by definition.",
       "columns": [
         {
           "name": "id",
@@ -164,7 +165,7 @@
           "nullability": "NOT NULL",
           "default": null,
           "check": null,
-          "source": "SRC-001 \u00a76.4"
+          "source": "SRC-001 §6.4"
         },
         {
           "name": "token_hash",
@@ -172,7 +173,7 @@
           "nullability": "NOT NULL",
           "default": null,
           "check": "char_length(token_hash) = 64",
-          "source": "SW-ADR-032 \u00b7 SW-ADR-084"
+          "source": "SW-ADR-032 · SW-ADR-084"
         },
         {
           "name": "expires_at",
@@ -180,7 +181,7 @@
           "nullability": "NOT NULL",
           "default": null,
           "check": null,
-          "source": "SRC-001 \u00a710.7"
+          "source": "SRC-001 §10.7"
         },
         {
           "name": "used_at",
@@ -188,7 +189,7 @@
           "nullability": "NULL",
           "default": null,
           "check": null,
-          "source": "SW-ADR-076 \u2014 NULLABLE: non-null means consumed"
+          "source": "SW-ADR-076 — NULLABLE: non-null means consumed"
         },
         {
           "name": "created_by_admin_id",
@@ -196,13 +197,13 @@
           "nullability": "NOT NULL",
           "default": null,
           "check": null,
-          "source": "SRC-001 \u00a76.4"
+          "source": "SRC-001 §6.4"
         }
       ]
     },
     "categories": {
       "rls": true,
-      "source": "SRC-001 \u00a76.5",
+      "source": "SRC-001 §6.5",
       "note": "Protected.",
       "columns": [
         {
@@ -219,7 +220,7 @@
           "nullability": "NOT NULL",
           "default": null,
           "check": null,
-          "source": "SRC-001 \u00a76.5"
+          "source": "SRC-001 §6.5"
         },
         {
           "name": "name",
@@ -227,7 +228,7 @@
           "nullability": "NOT NULL",
           "default": null,
           "check": "char_length(name) BETWEEN 1 AND 50",
-          "source": "SW-ADR-026"
+          "source": "SW-ADR-084"
         },
         {
           "name": "color",
@@ -235,7 +236,7 @@
           "nullability": "NOT NULL",
           "default": null,
           "check": "color ~ '^#[0-9a-f]{6}$'",
-          "source": "SW-ADR-034 \u00b7 SW-ADR-084"
+          "source": "SW-ADR-034 · SW-ADR-084"
         },
         {
           "name": "created_at",
@@ -245,11 +246,12 @@
           "check": null,
           "source": "SW-ADR-076"
         }
-      ]
+      ],
+      "identity_column": "user_id"
     },
     "expenses": {
       "rls": true,
-      "source": "SRC-001 \u00a76.6",
+      "source": "SRC-001 §6.6",
       "note": "Protected. The money table.",
       "columns": [
         {
@@ -266,7 +268,7 @@
           "nullability": "NOT NULL",
           "default": null,
           "check": null,
-          "source": "SRC-001 \u00a76.6"
+          "source": "SRC-001 §6.6"
         },
         {
           "name": "category_id",
@@ -274,7 +276,7 @@
           "nullability": "NULL",
           "default": null,
           "check": null,
-          "source": "SRC-001 \u00a76.6 \u2014 nullable; \u00a77.2 nulls it on category delete"
+          "source": "SRC-001 §6.6 — nullable; §7.2 nulls it on category delete"
         },
         {
           "name": "amount_paise",
@@ -282,7 +284,7 @@
           "nullability": "NOT NULL",
           "default": null,
           "check": "amount_paise > 0 AND amount_paise <= 1000000000000",
-          "source": "SW-ADR-029 \u00b7 SW-ADR-036"
+          "source": "SW-ADR-029 · SW-ADR-079"
         },
         {
           "name": "currency",
@@ -290,7 +292,7 @@
           "nullability": "NOT NULL",
           "default": "'INR'",
           "check": "currency = 'INR'",
-          "source": "SW-ADR-013 \u2014 snapshotted at write time"
+          "source": "SW-ADR-013 — snapshotted at write time"
         },
         {
           "name": "description",
@@ -306,7 +308,7 @@
           "nullability": "NOT NULL",
           "default": null,
           "check": "spent_on BETWEEN DATE '2000-01-01' AND DATE '2100-12-31'",
-          "source": "SRC-001 \u00a76.6 \u00b7 SW-ADR-114"
+          "source": "SRC-001 §6.6 · SW-ADR-111"
         },
         {
           "name": "receipt_key",
@@ -314,7 +316,7 @@
           "nullability": "NULL",
           "default": null,
           "check": "receipt_key IS NULL OR char_length(receipt_key) <= 512",
-          "source": "SRC-001 \u00a76.6"
+          "source": "SRC-001 §6.6"
         },
         {
           "name": "created_at",
@@ -330,14 +332,15 @@
           "nullability": "NULL",
           "default": null,
           "check": null,
-          "source": "SW-ADR-076 \u2014 NULLABLE until first update"
+          "source": "SW-ADR-076 — NULLABLE until first update"
         }
-      ]
+      ],
+      "identity_column": "user_id"
     },
     "admin_audit_log": {
       "rls": false,
-      "source": "SRC-001 \u00a76.7",
-      "note": "No RLS: admin-only, and immutable at the database (SW-ADR-031). Carries NO foreign keys (SW-ADR-083) so it outlives its subjects.",
+      "source": "SRC-001 §6.7",
+      "note": "No RLS: admin-only, and immutable at the database (SW-ADR-083). Carries NO foreign keys (SW-ADR-083) so it outlives its subjects.",
       "columns": [
         {
           "name": "id",
@@ -353,7 +356,7 @@
           "nullability": "NOT NULL",
           "default": null,
           "check": null,
-          "source": "SRC-001 \u00a76.7 \u2014 NO foreign key, by SW-ADR-083"
+          "source": "SRC-001 §6.7 — NO foreign key, by SW-ADR-083"
         },
         {
           "name": "action",
@@ -361,7 +364,7 @@
           "nullability": "NOT NULL",
           "default": null,
           "check": "action IN ('password_reset_issued','sessions_revoked','user_deactivated','user_reactivated','role_changed','bootstrap_admin_claimed','users_list_viewed','sessions_list_viewed','audit_log_viewed')",
-          "source": "SW-ADR-105 \u2014 a closed allowlist of nine"
+          "source": "SW-ADR-105 — a closed allowlist of nine"
         },
         {
           "name": "target_user_id",
@@ -369,7 +372,7 @@
           "nullability": "NULL",
           "default": null,
           "check": null,
-          "source": "SRC-001 \u00a76.7 \u2014 NO foreign key"
+          "source": "SRC-001 §6.7 — NO foreign key"
         },
         {
           "name": "details",
@@ -377,7 +380,7 @@
           "nullability": "NOT NULL",
           "default": "'{}'::jsonb",
           "check": null,
-          "source": "SW-ADR-105 \u2014 shape validated per action BEFORE the write"
+          "source": "SW-ADR-105 — shape validated per action BEFORE the write"
         },
         {
           "name": "created_at",
@@ -400,7 +403,7 @@
           "nullability": "NOT NULL",
           "default": "1",
           "check": "id = 1",
-          "source": "SW-ADR-125 \u2014 single row enforced by the check"
+          "source": "SW-ADR-125 — single row enforced by the check"
         },
         {
           "name": "jwt_secret_fingerprint",
@@ -427,57 +430,57 @@
       "column": "user_id",
       "references": "users(id)",
       "on_delete": "CASCADE",
-      "source": "SRC-001 \u00a76.9"
+      "source": "SRC-001 §6.9"
     },
     {
       "table": "password_resets",
       "column": "user_id",
       "references": "users(id)",
       "on_delete": "CASCADE",
-      "source": "SRC-001 \u00a76.9"
+      "source": "SRC-001 §6.9"
     },
     {
       "table": "categories",
       "column": "user_id",
       "references": "users(id)",
       "on_delete": "CASCADE",
-      "source": "SRC-001 \u00a76.9"
+      "source": "SRC-001 §6.9"
     },
     {
       "table": "expenses",
       "column": "user_id",
       "references": "users(id)",
       "on_delete": "CASCADE",
-      "source": "SRC-001 \u00a76.9"
+      "source": "SRC-001 §6.9"
     },
     {
       "table": "expenses",
       "column": "(category_id, user_id)",
       "references": "categories((id, user_id))",
       "on_delete": "NO ACTION",
-      "source": "SW-ADR-072 \u2014 composite. NO ACTION because SET NULL would null user_id too, which is NOT NULL. The service nulls category_id explicitly inside the delete transaction."
+      "source": "SW-ADR-072 — composite. NO ACTION because SET NULL would null user_id too, which is NOT NULL. The service nulls category_id explicitly inside the delete transaction."
     }
   ],
   "indexes": [
     {
       "table": "users",
       "definition": "UNIQUE (lower(email))",
-      "source": "SW-ADR-027 \u2014 case-insensitive identity"
+      "source": "SW-ADR-027 — case-insensitive identity"
     },
     {
       "table": "sessions",
       "definition": "(user_id)",
-      "source": "SRC-001 \u00a76.8"
+      "source": "SRC-001 §6.8"
     },
     {
       "table": "sessions",
       "definition": "(last_seen_at)",
-      "source": "SRC-001 \u00a76.8"
+      "source": "SRC-001 §6.8"
     },
     {
       "table": "sessions",
       "definition": "(revoked_at) WHERE revoked_at IS NULL",
-      "source": "SW-ADR-039 \u2014 partial; satisfiable only because SW-ADR-076 made the column nullable"
+      "source": "SW-ADR-039 — partial; satisfiable only because SW-ADR-076 made the column nullable"
     },
     {
       "table": "password_resets",
@@ -492,7 +495,7 @@
     {
       "table": "categories",
       "definition": "UNIQUE (id, user_id)",
-      "source": "SW-ADR-072 \u2014 the target of the composite FK"
+      "source": "SW-ADR-072 — the target of the composite FK"
     },
     {
       "table": "categories",
@@ -507,12 +510,12 @@
     {
       "table": "expenses",
       "definition": "(user_id, spent_on DESC)",
-      "source": "SRC-001 \u00a76.8"
+      "source": "SRC-001 §6.8"
     },
     {
       "table": "expenses",
       "definition": "(user_id, category_id)",
-      "source": "SRC-001 \u00a76.8"
+      "source": "SRC-001 §6.8"
     },
     {
       "table": "admin_audit_log",
@@ -524,5 +527,20 @@
       "definition": "(target_user_id)",
       "source": "SW-ADR-039"
     }
-  ]
+  ],
+  "admin_access": {
+    "source": "SW-ADR-129 (supersedes SW-ADR-129, restores SW-ADR-043) · SRC-001 §4.5",
+    "note": "An admin sees counts and dates, never an amount or a description. A row-level policy has NO column dimension and therefore cannot express that; a function's return type can. `app.is_admin` is consulted by no policy on a money table and is never set on a request-scoped connection.",
+    "policies_on_money_tables": false,
+    "functions": [
+      {
+        "name": "admin_expense_stats",
+        "purpose": "expenses: an admin reads COUNT and LAST ACTIVITY DATE only (SW-ADR-129). This is the whole of admin access to the money table.",
+        "args": "target_user_id BIGINT",
+        "argtypes": "BIGINT",
+        "returns": "expense_count BIGINT, last_activity DATE",
+        "body": "SELECT count(*)::bigint, max(spent_on)\n      FROM expenses WHERE user_id = target_user_id;"
+      }
+    ]
+  }
 }
