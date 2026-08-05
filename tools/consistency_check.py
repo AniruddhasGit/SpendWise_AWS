@@ -338,7 +338,14 @@ PLANTS = [
 
 
 def _count(rep: Report, check: str) -> int:
-    return sum(1 for c, _ in rep.failures if c == check)
+    """Count BOTH channels.
+
+    A check that reports into `review` still fires; it simply does not gate. Counting
+    only `failures` would report it as decoration when it is doing its job — which is
+    exactly the false green this selftest exists to catch, turned on itself.
+    """
+    return (sum(1 for c, _ in rep.failures if c == check)
+            + sum(1 for c, _ in rep.reviews if c == check))
 
 
 def selftest(root: str) -> int:
