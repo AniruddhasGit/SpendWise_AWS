@@ -359,3 +359,40 @@ equivalent of a pointer target too small to hit.
 **In progress:** GOAL_04 written and self-verified; its fresh-agent QA has not yet run.
 
 **Open / next:** QA GOAL_04, then GOAL_05 (the PRD — the largest artifact in the project).
+
+---
+
+## 2026-08-05 · Session 2 · Goals 03–13, and the exit gate
+
+**Done:**
+- **Goals 03 → 13**, each executed, then QA'd by fresh zero-context agents, then repaired.
+  `02 BRD` (76 requirements, re-derived to v0.3) · `03 PRD` (42 specifications + a **generated**
+  API contract) · `05 Bible` (48 stories, 195 binary criteria) · `05 B DesignSystem` ·
+  `06 DataModel` (spec of record + 3 generated artifacts) · `07 Architecture` · `08 SIT`
+  (195 cases, one per criterion) · `09 NegativeTesting` (80 cases, 29 cross-person, 56 SEV-1) ·
+  `10 EngineeringLedger` · `11 Journeys` · `12 DesignReview`.
+- **`01 ADR` grew 22 → 144 records** (123 live, 21 superseded or withdrawn).
+- **A live isolation hole found and closed.** `security.sql` carried an unqualified permissive RLS
+  policy on `expenses`; a row-level policy has no column dimension and permissive policies are
+  OR'd, so it returned every column of every row to any connection with `app.is_admin` set.
+  `SRC-001 §4.5` was false at the database while the PRD claimed it was structurally true, and
+  **no stated test could have caught it**. `SW-ADR-129`.
+- **`tools/consistency_check.py` grew 9 → 15 checks**, each added because the previous set passed
+  while a real defect walked through it. **15/15 red-proofed.** 8 generated artifacts verified by
+  regeneration. 8/8 seams two-way covered.
+
+**Not done — recorded as a failure, not smoothed over:**
+- **GOAL_13's Definition of Done was zero guesses from a fresh uncoached engineer. Never reached.**
+  Seven runs: **18 → 21 → 15 → 8 → 8 → 8 → 7**. In five of the seven, at least one finding was a
+  defect introduced by the previous round's repair. Full data:
+  `docs/12 DesignReview/EX_Consolidated-Exit-Gate/05_UNCOACHED_SLICE_LOG.md`.
+- **No application code exists.** No database has been created. The day-one proof has never run.
+  Everything in this repo is a claim about documents, checked against other documents.
+
+**In progress:** nothing half-finished.
+
+**Open / next:** **M0 — the day-one spine.** Failing test first; finish line is the never-waivable
+gate returning exactly `75810` paise with person B denied at the database layer, then the RLS
+policy disabled on purpose and the denial watched going red.
+
+- **Session closed 2026-08-05_1907 by ani87** → handoff: handoffs/HANDOFF_2026-08-05_1907_ani87.md

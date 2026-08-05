@@ -1,0 +1,48 @@
+{
+  "generated": "2026-08-05",
+  "consistency_check": {
+    "exit_code": 0,
+    "verdict": "PASS"
+  },
+  "red_proof": {
+    "checks": 15,
+    "of": 15,
+    "verdict": "PASS"
+  },
+  "seams": {
+    "passed": 8,
+    "total": 8,
+    "verdict": "PASS"
+  },
+  "corpus": {
+    "adr_records": 144,
+    "adr_live": 123,
+    "adr_superseded": 21,
+    "brd_requirements": 76,
+    "prd_specifications": 42,
+    "bible_stories": 48,
+    "acceptance_criteria": 195,
+    "sit_cases": 195,
+    "negative_cases": 80,
+    "cross_person": 29,
+    "sev1": 56,
+    "api_routes": 25
+  },
+  "generated_artifacts_verified_by_regeneration": 4,
+  "note": "Every number here is computed at write time by exitgate.py, not typed. The uncoached-slice result is NOT in this file: a machine cannot score it, and asserting a number for it would be the exact failure this gate exists to catch.",
+  "uncoached_slice": {
+    "runs": 7,
+    "guesses": [
+      18,
+      21,
+      15,
+      8,
+      8,
+      8,
+      7
+    ],
+    "definition_of_done": "zero guesses",
+    "met": false,
+    "note": "Recorded as NOT MET. In five of seven rounds at least one finding was a defect introduced by the previous round's repair. A machine cannot score this lane; the number is copied from the run logs, not computed."
+  }
+}

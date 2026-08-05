@@ -47,8 +47,17 @@ SKIP_DIRS = {".git", "node_modules", "__pycache__", ".venv", "venv", "dist"}
 #              are narrative. Their job is to record what happened, INCLUDING defects — a
 #              handoff that quotes "claims ERRATUM E-8 is filed" is reporting the defect, not
 #              committing it. Flagging those would punish exactly the honesty K2 requires.
+#   docs/12 .../EX_Consolidated-Exit-Gate/
+#              is the same category as handoffs/: a conflict map, a root-cause register and a
+#              self-challenge exist to QUOTE defects — a superseded ADR that was wrongly cited,
+#              a count a reviewer got wrong, a value that fails the gate. Flagging those would
+#              punish the record for containing the thing it was written to record. The clearest
+#              case: 08_REVIEWER_SELF_CHALLENGE.md was flagged for "claims 77 BRD rows" in the
+#              exact sentence stating that the reviewer claimed 77 and the artifacts hold 76.
+#              Scoped to this one folder — the rest of docs/12 is checked normally.
 SKIP_PATHS = {"PROGRESS.md"}
-SKIP_PREFIXES = ("tools/", "handoffs/", "goals/")
+SKIP_PREFIXES = ("tools/", "handoffs/", "goals/",
+                 "docs/12 DesignReview/EX_Consolidated-Exit-Gate/")
 
 
 def in_scope(relpath: str) -> bool:

@@ -2,7 +2,8 @@ seam	upstream	n_upstream	downstream	n_downstream	no_gap_missing	no_creep_unancho
 SRC-001 -> BRD	SRC-001 sections	14	BRD	1	0	0	-	-	PASS
 BRD -> PRD	BRD requirements	76	PRD specifications	42	0	0	-	-	PASS
 PRD -> Bible	PRD specifications	42	Bible stories	48	0	0	-	-	PASS
-Bible -> SIT	Bible stories	48	SIT cases	194	0	0	-	-	PASS
+Bible AC -> SIT	acceptance criteria	195	SIT cases	195	0	0	-	-	PASS
 Bible -> Ledger	Bible stories	48	ledger rows	48	0	0	-	-	PASS
-ADR -> documents	live ADRs	108	carried into BRD or PRD	25	0	0	-	-	PASS
-DataModel -> sources	schema objects	71	cited sources	71	0	0	-	-	PASS
+ADR -> documents	live ADRs	114	carried into a document	91	0	0	-	-	PASS
+DataModel -> sources	schema objects	72	cited sources	72	0	0	-	-	PASS
+routes -> cross-person	API routes	25	routes with >=1 case	25	0	0	-	-	PASS
