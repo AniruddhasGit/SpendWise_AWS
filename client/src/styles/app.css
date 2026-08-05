@@ -1,0 +1,579 @@
+/* Component styles. Every colour, space, radius and duration is a token —
+ * `npm run lint:tokens` greps this tree for a raw hex and fails the build
+ * (`DESIGN-SYSTEM.md §2`: "No component ever references a raw hex").
+ *
+ * The focus rule is NOT here. It is declared exactly once, in tokens.css, and
+ * `outline: none` appears nowhere in this file (`SW-ADR-117`).
+ */
+
+/* ── reset, only what is needed ─────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body, #root { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--sw-paper);
+  color: var(--sw-ink);
+  font-family: var(--sw-font-body);
+  font-size: var(--sw-text-base);
+  line-height: var(--sw-leading-normal);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, p, figure { margin: 0; }
+ul, ol { margin: 0; padding: 0; list-style: none; }
+
+button, input, select, textarea { font: inherit; color: inherit; }
+
+/* `overflow-x: hidden` on body is the usual fix for E3-S8 and it is the WRONG
+ * one — it hides the overflow instead of removing it, so the test passes and
+ * the content is still unreachable. Nothing here sets it; the layout has to
+ * actually fit. */
+
+.skip-link {
+  position: absolute;
+  left: var(--sw-space-2);
+  top: calc(var(--sw-space-2) * -8);
+  z-index: 100;
+  padding: var(--sw-space-2) var(--sw-space-4);
+  background: var(--sw-paper-raised);
+  color: var(--sw-ink);
+  border-radius: var(--sw-radius-md);
+  box-shadow: var(--sw-shadow-md);
+  text-decoration: none;
+  transition: top var(--sw-motion-fast) var(--sw-motion-ease);
+}
+.skip-link:focus { top: var(--sw-space-2); }
+
+/* ── shell ──────────────────────────────────────────────────────────────── */
+.shell {
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: var(--sw-space-6) var(--sw-space-4) var(--sw-space-12);
+}
+
+.topbar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sw-space-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--sw-space-6);
+}
+
+.wordmark {
+  font-family: var(--sw-font-display);
+  font-size: var(--sw-text-xl);
+  line-height: var(--sw-leading-tight);
+  color: var(--sw-pine);
+}
+
+.whoami {
+  display: flex;
+  align-items: center;
+  gap: var(--sw-space-3);
+  font-size: var(--sw-text-sm);
+  color: var(--sw-ink-muted);
+}
+
+/* ── buttons ────────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sw-space-2);
+  min-height: var(--sw-target-min);
+  padding: var(--sw-space-2) var(--sw-space-4);
+  border: 1px solid transparent;
+  border-radius: var(--sw-radius-md);
+  background: var(--sw-pine);
+  color: var(--sw-paper);
+  font-weight: var(--sw-weight-medium);
+  cursor: pointer;
+  transition: background var(--sw-motion-fast) var(--sw-motion-ease);
+}
+.btn:hover:not([aria-disabled='true']) { background: var(--sw-pine-deep); }
+.btn[aria-disabled='true'] {
+  background: var(--sw-paper-sunken);
+  color: var(--sw-ink-faint);
+  cursor: not-allowed;
+}
+
+.btn-quiet {
+  background: transparent;
+  color: var(--sw-pine);
+  border-color: var(--sw-border);
+}
+.btn-quiet:hover:not([aria-disabled='true']) { background: var(--sw-pine-soft); }
+
+.btn-danger { background: var(--sw-danger); }
+.btn-danger:hover:not([aria-disabled='true']) { background: var(--sw-danger); filter: brightness(0.9); }
+
+/* A link that is a button. Still 44px tall at phone width — the criterion is
+ * about the TARGET, and a text link is a target. */
+.btn-link {
+  min-height: var(--sw-target-min);
+  padding: var(--sw-space-2);
+  border: 0;
+  background: none;
+  color: var(--sw-pine);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ── the headline ───────────────────────────────────────────────────────── */
+.headline {
+  background: var(--sw-paper-raised);
+  border: 1px solid var(--sw-border);
+  border-radius: var(--sw-radius-lg);
+  box-shadow: var(--sw-shadow-sm);
+  padding: var(--sw-space-6);
+  margin-bottom: var(--sw-space-6);
+}
+
+.headline-label {
+  font-size: var(--sw-text-sm);
+  font-weight: var(--sw-weight-medium);
+  color: var(--sw-ink-muted);
+  margin-bottom: var(--sw-space-1);
+}
+
+.headline-total {
+  font-family: var(--sw-font-display);
+  font-size: var(--sw-text-3xl);
+  line-height: var(--sw-leading-tight);
+  /* The display face for the shape, tabular figures for the digits — .sw-num
+   * is applied alongside, so the serif is overridden for the number itself.
+   * That is intentional: `SRC-001 §9.4` asks for mono digits BY NAME. */
+}
+
+.headline-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sw-space-6);
+  margin-top: var(--sw-space-4);
+  padding-top: var(--sw-space-4);
+  border-top: 1px solid var(--sw-border);
+}
+
+.fact-label {
+  display: block;
+  font-size: var(--sw-text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--sw-ink-muted);
+}
+.fact-value { font-size: var(--sw-text-lg); }
+
+/* ── period picker ──────────────────────────────────────────────────────── */
+.periods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sw-space-2);
+  margin-bottom: var(--sw-space-4);
+}
+
+.chip {
+  min-height: var(--sw-target-min);
+  padding: var(--sw-space-2) var(--sw-space-4);
+  border: 1px solid var(--sw-border);
+  border-radius: var(--sw-radius-full);
+  background: var(--sw-paper-raised);
+  color: var(--sw-ink-muted);
+  cursor: pointer;
+  transition: background var(--sw-motion-fast) var(--sw-motion-ease);
+}
+.chip:hover { background: var(--sw-paper-sunken); }
+.chip[aria-pressed='true'] {
+  background: var(--sw-pine);
+  border-color: var(--sw-pine);
+  color: var(--sw-paper);
+  font-weight: var(--sw-weight-medium);
+}
+
+/* ── the ribbon ─────────────────────────────────────────────────────────── */
+.ribbon-wrap { margin-bottom: var(--sw-space-6); }
+
+.ribbon-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sw-space-3);
+  margin-bottom: var(--sw-space-2);
+}
+
+.ribbon-title {
+  font-size: var(--sw-text-sm);
+  font-weight: var(--sw-weight-medium);
+  color: var(--sw-ink-muted);
+}
+
+.ribbon {
+  display: flex;
+  width: 100%;
+  height: var(--sw-space-12);
+  border: 1px solid var(--sw-border);
+  border-radius: var(--sw-radius-md);
+  overflow: hidden;
+  background: var(--sw-paper-sunken);
+}
+
+.band {
+  position: relative;
+  border: 0;
+  /* The 1px separator between adjacent bands (`DESIGN-SYSTEM.md §5.1`). Drawn
+   * as an inset shadow rather than a border so it never steals width from a
+   * sliver band — a border on a 0.4% band would be most of the band. */
+  box-shadow: inset -1px 0 0 var(--sw-border);
+  padding: 0;
+  cursor: pointer;
+  /* TRUE PROPORTION (`SW-ADR-055`). No min-width: a 0.4% band renders 0.4%
+   * wide. It stays reachable by arrow key and announces its full name, which
+   * is the keyboard equivalent of a pointer target too small to hit. Widening
+   * it would lie about the proportion, which is the ribbon's whole job. */
+  flex-grow: 0;
+  flex-shrink: 0;
+  transition: opacity var(--sw-motion-fast) var(--sw-motion-ease);
+}
+.band:last-child { box-shadow: none; }
+
+/* SELECTION IS NEVER COLOUR-ONLY (`DESIGN-SYSTEM.md §5.1`). Two cues: the
+ * chosen band gains an inset marker, and every other band dims. Either one
+ * alone survives neither colour blindness nor a monochrome screen. */
+.ribbon[data-filtering='true'] .band { opacity: 0.35; }
+.ribbon[data-filtering='true'] .band[aria-pressed='true'] {
+  opacity: 1;
+  box-shadow: inset 0 0 0 3px var(--sw-ink), inset 0 0 0 5px var(--sw-paper);
+}
+
+.ribbon-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sw-space-2) var(--sw-space-4);
+  margin-top: var(--sw-space-3);
+  font-size: var(--sw-text-sm);
+  color: var(--sw-ink-muted);
+}
+
+.legend-item { display: flex; align-items: center; gap: var(--sw-space-2); }
+
+.legend-swatch {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: var(--sw-radius-sm);
+  flex: none;
+}
+
+/* ── day bars ───────────────────────────────────────────────────────────── */
+.daybars {
+  display: flex;
+  align-items: flex-end;
+  gap: 1px;
+  height: var(--sw-space-12);
+  margin-bottom: var(--sw-space-2);
+}
+
+.daybar {
+  flex: 1 1 0;
+  min-width: 1px;
+  background: var(--sw-pine);
+  border-radius: var(--sw-radius-sm) var(--sw-radius-sm) 0 0;
+}
+.daybar[data-empty='true'] { background: var(--sw-border); }
+
+/* ── entry list ─────────────────────────────────────────────────────────── */
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sw-space-3);
+  margin: var(--sw-space-8) 0 var(--sw-space-3);
+}
+
+.section-title {
+  font-size: var(--sw-text-xl);
+  font-weight: var(--sw-weight-semibold);
+}
+
+.entries {
+  background: var(--sw-paper-raised);
+  border: 1px solid var(--sw-border);
+  border-radius: var(--sw-radius-lg);
+  overflow: hidden;
+}
+
+.entry {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: var(--sw-space-3);
+  padding: var(--sw-space-3) var(--sw-space-4);
+  border-bottom: 1px solid var(--sw-border);
+}
+.entry:last-child { border-bottom: 0; }
+
+/* The day header sits in the same grid as its rows so the subtotal lines up
+   under the amounts — which is the whole reason the subtotal is legible as a
+   subtotal rather than as another number on the page. */
+.day-head {
+  background: var(--sw-paper-sunken);
+  font-weight: var(--sw-weight-medium);
+  font-size: var(--sw-text-sm);
+  padding-top: var(--sw-space-2);
+  padding-bottom: var(--sw-space-2);
+}
+.day-head .entry-meta:nth-of-type(2) { text-align: right; }
+
+.daybars-wrap { margin-bottom: var(--sw-space-6); }
+
+.entry-dot {
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: var(--sw-radius-full);
+  flex: none;
+}
+
+.entry-main { min-width: 0; }
+
+.entry-desc {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.entry-meta {
+  font-size: var(--sw-text-sm);
+  color: var(--sw-ink-muted);
+}
+
+.entry-amount { font-size: var(--sw-text-lg); white-space: nowrap; }
+
+.entry-actions { display: flex; gap: var(--sw-space-1); }
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--sw-target-min);
+  min-height: var(--sw-target-min);
+  border: 1px solid transparent;
+  border-radius: var(--sw-radius-md);
+  background: none;
+  color: var(--sw-ink-muted);
+  cursor: pointer;
+}
+.icon-btn:hover { background: var(--sw-paper-sunken); color: var(--sw-ink); }
+
+/* ── panel ──────────────────────────────────────────────────────────────── */
+.scrim {
+  position: fixed;
+  inset: 0;
+  background: var(--sw-scrim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sw-space-4);
+  z-index: 50;
+}
+
+.panel {
+  width: 100%;
+  max-width: 28rem;
+  background: var(--sw-paper-raised);
+  border-radius: var(--sw-radius-lg);
+  box-shadow: var(--sw-shadow-panel);
+  padding: var(--sw-space-6);
+  max-height: 100%;
+  overflow-y: auto;
+  animation: panel-in var(--sw-motion-base) var(--sw-motion-ease);
+}
+
+@keyframes panel-in {
+  from { opacity: 0; transform: translateY(var(--sw-space-4)); }
+  to   { opacity: 1; transform: none; }
+}
+
+.panel-title {
+  font-family: var(--sw-font-display);
+  font-size: var(--sw-text-xl);
+  margin-bottom: var(--sw-space-4);
+}
+
+.field { margin-bottom: var(--sw-space-4); }
+
+.field label {
+  display: block;
+  font-size: var(--sw-text-sm);
+  font-weight: var(--sw-weight-medium);
+  margin-bottom: var(--sw-space-1);
+}
+
+.field input, .field select {
+  width: 100%;
+  min-height: var(--sw-target-min);
+  padding: var(--sw-space-2) var(--sw-space-3);
+  border: 1px solid var(--sw-border);
+  border-radius: var(--sw-radius-md);
+  background: var(--sw-paper-raised);
+}
+.field input:focus, .field select:focus { border-color: var(--sw-pine); }
+.field input[aria-invalid='true'] { border-color: var(--sw-danger); }
+
+.field-error {
+  display: block;
+  margin-top: var(--sw-space-1);
+  font-size: var(--sw-text-sm);
+  color: var(--sw-danger);
+}
+
+.panel-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sw-space-2);
+  margin-top: var(--sw-space-6);
+}
+
+/* ── states ─────────────────────────────────────────────────────────────── */
+.state {
+  background: var(--sw-paper-raised);
+  border: 1px solid var(--sw-border);
+  border-radius: var(--sw-radius-lg);
+  padding: var(--sw-space-8) var(--sw-space-6);
+  text-align: center;
+}
+
+.state-title {
+  font-family: var(--sw-font-display);
+  font-size: var(--sw-text-xl);
+  margin-bottom: var(--sw-space-2);
+}
+
+.state-body {
+  color: var(--sw-ink-muted);
+  margin-bottom: var(--sw-space-6);
+  max-width: 34rem;
+  margin-inline: auto;
+}
+
+.state-error { border-color: var(--sw-danger); }
+
+.banner {
+  display: flex;
+  align-items: center;
+  gap: var(--sw-space-3);
+  padding: var(--sw-space-3) var(--sw-space-4);
+  border: 1px solid var(--sw-border);
+  border-left: var(--sw-space-1) solid var(--sw-warning);
+  border-radius: var(--sw-radius-md);
+  background: var(--sw-paper-raised);
+  margin-bottom: var(--sw-space-4);
+}
+
+.skeleton {
+  background: var(--sw-paper-sunken);
+  border-radius: var(--sw-radius-md);
+  height: var(--sw-space-8);
+}
+
+/* ── sign in / register ─────────────────────────────────────────────────── */
+.gate {
+  min-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sw-space-6) var(--sw-space-4);
+}
+
+.gate-card {
+  width: 100%;
+  max-width: 24rem;
+  background: var(--sw-paper-raised);
+  border: 1px solid var(--sw-border);
+  border-radius: var(--sw-radius-lg);
+  box-shadow: var(--sw-shadow-sm);
+  padding: var(--sw-space-8) var(--sw-space-6);
+}
+
+.gate-title {
+  font-family: var(--sw-font-display);
+  font-size: var(--sw-text-2xl);
+  color: var(--sw-pine);
+  margin-bottom: var(--sw-space-1);
+}
+
+.gate-sub {
+  color: var(--sw-ink-muted);
+  font-size: var(--sw-text-sm);
+  margin-bottom: var(--sw-space-6);
+}
+
+.gate-footer {
+  margin-top: var(--sw-space-6);
+  padding-top: var(--sw-space-4);
+  border-top: 1px solid var(--sw-border);
+  font-size: var(--sw-text-sm);
+  color: var(--sw-ink-muted);
+  text-align: center;
+}
+
+.form-error {
+  padding: var(--sw-space-3);
+  border: 1px solid var(--sw-danger);
+  border-radius: var(--sw-radius-md);
+  color: var(--sw-danger);
+  font-size: var(--sw-text-sm);
+  margin-bottom: var(--sw-space-4);
+}
+
+/* Visually hidden, still announced. Never `display: none` — that removes it
+ * from the accessibility tree too, which is the opposite of the intent. */
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── phone width — E3-S8 ────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .shell { padding: var(--sw-space-4) var(--sw-space-3) var(--sw-space-12); }
+
+  .headline { padding: var(--sw-space-4); }
+  .headline-total { font-size: var(--sw-text-2xl); }
+  .headline-facts { gap: var(--sw-space-4); }
+
+  /* The entry list drops to two lines per row (`DESIGN-SYSTEM.md §7`) — the
+   * amount moves under the description rather than being squeezed beside it. */
+  .entry {
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas:
+      'dot main actions'
+      '.   amt  actions';
+    row-gap: var(--sw-space-1);
+  }
+  .entry-dot { grid-area: dot; }
+  .entry-main { grid-area: main; }
+  .entry-amount { grid-area: amt; font-size: var(--sw-text-base); }
+  .entry-actions { grid-area: actions; }
+
+  /* The panel enters FROM THE BOTTOM at phone width (`DESIGN-SYSTEM.md §7`). */
+  .scrim { align-items: flex-end; padding: 0; }
+  .panel {
+    max-width: none;
+    border-radius: var(--sw-radius-lg) var(--sw-radius-lg) 0 0;
+    animation-name: panel-up;
+    padding-bottom: calc(var(--sw-space-6) + env(safe-area-inset-bottom, 0px));
+  }
+  @keyframes panel-up {
+    from { transform: translateY(100%); }
+    to   { transform: none; }
+  }
+
+  /* The ribbon stays horizontal and scrolls if bands get narrow — in its OWN
+   * scroll container, so the page body never scrolls sideways. */
+  .ribbon-wrap { overflow-x: auto; }
+}

@@ -8,8 +8,8 @@ time it complains.
 
 One container serves the API and the built React files, with a catch-all route
 returning `index.html` (`SW-ADR-020`) — so there is one image, one service, one
-deploy, and **no CORS**. The catch-all is added in E0-S5; adding it now would
-swallow `/api/*` 404s before the routes that produce them exist.
+deploy, and **no CORS**. The catch-all is mounted LAST, at the bottom of this
+file, because it would otherwise swallow every `/api/*` 404.
 """
 from __future__ import annotations
 
@@ -19,7 +19,9 @@ from fastapi.exceptions import RequestValidationError
 from app.core.errors import (
     ApiError, api_error_handler, unhandled_handler, validation_exception_handler,
 )
+from app.core.health import router as ops_router
 from app.core.settings import get_settings
+from app.core.spa import mount as mount_client
 from app.modules.auth.router import router as auth_router
 from app.modules.categories.router import router as categories_router
 from app.modules.expenses.router import router as expenses_router
@@ -37,18 +39,6 @@ app = FastAPI(
     redoc_url=None,
 )
 
-
-@app.get("/healthz", include_in_schema=False)
-async def healthz() -> None:
-    """`P-OPS-03`: bodiless 200, **without touching the database**.
-
-    The container health check calls this. If it queried the database, a brief
-    database blip would restart a container that was serving fine — and the
-    restart would take the connection pool with it.
-    """
-    return None
-
-
 # ONE envelope for every non-2xx (`SW-ADR-051`). FastAPI's default
 # `{"detail": [...]}` must never reach a client (Bible E1-S7 AC3), so
 # RequestValidationError is handled rather than left to the framework.
@@ -56,10 +46,17 @@ app.add_exception_handler(ApiError, api_error_handler)
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
 app.add_exception_handler(Exception, unhandled_handler)
 
+app.include_router(ops_router)
 app.include_router(auth_router)
 app.include_router(categories_router)
 app.include_router(expenses_router)
 
-# Still to come: E0-S6 list/patch/delete · M2 categories · M3 receipts ·
-# M4 admin · and the catch-all serving the built React files (`SW-ADR-020`),
-# which is added LAST because it would otherwise swallow every /api/* 404.
+# ── LAST ───────────────────────────────────────────────────────────────────
+# Everything above this line is a route. Everything below is the fallback. A
+# catch-all registered before the API routers matches `/api/anything` first and
+# returns index.html with a 200, so a client calling a misspelt endpoint parses
+# HTML as JSON and reports a syntax error at character 0 instead of a 404.
+#
+# Still to come: M4 admin · M5 receipts (deferred — no S3 bucket, prep-queue
+# item 6) · M6 hardening. Each of those goes ABOVE this call.
+mount_client(app)

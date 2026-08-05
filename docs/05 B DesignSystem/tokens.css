@@ -60,6 +60,14 @@
 
   /* the smallest a control may be at phone width — SW-ADR-117 (5) */
   --sw-target-min: 44px;
+
+  /* the dimming behind the add-expense panel. Added 2026-08-05: §5 specifies
+     the panel as a real dialog with an inert background and never said what
+     colour the background dims to, so the first component to need it would
+     have written a raw literal — the one thing §2 forbids. Warm ink at 35%,
+     the same ink the shadows already use. Not in the contrast table: a scrim
+     carries no content and no control sits on it. */
+  --sw-scrim: rgb(28 25 23 / 0.35);
 }
 
 /* Numbers ALWAYS use tabular figures so columns of money line up.

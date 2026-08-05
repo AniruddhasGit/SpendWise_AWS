@@ -216,8 +216,23 @@ def render_security(spec):
         for role in g.get("schema_usage", []):
             out.append("GRANT USAGE ON SCHEMA public TO %s;" % role)
         for t in g["tables"]:
-            out.append("-- %s\nGRANT %s ON %s TO %s;"
-                       % (t["why"], t["privileges"], ", ".join(t["on"]), t["to"]))
+            if t.get("created_by"):
+                # A table this schema does not create. `alembic_version` is
+                # Alembic's own, so a plain GRANT here fails when security.sql
+                # is applied standalone to a database that has never been
+                # migrated — which is exactly how a fresh clone starts. Inside
+                # the baseline migration the table always exists by this point,
+                # because Alembic creates it before running upgrade().
+                out.append(
+                    "-- {why}\n-- {created_by}\n"
+                    "DO $do$ BEGIN\n"
+                    "    IF to_regclass('public.{table}') IS NOT NULL THEN\n"
+                    "        GRANT {privileges} ON {table} TO {to};\n"
+                    "    END IF;\n"
+                    "END $do$;".format(table=t["on"][0], **t))
+            else:
+                out.append("-- %s\nGRANT %s ON %s TO %s;"
+                           % (t["why"], t["privileges"], ", ".join(t["on"]), t["to"]))
 
     out.append("""
 -- admin_audit_log: immutable (SW-ADR-083). Revoke AND a trigger, so the refusal
@@ -392,14 +407,27 @@ def render_baseline_migration(spec):
         runtime would mean shipping a SQL parser to solve a problem that does
         not exist until then.
         """
-        out, buf, in_dollar = [], [], False
+        # Dollar quoting is TAGGED: `$$`, `$do$`, `$body$` are all legal and a
+        # tag only closes against itself. Counting `$$` alone split the first
+        # `DO $do$ ... END $do$;` block into three statements at its inner
+        # semicolons, and the third of those was a bare `END $do$;` — a syntax
+        # error at migration time, from a generator whose whole job is to make
+        # that impossible. Tracked as a STACK of open tags.
+        import re as _re
+        TAG = _re.compile(r"\$[A-Za-z_][A-Za-z0-9_]*\$|\$\$")
+
+        out, buf, open_tags = [], [], []
         for line in sql.split("\n"):
             s = line.strip()
             if not buf and (not s or s.startswith("--")):
                 continue                       # comment or blank BETWEEN statements
             buf.append(line)
-            if s.count("$$") % 2 == 1:
-                in_dollar = not in_dollar
+            for tag in TAG.findall(s):
+                if open_tags and open_tags[-1] == tag:
+                    open_tags.pop()
+                else:
+                    open_tags.append(tag)
+            in_dollar = bool(open_tags)
             # A statement can end `;   -- why this line matters`, and the trailing
             # comment made a plain endswith(";") miss it — which silently merged
             # the next statement onto this one and reproduced the very

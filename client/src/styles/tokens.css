@@ -1,0 +1,105 @@
+/* GENERATED — do not edit.
+ *
+ * Source: docs/05 B DesignSystem/tokens.css
+ * Regenerate: py client/sync_tokens.py
+ *
+ * Edit the design system, not this file. Every contrast figure in
+ * DESIGN-SYSTEM.md was computed from the source values; a hex changed here
+ * would be a number no measurement backs.
+ */
+
+:root {
+  /* surface + ink ------------------------------------------------ */
+  --sw-paper: #faf7f2;            /* the page. Warm off-white, never pure white. */
+  --sw-paper-raised: #ffffff;     /* cards and the add-expense panel, lifted off the page. */
+  --sw-paper-sunken: #f0ece4;     /* table header rows, inset wells. */
+  --sw-ink: #1c1917;              /* primary text. Warm near-black, never #000. */
+  --sw-ink-muted: #57534e;        /* secondary text, labels, timestamps. */
+  --sw-ink-faint: #78716c;        /* placeholder and disabled text ONLY. Fails AA on body copy — never use it for content. */
+  --sw-pine: #2d5a3d;             /* the accent. Primary buttons, active states, links. */
+  --sw-pine-deep: #1b3826;        /* pressed and hover on pine. */
+  --sw-pine-soft: #e6ede8;        /* tinted backgrounds behind pine content. */
+  --sw-border: #ddd6cb;           /* hairlines, input borders, band separators. */
+  --sw-border-strong: #a8a29e;    /* focus-adjacent borders, table rules. */
+  --sw-positive: #2d5a3d;         /* same as pine — under-budget, success. */
+  --sw-warning: #8a5a1f;          /* approaching a limit. */
+  --sw-danger: #9c2f28;           /* destructive actions, validation errors. */
+
+  /* category bands — seeded set, SW-ADR-092 ----------------------- */
+  --sw-cat-1: #4a7c59;            /* Groceries */
+  --sw-cat-2: #b5543b;            /* Food & Dining */
+  --sw-cat-3: #3e6b8f;            /* Transport */
+  --sw-cat-4: #9c7a2f;            /* Rent & Utilities */
+  --sw-cat-5: #2e7d8a;            /* Health */
+  --sw-cat-6: #7b4b94;            /* Entertainment */
+  --sw-cat-7: #a04c72;            /* Shopping */
+  --sw-cat-8: #7d8471;            /* Other */
+  --sw-cat-uncat: #948c87;        /* Uncategorised — always last */
+
+  /* type ---------------------------------------------------------- */
+  --sw-font-display: "Instrument Serif", Georgia, "Times New Roman", serif;
+  --sw-font-body:    "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --sw-font-mono:    "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --sw-text-xs: 0.75rem;   --sw-text-sm: 0.875rem;  --sw-text-base: 1rem;
+  --sw-text-lg: 1.125rem;  --sw-text-xl: 1.5rem;    --sw-text-2xl: 2rem;
+  --sw-text-3xl: 2.75rem;
+
+  --sw-weight-regular: 400; --sw-weight-medium: 500; --sw-weight-semibold: 600;
+  --sw-leading-tight: 1.2;  --sw-leading-normal: 1.5;
+
+  /* space, radius, shadow, motion ---------------------------------- */
+  --sw-space-1: 0.25rem; --sw-space-2: 0.5rem;  --sw-space-3: 0.75rem;
+  --sw-space-4: 1rem;    --sw-space-6: 1.5rem;  --sw-space-8: 2rem;
+  --sw-space-12: 3rem;
+
+  --sw-radius-sm: 3px; --sw-radius-md: 6px; --sw-radius-lg: 10px;
+  --sw-radius-full: 999px;
+
+  --sw-shadow-sm: 0 1px 2px rgb(28 25 23 / 0.06);
+  --sw-shadow-md: 0 2px 8px rgb(28 25 23 / 0.08);
+  --sw-shadow-panel: 0 0 0 1px rgb(28 25 23 / 0.06), 0 8px 32px rgb(28 25 23 / 0.12);
+
+  --sw-motion-fast: 120ms; --sw-motion-base: 200ms;
+  --sw-motion-ease: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* focus — SW-ADR-117. One rule, never overridden without a replacement. */
+  --sw-focus-width: 2px;
+  --sw-focus-offset: 2px;
+  --sw-focus-color: var(--sw-pine);
+
+  /* the smallest a control may be at phone width — SW-ADR-117 (5) */
+  --sw-target-min: 44px;
+
+  /* the dimming behind the add-expense panel. Added 2026-08-05: §5 specifies
+     the panel as a real dialog with an inert background and never said what
+     colour the background dims to, so the first component to need it would
+     have written a raw literal — the one thing §2 forbids. Warm ink at 35%,
+     the same ink the shadows already use. Not in the contrast table: a scrim
+     carries no content and no control sits on it. */
+  --sw-scrim: rgb(28 25 23 / 0.35);
+}
+
+/* Numbers ALWAYS use tabular figures so columns of money line up.
+   SRC-001 §9.4 asks for this by name. */
+.sw-num {
+  font-family: var(--sw-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Focus. The ONE rule. `outline: none` never ships without a replacement. */
+:focus-visible {
+  outline: var(--sw-focus-width) solid var(--sw-focus-color);
+  outline-offset: var(--sw-focus-offset);
+}
+
+/* Reduced motion means INSTANT, not slower — SW-ADR-117 (2). Testable. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -167,6 +167,11 @@ $$;""",
     r"""GRANT SELECT, INSERT, UPDATE ON users, password_resets TO spendwise_app;""",
     r"""GRANT SELECT, INSERT ON admin_audit_log TO spendwise_app;""",
     r"""GRANT SELECT, UPDATE ON app_meta TO spendwise_app;""",
+    r"""DO $do$ BEGIN
+    IF to_regclass('public.alembic_version') IS NOT NULL THEN
+        GRANT SELECT ON alembic_version TO spendwise_app;
+    END IF;
+END $do$;""",
     r"""REVOKE UPDATE, DELETE ON admin_audit_log FROM spendwise_app;""",
     r"""CREATE OR REPLACE FUNCTION audit_log_is_append_only() RETURNS trigger AS $$
 BEGIN

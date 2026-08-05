@@ -95,6 +95,13 @@ GRANT SELECT, INSERT, UPDATE ON users, password_resets TO spendwise_app;
 GRANT SELECT, INSERT ON admin_audit_log TO spendwise_app;
 -- one row; the signing-secret fingerprint is rewritten on rotation (SW-ADR-125)
 GRANT SELECT, UPDATE ON app_meta TO spendwise_app;
+-- /readyz reports the running migration revision (P-OPS-03, E0-S10 AC2) and it runs as the RUNTIME role. SELECT only: the runtime role still holds no DDL and cannot alter migration state, so SW-ADR-081's two-URL separation is untouched. Added 2026-08-05, when /readyz was written and returned 503 permission denied - the acceptance criterion had named the revision since the Bible was written and nothing had ever granted the role that could read it.
+-- alembic, not this schema - so the GRANT is emitted at the END of the baseline migration, after Alembic has created its own version table
+DO $do$ BEGIN
+    IF to_regclass('public.alembic_version') IS NOT NULL THEN
+        GRANT SELECT ON alembic_version TO spendwise_app;
+    END IF;
+END $do$;
 
 -- admin_audit_log: immutable (SW-ADR-083). Revoke AND a trigger, so the refusal
 -- is visible rather than a silent permission error.
