@@ -40,7 +40,7 @@ Numbered in dependency order. Each is derived from the ones above it and **cites
 | `06 DataModel/` | A **package, not a document**: `schema.sql`, migrations, `security.sql`, `TRACEABILITY.tsv`, `permissions.tsv`, `AGENT_CONTRACT.md`. | empty |
 | `07 Architecture/` | `for_humans/` + `for_llm/`. | empty |
 | `08 SIT/` · `09 NegativeTesting/` | Test cases as rows, each citing a Bible story. Negative cases weighted at cross-user isolation. | empty |
-| `10 EngineeringLedger/` | The build ledger. **`/ss` reads this for the frontier.** | empty |
+| `10 EngineeringLedger/` | The build ledger, derived from the Bible. **`/ss` reads this for the frontier** — verified, the hook finds it and prints the milestone matrix. Only `Status` is hand-edited. | **written** |
 | `11 Journeys/` | User and admin persona journeys. | empty |
 | `12 DesignReview/` · `13 Fixes/` | Pre-code audit and its fixes. | empty |
 | `14 Project_Plan/` · `15 ChangeRequest/` · `20 UAT/` · `30 Deployment/` · `35 Hypercare/` · `40 AMS/` | Lifecycle. | placeholders |
