@@ -1,0 +1,5 @@
+lane	finding	detail	root_cause	status
+X-03 authority	SW-ADR-039	Index set beyond SRC-001 §6.8 — matched: money	a build-session ruling touching a reserved keyword	REVIEW
+X-03 authority	SW-ADR-047	Uploads use a presigned POST with a signed content-lengt — matched: money	a build-session ruling touching a reserved keyword	REVIEW
+X-03 authority	SW-ADR-071	Password reset completion works: `password_resets` leave — matched: waiver	a build-session ruling touching a reserved keyword	REVIEW
+X-03 authority	SW-ADR-082	The request-scoped user id is set with `set_config`, nev — matched: money	a build-session ruling touching a reserved keyword	REVIEW

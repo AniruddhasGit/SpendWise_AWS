@@ -149,7 +149,26 @@ definition's health check at it so ECS itself restarts an unhealthy task.
 
 ---
 
+### 10. CloudWatch Logs  (`SW-ADR-126`, `OPEN-LOGS-01`)
+
+**Owed and previously missing.** `SW-ADR-126` ruled this and the row was never written — caught by
+the `GOAL_13` X-04 sweep, which checks every claimed action against the artifact it names.
+
+- Create log group **`/ecs/spendwise`**, with **retention set at creation — default 30 days.**
+- Wire the task definition to the **`awslogs`** driver targeting it. Turn **auto-create off**, so a
+  misconfigured task fails loudly instead of quietly making a second group.
+- Grant the **execution** role `logs:CreateLogStream` and `logs:PutLogEvents`.
+
+**Needed by:** the first deploy. Before it, the default driver keeps logs on the instance — so a
+crash loop destroys the record of the crash that caused it.
+
+Retention is a cost dial and therefore yours; 30 days sits well inside the free allowance at this
+volume. *(Approximate and unverified by the build session.)*
+
+---
+
 ## How this file works
+
 
 - The build session adds items **before** it needs them, with a "needed by", and says so in chat at
   the same time.
