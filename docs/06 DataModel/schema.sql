@@ -103,17 +103,6 @@ CREATE TABLE app_meta (
     CONSTRAINT ck_app_meta_jwt_secret_fingerprint CHECK (char_length(jwt_secret_fingerprint) = 64)
 );
 
--- SRC-001 §6.9
-ALTER TABLE sessions ADD CONSTRAINT fk_sessions_user_id FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE;
--- SRC-001 §6.9
-ALTER TABLE password_resets ADD CONSTRAINT fk_password_resets_user_id FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE;
--- SRC-001 §6.9
-ALTER TABLE categories ADD CONSTRAINT fk_categories_user_id FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE;
--- SRC-001 §6.9
-ALTER TABLE expenses ADD CONSTRAINT fk_expenses_user_id FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE;
--- SW-ADR-072 — composite. NO ACTION because SET NULL would null user_id too, which is NOT NULL. The service nulls category_id explicitly inside the delete transaction.
-ALTER TABLE expenses ADD CONSTRAINT fk_expenses_category_id_user_id FOREIGN KEY (category_id, user_id) REFERENCES categories (id, user_id) ON DELETE NO ACTION;
-
 -- SW-ADR-027 — case-insensitive identity
 CREATE UNIQUE INDEX uq_users_lower_email ON users (lower(email));
 -- SRC-001 §6.8
@@ -140,3 +129,14 @@ CREATE INDEX ix_expenses_user_id__category_id ON expenses (user_id, category_id)
 CREATE INDEX ix_admin_audit_log_admin_id__created_at_desc ON admin_audit_log (admin_id, created_at DESC);
 -- SW-ADR-039
 CREATE INDEX ix_admin_audit_log_target_user_id ON admin_audit_log (target_user_id);
+
+-- SRC-001 §6.9
+ALTER TABLE sessions ADD CONSTRAINT fk_sessions_user_id FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE;
+-- SRC-001 §6.9
+ALTER TABLE password_resets ADD CONSTRAINT fk_password_resets_user_id FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE;
+-- SRC-001 §6.9
+ALTER TABLE categories ADD CONSTRAINT fk_categories_user_id FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE;
+-- SRC-001 §6.9
+ALTER TABLE expenses ADD CONSTRAINT fk_expenses_user_id FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE;
+-- SW-ADR-072 — composite. NO ACTION because SET NULL would null user_id too, which is NOT NULL. The service nulls category_id explicitly inside the delete transaction.
+ALTER TABLE expenses ADD CONSTRAINT fk_expenses_category_id_user_id FOREIGN KEY (category_id, user_id) REFERENCES categories (id, user_id) ON DELETE NO ACTION;

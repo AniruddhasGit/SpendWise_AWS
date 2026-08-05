@@ -80,9 +80,25 @@ def run_migrations_offline() -> None:
 
 
 def _do_run(connection) -> None:
-    # Both statements are transaction-scoped and must be issued INSIDE the
-    # migration transaction, before any migration runs.
-    connection.execute(text("SET LOCAL row_security = off"))
+    # `SET LOCAL row_security = off` is DELIBERATELY ABSENT, and its absence is
+    # the correction.
+    #
+    # `SW-ADR-081` says to set it so a data migration run by the owner is not
+    # silently filtered by FORCE ROW LEVEL SECURITY. **That is not what the
+    # setting does.** PostgreSQL: "When set to off, queries fail which would
+    # otherwise apply at least one policy." It does not bypass RLS — only
+    # BYPASSRLS does, and the owner deliberately does not hold it.
+    #
+    # So it turns a silently-filtered query into a hard error, which is better,
+    # but it also broke the baseline migration outright: planning the
+    # `admin_expense_stats` function body touches `expenses`, and with
+    # row_security=off that CREATE FUNCTION failed with
+    # "query would be affected by row-level security policy for table expenses".
+    #
+    # DDL does not read rows, so this migration needs nothing. A future DATA
+    # migration that must touch protected tables has to say so explicitly —
+    # `ALTER TABLE … NO FORCE ROW LEVEL SECURITY` around the change, or setting
+    # `app.user_id` per row. Neither is silent, which is the point.
     connection.execute(text("SELECT pg_advisory_xact_lock(:k)"),
                        {"k": MIGRATION_LOCK_KEY})
     context.configure(connection=connection, target_metadata=target_metadata)

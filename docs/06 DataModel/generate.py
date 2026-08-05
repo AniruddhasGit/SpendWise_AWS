@@ -98,6 +98,22 @@ def render_schema(spec):
         lines.append(");")
         out.append("\n".join(lines))
 
+    # INDEXES BEFORE FOREIGN KEYS. The composite FK of SW-ADR-072 references
+    # `categories (id, user_id)`, and PostgreSQL requires a unique constraint or
+    # index on exactly those columns to already exist — otherwise:
+    #   there is no unique constraint matching given keys for referenced table
+    # The first version of this generator emitted every FK before every index
+    # and produced DDL that could not be applied to an empty database at all.
+    ix = []
+    for i in spec["indexes"]:
+        d = i["definition"].strip()
+        uniq = d.upper().startswith("UNIQUE")
+        body = d[len("UNIQUE"):].strip() if uniq else d
+        ix.append("-- %s\nCREATE %sINDEX %s ON %s %s;"
+                  % (i["source"], "UNIQUE " if uniq else "",
+                     index_name(i["table"], d), i["table"], body))
+    out.append("\n".join(ix))
+
     fks = []
     for fk in spec["foreign_keys"]:
         col = fk["column"] if fk["column"].startswith("(") else "(%s)" % fk["column"]
@@ -109,16 +125,6 @@ def render_schema(spec):
                    % (fk["source"], fk["table"], fk_name(fk["table"], fk["column"]),
                       col, ref_t, inner, fk["on_delete"]))
     out.append("\n".join(fks))
-
-    ix = []
-    for i in spec["indexes"]:
-        d = i["definition"].strip()
-        uniq = d.upper().startswith("UNIQUE")
-        body = d[len("UNIQUE"):].strip() if uniq else d
-        ix.append("-- %s\nCREATE %sINDEX %s ON %s %s;"
-                  % (i["source"], "UNIQUE " if uniq else "",
-                     index_name(i["table"], d), i["table"], body))
-    out.append("\n".join(ix))
     return "\n\n".join(out) + "\n"
 
 
@@ -373,8 +379,43 @@ def render_baseline_migration(spec):
     security = render_security(spec)
     tables = list(spec["tables"])
 
-    def q(sql):
-        return "\n".join("    " + line if line.strip() else "" for line in sql.split("\n"))
+    def statements(sql):
+        """Split SQL into individual statements, respecting `$$` bodies.
+
+        **asyncpg wraps every execute in a prepared statement, and a prepared
+        statement cannot carry multiple commands** — one `op.execute()` of the
+        whole script fails with `cannot insert multiple commands into a
+        prepared statement`, after dumping the entire script into the traceback.
+
+        The split happens HERE, at generation time, where the content is known
+        and the `$$ … $$` function bodies can be tracked exactly. Splitting at
+        runtime would mean shipping a SQL parser to solve a problem that does
+        not exist until then.
+        """
+        out, buf, in_dollar = [], [], False
+        for line in sql.split("\n"):
+            s = line.strip()
+            if not buf and (not s or s.startswith("--")):
+                continue                       # comment or blank BETWEEN statements
+            buf.append(line)
+            if s.count("$$") % 2 == 1:
+                in_dollar = not in_dollar
+            # A statement can end `;   -- why this line matters`, and the trailing
+            # comment made a plain endswith(";") miss it — which silently merged
+            # the next statement onto this one and reproduced the very
+            # multiple-commands error this split exists to prevent.
+            if not in_dollar and ";" in s:
+                after = s[s.rindex(";") + 1:].strip()
+                if not after or after.startswith("--"):
+                    out.append("\n".join(buf).strip())
+                    buf = []
+        tail = "\n".join(buf).strip()
+        if tail:
+            out.append(tail)
+        return out
+
+    def as_list(sql):
+        return "\n".join('    r"""%s""",' % s for s in statements(sql))
 
     return '''"""baseline: the whole schema, its policies and its grants
 
@@ -398,24 +439,30 @@ depends_on = None
 # ships self-contained in the image, and generated rather than transcribed so
 # it cannot drift from the spec of record.
 
-SCHEMA = r"""
-%s
-"""
+# INDIVIDUAL statements, not one blob. asyncpg wraps every execute in a PREPARED
+# STATEMENT, and a prepared statement cannot carry multiple commands — a single
+# op.execute() of the whole script fails with "cannot insert multiple commands
+# into a prepared statement". Split in generate.py, where the $$ … $$ function
+# bodies are known exactly.
 
-SECURITY = r"""
+SCHEMA = [
 %s
-"""
+]
+
+SECURITY = [
+%s
+]
 
 # Reverse dependency order. Policies and the trigger go with their tables, so
 # dropping the table is enough — but the FUNCTIONS are schema-level and outlive
 # it, and a downgrade that leaves them behind makes the next upgrade fail on a
 # duplicate object rather than on anything meaningful.
-DROP = r"""
-DROP TRIGGER IF EXISTS trg_audit_log_immutable ON admin_audit_log;
-DROP FUNCTION IF EXISTS audit_log_is_append_only();
-DROP FUNCTION IF EXISTS admin_expense_stats(BIGINT);
+DROP = [
+    r"""DROP TRIGGER IF EXISTS trg_audit_log_immutable ON admin_audit_log;""",
+    r"""DROP FUNCTION IF EXISTS audit_log_is_append_only();""",
+    r"""DROP FUNCTION IF EXISTS admin_expense_stats(BIGINT);""",
 %s
-"""
+]
 
 
 def upgrade() -> None:
@@ -425,14 +472,16 @@ def upgrade() -> None:
     that is Alembic's version table doing its job, not this function being
     re-runnable. Running this body twice would correctly fail on a duplicate.
     """
-    op.execute(SCHEMA)
-    op.execute(SECURITY)
+    for stmt in SCHEMA + SECURITY:
+        op.execute(stmt)
 
 
 def downgrade() -> None:
-    op.execute(DROP)
-''' % (q(schema).strip("\n"), q(security).strip("\n"),
-       "\n".join("DROP TABLE IF EXISTS %s CASCADE;" % t for t in reversed(tables)))
+    for stmt in DROP:
+        op.execute(stmt)
+''' % (as_list(schema), as_list(security),
+       "\n".join('    r"""DROP TABLE IF EXISTS %s CASCADE;""",' % t
+                 for t in reversed(tables)))
 
 
 ARTIFACTS = [("schema.sql", render_schema),

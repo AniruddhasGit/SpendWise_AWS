@@ -25,3 +25,6 @@ Thumbs.db
 
 # probe file written by a test
 .env.probe
+
+# your RDS master password - never committed
+rds.txt
