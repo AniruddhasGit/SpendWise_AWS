@@ -10,8 +10,9 @@ and once by PostgreSQL row-level security. An API test proves layer one. Only
 this file proves layer two, and layer two is what still holds if someone forgets
 a predicate, adds an endpoint, or writes a report query at 2am.
 
-`SW-ADR-018`'s original wording called a controller-only check "the classic
-false green". This is the file that makes that not the case here.
+`SW-ADR-078` and `SW-ADR-082` — which superseded `SW-ADR-018` — call a
+controller-only check "the classic false green". This is the file that makes
+that not the case here.
 """
 from __future__ import annotations
 
