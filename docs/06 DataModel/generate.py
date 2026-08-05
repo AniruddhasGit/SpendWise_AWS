@@ -352,10 +352,95 @@ def _wrap(s, w=74):
     return out
 
 
+def render_baseline_migration(spec):
+    """The Alembic baseline, with the DDL EMBEDDED rather than read at runtime.
+
+    Three ways to get the generated DDL into a migration, and only one is right:
+
+    * hand-transcribe it — creates a third artifact that drifts from the spec,
+      which is the failure this package has filed six records about;
+    * read `schema.sql` at runtime — requires shipping `docs/` inside the
+      container image, and a migration that depends on documentation being
+      present is a deploy that fails when someone trims the image;
+    * **generate the migration too**, so it is self-contained AND cannot drift,
+      because `generate.py --check` compares it against `datamodel.json`.
+
+    `downgrade()` drops in reverse dependency order. It exists because `E0-S3`
+    asserts *migrate down then up again exits 0* — a one-way migration is a
+    migration nobody has tested.
+    """
+    schema = render_schema(spec)
+    security = render_security(spec)
+    tables = list(spec["tables"])
+
+    def q(sql):
+        return "\n".join("    " + line if line.strip() else "" for line in sql.split("\n"))
+
+    return '''"""baseline: the whole schema, its policies and its grants
+
+GENERATED from datamodel.json by generate.py. DO NOT HAND-EDIT — regenerate.
+Verify:  py "docs/06 DataModel/generate.py" --check
+
+Revision ID: 0001_baseline
+Revises:
+"""
+from __future__ import annotations
+
+from alembic import op
+
+revision: str = "0001_baseline"
+down_revision: str | None = None
+branch_labels = None
+depends_on = None
+
+# The DDL below is the byte-for-byte content of the generated schema.sql and
+# security.sql. It is embedded rather than read from docs/ so the migration
+# ships self-contained in the image, and generated rather than transcribed so
+# it cannot drift from the spec of record.
+
+SCHEMA = r"""
+%s
+"""
+
+SECURITY = r"""
+%s
+"""
+
+# Reverse dependency order. Policies and the trigger go with their tables, so
+# dropping the table is enough — but the FUNCTIONS are schema-level and outlive
+# it, and a downgrade that leaves them behind makes the next upgrade fail on a
+# duplicate object rather than on anything meaningful.
+DROP = r"""
+DROP TRIGGER IF EXISTS trg_audit_log_immutable ON admin_audit_log;
+DROP FUNCTION IF EXISTS audit_log_is_append_only();
+DROP FUNCTION IF EXISTS admin_expense_stats(BIGINT);
+%s
+"""
+
+
+def upgrade() -> None:
+    """Idempotent by construction: this runs once, against an empty database.
+
+    E0-S3 asserts a SECOND `alembic upgrade head` exits 0 and changes nothing —
+    that is Alembic's version table doing its job, not this function being
+    re-runnable. Running this body twice would correctly fail on a duplicate.
+    """
+    op.execute(SCHEMA)
+    op.execute(SECURITY)
+
+
+def downgrade() -> None:
+    op.execute(DROP)
+''' % (q(schema).strip("\n"), q(security).strip("\n"),
+       "\n".join("DROP TABLE IF EXISTS %s CASCADE;" % t for t in reversed(tables)))
+
+
 ARTIFACTS = [("schema.sql", render_schema),
              ("security.sql", render_security),
              ("TRACEABILITY.tsv", render_traceability),
-             (os.path.join("..", "30 Deployment", "rds_bootstrap.sql"), render_bootstrap)]
+             (os.path.join("..", "30 Deployment", "rds_bootstrap.sql"), render_bootstrap),
+             (os.path.join("..", "..", "alembic", "versions",
+                           "0001_baseline.py"), render_baseline_migration)]
 
 
 def main():
