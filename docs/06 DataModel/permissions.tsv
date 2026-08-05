@@ -1,0 +1,13 @@
+persona	entity	action	grant	source	status
+user	expenses	read/write	own rows only	SRC-001 §10.2	RULED
+user	categories	read/write	own rows only	SRC-001 §6.5	RULED
+user	sessions	read	own rows only	SRC-001 §5.2	RULED
+user	users	read	own row only	SRC-001 §7.1	RULED
+user	admin_audit_log	none		SRC-001 §4.2	RULED
+admin	expenses	aggregate read only	COUNT and last-activity; NEVER amounts or descriptions	SRC-001 §4.5 · SW-ADR-077	RULED
+admin	categories	none	not needed by any admin surface	SW-ADR-077	RULED
+admin	users	read/write	list, deactivate, change role	SRC-001 §7.6	RULED
+admin	sessions	read/revoke	no ip, no user_agent in any response	SW-ADR-107	RULED
+admin	password_resets	create	token shown once, never logged	SW-ADR-012	RULED
+admin	admin_audit_log	read/append	append is automatic; UPDATE and DELETE refused at the database	SW-ADR-031	RULED
+admin	receipts	none	no administrative path to a receipt exists	SW-ADR-074	RULED

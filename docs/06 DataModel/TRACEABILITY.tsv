@@ -1,0 +1,72 @@
+object	source_id	status
+tables/users	SRC-001 §6.2	RULED
+tables/users.id	SW-ADR-023	RULED
+tables/users.email	SRC-001 §6.2 · SW-ADR-026	RULED
+tables/users.password_hash	SRC-001 §6.2	RULED
+tables/users.display_name	SRC-001 §6.2 · SW-ADR-026	RULED
+tables/users.role	SRC-001 §4.1 · SW-ADR-028	RULED
+tables/users.currency	SW-ADR-029	RULED
+tables/users.is_active	SRC-001 §6.2	RULED
+tables/users.created_at	SW-ADR-076	RULED
+tables/sessions	SRC-001 §6.3	RULED
+tables/sessions.id	SW-ADR-023	RULED
+tables/sessions.user_id	SRC-001 §6.3	RULED
+tables/sessions.issued_at	SW-ADR-076	RULED
+tables/sessions.last_seen_at	SW-ADR-076	RULED
+tables/sessions.expires_at	SW-ADR-099	RULED
+tables/sessions.revoked_at	SW-ADR-076 — NULLABLE: SRC-001 §5.3 defines active as revoked_at IS NULL	RULED
+tables/sessions.user_agent	SRC-001 §6.3	RULED
+tables/sessions.ip	SRC-001 §6.3 · never returned by any admin model (SW-ADR-107)	RULED
+tables/password_resets	SRC-001 §6.4	RULED
+tables/password_resets.id	SW-ADR-023	RULED
+tables/password_resets.user_id	SRC-001 §6.4	RULED
+tables/password_resets.token_hash	SW-ADR-032 · SW-ADR-084	RULED
+tables/password_resets.expires_at	SRC-001 §10.7	RULED
+tables/password_resets.used_at	SW-ADR-076 — NULLABLE: non-null means consumed	RULED
+tables/password_resets.created_by_admin_id	SRC-001 §6.4	RULED
+tables/categories	SRC-001 §6.5	RULED
+tables/categories.id	SW-ADR-023	RULED
+tables/categories.user_id	SRC-001 §6.5	RULED
+tables/categories.name	SW-ADR-026	RULED
+tables/categories.color	SW-ADR-034 · SW-ADR-084	RULED
+tables/categories.created_at	SW-ADR-076	RULED
+tables/expenses	SRC-001 §6.6	RULED
+tables/expenses.id	SW-ADR-023	RULED
+tables/expenses.user_id	SRC-001 §6.6	RULED
+tables/expenses.category_id	SRC-001 §6.6 — nullable; §7.2 nulls it on category delete	RULED
+tables/expenses.amount_paise	SW-ADR-029 · SW-ADR-036	RULED
+tables/expenses.currency	SW-ADR-013 — snapshotted at write time	RULED
+tables/expenses.description	SW-ADR-116	RULED
+tables/expenses.spent_on	SRC-001 §6.6 · SW-ADR-114	RULED
+tables/expenses.receipt_key	SRC-001 §6.6	RULED
+tables/expenses.created_at	SW-ADR-076	RULED
+tables/expenses.updated_at	SW-ADR-076 — NULLABLE until first update	RULED
+tables/admin_audit_log	SRC-001 §6.7	RULED
+tables/admin_audit_log.id	SW-ADR-023	RULED
+tables/admin_audit_log.admin_id	SRC-001 §6.7 — NO foreign key, by SW-ADR-083	RULED
+tables/admin_audit_log.action	SW-ADR-106 — a closed allowlist of nine	RULED
+tables/admin_audit_log.target_user_id	SRC-001 §6.7 — NO foreign key	RULED
+tables/admin_audit_log.details	SW-ADR-106 — shape validated per action BEFORE the write	RULED
+tables/admin_audit_log.created_at	SW-ADR-076	RULED
+tables/app_meta	SW-ADR-126	RULED
+tables/app_meta.id	SW-ADR-126 — single row enforced by the check	RULED
+tables/app_meta.jwt_secret_fingerprint	SW-ADR-126	RULED
+tables/app_meta.updated_at	SW-ADR-076	RULED
+fk/sessions.user_id	SRC-001 §6.9	RULED
+fk/password_resets.user_id	SRC-001 §6.9	RULED
+fk/categories.user_id	SRC-001 §6.9	RULED
+fk/expenses.user_id	SRC-001 §6.9	RULED
+fk/expenses.category_id_user_id	SW-ADR-072	RULED
+index/users/UNIQUE (lower(email))	SW-ADR-027	RULED
+index/sessions/(user_id)	SRC-001 §6.8	RULED
+index/sessions/(last_seen_at)	SRC-001 §6.8	RULED
+index/sessions/(revoked_at) WHERE revoked_at IS NULL	SW-ADR-039	RULED
+index/password_resets/UNIQUE (token_hash)	SW-ADR-032	RULED
+index/password_resets/(user_id, expires_at)	SW-ADR-039	RULED
+index/categories/UNIQUE (id, user_id)	SW-ADR-072	RULED
+index/categories/UNIQUE (user_id, lower(name))	SW-ADR-033	RULED
+index/categories/(user_id)	SW-ADR-039	RULED
+index/expenses/(user_id, spent_on DESC)	SRC-001 §6.8	RULED
+index/expenses/(user_id, category_id)	SRC-001 §6.8	RULED
+index/admin_audit_log/(admin_id, created_at DESC)	SW-ADR-039	RULED
+index/admin_audit_log/(target_user_id)	SW-ADR-039	RULED

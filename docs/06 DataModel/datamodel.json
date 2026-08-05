@@ -1,0 +1,528 @@
+{
+  "spec_of_record": true,
+  "note": "Hand-maintained. schema.sql, security.sql and TRACEABILITY.tsv are GENERATED from this file (SW-ADR-066). A hand patch to a generated file is erased by the next build, silently.",
+  "postgres_minimum": "14",
+  "tables": {
+    "users": {
+      "rls": false,
+      "source": "SRC-001 \u00a76.2",
+      "note": "Outside RLS by SW-ADR-097 \u2014 a policy keyed on the request identity cannot serve a pre-authentication lookup.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT GENERATED ALWAYS AS IDENTITY",
+          "nullability": "NOT NULL",
+          "default": null,
+          "check": null,
+          "source": "SW-ADR-023"
+        },
+        {
+          "name": "email",
+          "type": "TEXT",
+          "nullability": "NOT NULL",
+          "default": null,
+          "check": "char_length(email) <= 254",
+          "source": "SRC-001 \u00a76.2 \u00b7 SW-ADR-026"
+        },
+        {
+          "name": "password_hash",
+          "type": "TEXT",
+          "nullability": "NOT NULL",
+          "default": null,
+          "check": null,
+          "source": "SRC-001 \u00a76.2"
+        },
+        {
+          "name": "display_name",
+          "type": "TEXT",
+          "nullability": "NOT NULL",
+          "default": null,
+          "check": "char_length(display_name) BETWEEN 1 AND 100",
+          "source": "SRC-001 \u00a76.2 \u00b7 SW-ADR-026"
+        },
+        {
+          "name": "role",
+          "type": "TEXT",
+          "nullability": "NOT NULL",
+          "default": "'user'",
+          "check": "role IN ('user','admin')",
+          "source": "SRC-001 \u00a74.1 \u00b7 SW-ADR-028"
+        },
+        {
+          "name": "currency",
+          "type": "TEXT",
+          "nullability": "NOT NULL",
+          "default": "'INR'",
+          "check": "currency = 'INR'",
+          "source": "SW-ADR-029"
+        },
+        {
+          "name": "is_active",
+          "type": "BOOLEAN",
+          "nullability": "NOT NULL",
+          "default": "true",
+          "check": null,
+          "source": "SRC-001 \u00a76.2"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMPTZ",
+          "nullability": "NOT NULL",
+          "default": "now()",
+          "check": null,
+          "source": "SW-ADR-076"
+        }
+      ]
+    },
+    "sessions": {
+      "rls": true,
+      "source": "SRC-001 \u00a76.3",
+      "note": "Protected. The identity column is user_id.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT GENERATED ALWAYS AS IDENTITY",
+          "nullability": "NOT NULL",
+          "default": null,
+          "check": null,
+          "source": "SW-ADR-023"
+        },
+        {
+          "name": "user_id",
+          "type": "BIGINT",
+          "nullability": "NOT NULL",
+          "default": null,
+          "check": null,
+          "source": "SRC-001 \u00a76.3"
+        },
+        {
+          "name": "issued_at",
+          "type": "TIMESTAMPTZ",
+          "nullability": "NOT NULL",
+          "default": "now()",
+          "check": null,
+          "source": "SW-ADR-076"
+        },
+        {
+          "name": "last_seen_at",
+          "type": "TIMESTAMPTZ",
+          "nullability": "NOT NULL",
+          "default": "now()",
+          "check": null,
+          "source": "SW-ADR-076"
+        },
+        {
+          "name": "expires_at",
+          "type": "TIMESTAMPTZ",
+          "nullability": "NOT NULL",
+          "default": null,
+          "check": null,
+          "source": "SW-ADR-099"
+        },
+        {
+          "name": "revoked_at",
+          "type": "TIMESTAMPTZ",
+          "nullability": "NULL",
+          "default": null,
+          "check": null,
+          "source": "SW-ADR-076 \u2014 NULLABLE: SRC-001 \u00a75.3 defines active as revoked_at IS NULL"
+        },
+        {
+          "name": "user_agent",
+          "type": "TEXT",
+          "nullability": "NULL",
+          "default": null,
+          "check": "user_agent IS NULL OR char_length(user_agent) <= 500",
+          "source": "SRC-001 \u00a76.3"
+        },
+        {
+          "name": "ip",
+          "type": "INET",
+          "nullability": "NULL",
+          "default": null,
+          "check": null,
+          "source": "SRC-001 \u00a76.3 \u00b7 never returned by any admin model (SW-ADR-107)"
+        }
+      ]
+    },
+    "password_resets": {
+      "rls": false,
+      "source": "SRC-001 \u00a76.4",
+      "note": "Outside RLS by SW-ADR-071 \u2014 redeeming a code is unauthenticated by definition.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT GENERATED ALWAYS AS IDENTITY",
+          "nullability": "NOT NULL",
+          "default": null,
+          "check": null,
+          "source": "SW-ADR-023"
+        },
+        {
+          "name": "user_id",
+          "type": "BIGINT",
+          "nullability": "NOT NULL",
+          "default": null,
+          "check": null,
+          "source": "SRC-001 \u00a76.4"
+        },
+        {
+          "name": "token_hash",
+          "type": "TEXT",
+          "nullability": "NOT NULL",
+          "default": null,
+          "check": "char_length(token_hash) = 64",
+          "source": "SW-ADR-032 \u00b7 SW-ADR-084"
+        },
+        {
+          "name": "expires_at",
+          "type": "TIMESTAMPTZ",
+          "nullability": "NOT NULL",
+          "default": null,
+          "check": null,
+          "source": "SRC-001 \u00a710.7"
+        },
+        {
+          "name": "used_at",
+          "type": "TIMESTAMPTZ",
+          "nullability": "NULL",
+          "default": null,
+          "check": null,
+          "source": "SW-ADR-076 \u2014 NULLABLE: non-null means consumed"
+        },
+        {
+          "name": "created_by_admin_id",
+          "type": "BIGINT",
+          "nullability": "NOT NULL",
+          "default": null,
+          "check": null,
+          "source": "SRC-001 \u00a76.4"
+        }
+      ]
+    },
+    "categories": {
+      "rls": true,
+      "source": "SRC-001 \u00a76.5",
+      "note": "Protected.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT GENERATED ALWAYS AS IDENTITY",
+          "nullability": "NOT NULL",
+          "default": null,
+          "check": null,
+          "source": "SW-ADR-023"
+        },
+        {
+          "name": "user_id",
+          "type": "BIGINT",
+          "nullability": "NOT NULL",
+          "default": null,
+          "check": null,
+          "source": "SRC-001 \u00a76.5"
+        },
+        {
+          "name": "name",
+          "type": "TEXT",
+          "nullability": "NOT NULL",
+          "default": null,
+          "check": "char_length(name) BETWEEN 1 AND 50",
+          "source": "SW-ADR-026"
+        },
+        {
+          "name": "color",
+          "type": "TEXT",
+          "nullability": "NOT NULL",
+          "default": null,
+          "check": "color ~ '^#[0-9a-f]{6}$'",
+          "source": "SW-ADR-034 \u00b7 SW-ADR-084"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMPTZ",
+          "nullability": "NOT NULL",
+          "default": "now()",
+          "check": null,
+          "source": "SW-ADR-076"
+        }
+      ]
+    },
+    "expenses": {
+      "rls": true,
+      "source": "SRC-001 \u00a76.6",
+      "note": "Protected. The money table.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT GENERATED ALWAYS AS IDENTITY",
+          "nullability": "NOT NULL",
+          "default": null,
+          "check": null,
+          "source": "SW-ADR-023"
+        },
+        {
+          "name": "user_id",
+          "type": "BIGINT",
+          "nullability": "NOT NULL",
+          "default": null,
+          "check": null,
+          "source": "SRC-001 \u00a76.6"
+        },
+        {
+          "name": "category_id",
+          "type": "BIGINT",
+          "nullability": "NULL",
+          "default": null,
+          "check": null,
+          "source": "SRC-001 \u00a76.6 \u2014 nullable; \u00a77.2 nulls it on category delete"
+        },
+        {
+          "name": "amount_paise",
+          "type": "BIGINT",
+          "nullability": "NOT NULL",
+          "default": null,
+          "check": "amount_paise > 0 AND amount_paise <= 1000000000000",
+          "source": "SW-ADR-029 \u00b7 SW-ADR-036"
+        },
+        {
+          "name": "currency",
+          "type": "TEXT",
+          "nullability": "NOT NULL",
+          "default": "'INR'",
+          "check": "currency = 'INR'",
+          "source": "SW-ADR-013 \u2014 snapshotted at write time"
+        },
+        {
+          "name": "description",
+          "type": "TEXT",
+          "nullability": "NULL",
+          "default": null,
+          "check": "description IS NULL OR char_length(description) <= 500",
+          "source": "SW-ADR-116"
+        },
+        {
+          "name": "spent_on",
+          "type": "DATE",
+          "nullability": "NOT NULL",
+          "default": null,
+          "check": "spent_on BETWEEN DATE '2000-01-01' AND DATE '2100-12-31'",
+          "source": "SRC-001 \u00a76.6 \u00b7 SW-ADR-114"
+        },
+        {
+          "name": "receipt_key",
+          "type": "TEXT",
+          "nullability": "NULL",
+          "default": null,
+          "check": "receipt_key IS NULL OR char_length(receipt_key) <= 512",
+          "source": "SRC-001 \u00a76.6"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMPTZ",
+          "nullability": "NOT NULL",
+          "default": "now()",
+          "check": null,
+          "source": "SW-ADR-076"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMPTZ",
+          "nullability": "NULL",
+          "default": null,
+          "check": null,
+          "source": "SW-ADR-076 \u2014 NULLABLE until first update"
+        }
+      ]
+    },
+    "admin_audit_log": {
+      "rls": false,
+      "source": "SRC-001 \u00a76.7",
+      "note": "No RLS: admin-only, and immutable at the database (SW-ADR-031). Carries NO foreign keys (SW-ADR-083) so it outlives its subjects.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "BIGINT GENERATED ALWAYS AS IDENTITY",
+          "nullability": "NOT NULL",
+          "default": null,
+          "check": null,
+          "source": "SW-ADR-023"
+        },
+        {
+          "name": "admin_id",
+          "type": "BIGINT",
+          "nullability": "NOT NULL",
+          "default": null,
+          "check": null,
+          "source": "SRC-001 \u00a76.7 \u2014 NO foreign key, by SW-ADR-083"
+        },
+        {
+          "name": "action",
+          "type": "TEXT",
+          "nullability": "NOT NULL",
+          "default": null,
+          "check": "action IN ('password_reset_issued','sessions_revoked','user_deactivated','user_reactivated','role_changed','bootstrap_admin_claimed','users_list_viewed','sessions_list_viewed','audit_log_viewed')",
+          "source": "SW-ADR-106 \u2014 a closed allowlist of nine"
+        },
+        {
+          "name": "target_user_id",
+          "type": "BIGINT",
+          "nullability": "NULL",
+          "default": null,
+          "check": null,
+          "source": "SRC-001 \u00a76.7 \u2014 NO foreign key"
+        },
+        {
+          "name": "details",
+          "type": "JSONB",
+          "nullability": "NOT NULL",
+          "default": "'{}'::jsonb",
+          "check": null,
+          "source": "SW-ADR-106 \u2014 shape validated per action BEFORE the write"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMPTZ",
+          "nullability": "NOT NULL",
+          "default": "now()",
+          "check": null,
+          "source": "SW-ADR-076"
+        }
+      ]
+    },
+    "app_meta": {
+      "rls": false,
+      "source": "SW-ADR-126",
+      "note": "One row. Holds the signing-secret fingerprint so rotation revokes sessions automatically.",
+      "columns": [
+        {
+          "name": "id",
+          "type": "SMALLINT",
+          "nullability": "NOT NULL",
+          "default": "1",
+          "check": "id = 1",
+          "source": "SW-ADR-126 \u2014 single row enforced by the check"
+        },
+        {
+          "name": "jwt_secret_fingerprint",
+          "type": "TEXT",
+          "nullability": "NOT NULL",
+          "default": null,
+          "check": "char_length(jwt_secret_fingerprint) = 64",
+          "source": "SW-ADR-126"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMPTZ",
+          "nullability": "NOT NULL",
+          "default": "now()",
+          "check": null,
+          "source": "SW-ADR-076"
+        }
+      ]
+    }
+  },
+  "foreign_keys": [
+    {
+      "table": "sessions",
+      "column": "user_id",
+      "references": "users(id)",
+      "on_delete": "CASCADE",
+      "source": "SRC-001 \u00a76.9"
+    },
+    {
+      "table": "password_resets",
+      "column": "user_id",
+      "references": "users(id)",
+      "on_delete": "CASCADE",
+      "source": "SRC-001 \u00a76.9"
+    },
+    {
+      "table": "categories",
+      "column": "user_id",
+      "references": "users(id)",
+      "on_delete": "CASCADE",
+      "source": "SRC-001 \u00a76.9"
+    },
+    {
+      "table": "expenses",
+      "column": "user_id",
+      "references": "users(id)",
+      "on_delete": "CASCADE",
+      "source": "SRC-001 \u00a76.9"
+    },
+    {
+      "table": "expenses",
+      "column": "(category_id, user_id)",
+      "references": "categories((id, user_id))",
+      "on_delete": "NO ACTION",
+      "source": "SW-ADR-072 \u2014 composite. NO ACTION because SET NULL would null user_id too, which is NOT NULL. The service nulls category_id explicitly inside the delete transaction."
+    }
+  ],
+  "indexes": [
+    {
+      "table": "users",
+      "definition": "UNIQUE (lower(email))",
+      "source": "SW-ADR-027 \u2014 case-insensitive identity"
+    },
+    {
+      "table": "sessions",
+      "definition": "(user_id)",
+      "source": "SRC-001 \u00a76.8"
+    },
+    {
+      "table": "sessions",
+      "definition": "(last_seen_at)",
+      "source": "SRC-001 \u00a76.8"
+    },
+    {
+      "table": "sessions",
+      "definition": "(revoked_at) WHERE revoked_at IS NULL",
+      "source": "SW-ADR-039 \u2014 partial; satisfiable only because SW-ADR-076 made the column nullable"
+    },
+    {
+      "table": "password_resets",
+      "definition": "UNIQUE (token_hash)",
+      "source": "SW-ADR-032"
+    },
+    {
+      "table": "password_resets",
+      "definition": "(user_id, expires_at)",
+      "source": "SW-ADR-039"
+    },
+    {
+      "table": "categories",
+      "definition": "UNIQUE (id, user_id)",
+      "source": "SW-ADR-072 \u2014 the target of the composite FK"
+    },
+    {
+      "table": "categories",
+      "definition": "UNIQUE (user_id, lower(name))",
+      "source": "SW-ADR-033"
+    },
+    {
+      "table": "categories",
+      "definition": "(user_id)",
+      "source": "SW-ADR-039"
+    },
+    {
+      "table": "expenses",
+      "definition": "(user_id, spent_on DESC)",
+      "source": "SRC-001 \u00a76.8"
+    },
+    {
+      "table": "expenses",
+      "definition": "(user_id, category_id)",
+      "source": "SRC-001 \u00a76.8"
+    },
+    {
+      "table": "admin_audit_log",
+      "definition": "(admin_id, created_at DESC)",
+      "source": "SW-ADR-039"
+    },
+    {
+      "table": "admin_audit_log",
+      "definition": "(target_user_id)",
+      "source": "SW-ADR-039"
+    }
+  ]
+}

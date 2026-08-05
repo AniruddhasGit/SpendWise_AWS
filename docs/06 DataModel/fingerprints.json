@@ -1,0 +1,15 @@
+{
+  "generated": "2026-08-05",
+  "note": "schema.sql, security.sql and TRACEABILITY.tsv are generated from datamodel.json. If a generated file's hash moves without datamodel.json moving, someone hand-edited it - which SW-ADR-066 forbids because the next build erases it silently.",
+  "files": {
+    ".gitkeep": "e3b0c44298fc1c14",
+    "AGENT_CONTRACT.md": "656664b324046c5d",
+    "TRACEABILITY.tsv": "df88f1dc058d580b",
+    "datamodel.json": "60f6c0207ba8ac88",
+    "permissions.tsv": "36ca3ccc90e3774b",
+    "schema.sql": "079d80f85fde48c9",
+    "security.sql": "fc442edadf1e527c",
+    "checks/verify_invariants.sql": "04b970edd20c5edd",
+    "seed/README.md": "7694dce8b0b411cb"
+  }
+}
