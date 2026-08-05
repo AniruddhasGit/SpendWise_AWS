@@ -1,7 +1,7 @@
 ENGINE & MODE: Opus 5 . xhigh effort . ultracode . maximum parallelism . worktrees where write-sets are disjoint.
 OBJECTIVE
-  Prove the document set fits together, and that a stranger can build from it. This gate
-  produces a verdict, never new scope. It runs BEFORE any product code.
+  Prove the document set fits together, and that a stranger can build from it. A verdict,
+  never new scope. Runs BEFORE any product code.
 
 WHY IT EXISTS
   Per-goal QA asks "is this artifact right?" Nothing asks "do they agree?" GOAL_02's review
@@ -30,8 +30,8 @@ PART 2 - CROSS-ARTIFACT ASSURANCE - one FRESH zero-context agent per lens, in pa
   X-03 AUTHORITY AUDIT. Every BUILD_SESSION ADR: does it decide money, secrets, legal,
        product identity, scope, or waive a check? Those belong in Article X. GOAL_02
        shipped two such breaches - assume more.
-  X-04 CLAIMED-BUT-NOT-DONE. Every sentence asserting an action ("filed as", "added to",
-       "recorded in"), verified against the artifact it names. K1 lives or dies here.
+  X-04 CLAIMED-BUT-NOT-DONE. Every sentence asserting an action ("filed as", "added to")
+       verified against the artifact it names. K1 lives or dies here.
   X-05 UNKNOWN-UNKNOWNS RED TEAM. What is missing that nobody thought to look for?
 
 PART 3 - THE UNCOACHED VERTICAL SLICE (the only test that actually proves it)
