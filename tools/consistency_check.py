@@ -454,6 +454,38 @@ def check_all(root: str) -> Report:
     r.note(f"day-one acceptance value recomputed: {total} / {DAYS} = {avg} paise "
            f"(asserted in {seen.get(str(avg), 0)} place(s))")
 
+    # -- 12b. every route a test names exists in the contract -----------------
+    # PRD §6's route table was hand-maintained and hand-copied into the route map
+    # and the cross-person coverage matrix. All three omitted
+    # GET /api/expenses/{expense_id}, which Bible E0-S7 AC1 and the SEV-1 case
+    # NEG-X-01 both require - while the coverage matrix declared 25/25 covered.
+    contract_p = os.path.join(root, "docs", "03 PRD", "api", "contract.json")
+    if os.path.isfile(contract_p):
+        contract = json.loads(read(contract_p))
+        declared = set()
+        for rt in contract.get("routes", {}).get("routes", []):
+            # normalise the parameter name: {id} and {expense_id} are one route
+            declared.add((rt["method"], re.sub(r"\{[^}]+\}", "{}", rt["path"])))
+        named, unresolved = 0, []
+        SOURCES = ("docs/05 Bible/", "docs/08 SIT/", "docs/09 NegativeTesting/",
+                   "docs/11 Journeys/")
+        for f, t in corpus.items():
+            if not f.startswith(SOURCES):
+                continue
+            # a placeholder may be written {id}, {expense_id} or {A's id} — anything
+            # up to the closing brace, apostrophes and spaces included
+            for m in re.finditer(
+                    r"\b(GET|POST|PATCH|DELETE|PUT)\s+(/api/(?:\{[^}]*\}|[A-Za-z0-9_/-])*)", t):
+                named += 1
+                key = (m.group(1), re.sub(r"\{[^}]*\}", "{}", m.group(2).rstrip("/")))
+                if key not in declared:
+                    unresolved.append((f, "%s %s" % m.groups()))
+        for f, route in sorted(set(unresolved)):
+            r.fail("route-contract",
+                   f"{f}: names `{route}`, which is not a route in "
+                   f"docs/03 PRD/api/contract.json")
+        r.note(f"routes named by a test or journey: {named} across {len(declared)} declared")
+
     ok = 0
     for gen in (os.path.join(root, "docs", "06 DataModel", "generate.py"),
                 os.path.join(root, "docs", "03 PRD", "api", "generate_api.py"),
@@ -513,6 +545,9 @@ PLANTS = [
     # Asserted, with no warning framing anywhere near it — the shape that matters.
     ("day-one-value", "docs/02 BRD/SpendWise_BRD.md",
      lambda t: t + "\n\nPlanted: the daily average over the seeded fixture is 75809 paise.\n"),
+    ("route-contract", "docs/09 NegativeTesting/SIT_NegativeCases.tsv",
+     lambda t: t + "NEG-Z-99\tplanted\tSEV-3\tplanted route\tPERSON B\t"
+                   "PATCH /api/expenses/{id}/nonexistent\t404\t-\t-\tplanted\tNotRun\n"),
 ]
 
 

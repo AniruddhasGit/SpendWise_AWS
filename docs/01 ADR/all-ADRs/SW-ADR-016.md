@@ -1,5 +1,12 @@
 # SW-ADR-016 — Stack lock
 
+> **⚠ EXTENDED 2026-08-05 by `SW-ADR-139` (`CV-16`).** This record locked the runtime
+> stack and said *do not substitute* — but named **no test tool**, while Art IX.1
+> mandates failing-test-first and `E0-S5` mandates a real browser. The first engineer
+> therefore had to extend a stack this record forbids extending. The test stack is
+> **pytest · pytest-asyncio · httpx (ASGITransport) · Playwright**, and it is locked
+> on the same terms as the rest.
+
 | Field | Value |
 |---|---|
 | ADR | `SW-ADR-016` |

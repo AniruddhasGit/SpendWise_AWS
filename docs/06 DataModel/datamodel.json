@@ -529,7 +529,7 @@
     }
   ],
   "admin_access": {
-    "source": "SW-ADR-129 (supersedes SW-ADR-129, restores SW-ADR-043) · SRC-001 §4.5",
+    "source": "SW-ADR-129 (supersedes SW-ADR-077, restores SW-ADR-043) · SRC-001 §4.5",
     "note": "An admin sees counts and dates, never an amount or a description. A row-level policy has NO column dimension and therefore cannot express that; a function's return type can. `app.is_admin` is consulted by no policy on a money table and is never set on a request-scoped connection.",
     "policies_on_money_tables": false,
     "functions": [

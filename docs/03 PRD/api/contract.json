@@ -33,6 +33,35 @@
         "category_id": null,
         "description": null
       }
+    ],
+    "people": [
+      {
+        "person": "A",
+        "email": "a@spendwise.test",
+        "display_name": "Person A",
+        "password": "correct-horse-battery-staple",
+        "role": "user",
+        "registration_order": 1,
+        "why": "A registers FIRST. expected_summary.json names category_id 1, 3 and 5, which are only A's Groceries/Transport/Health if A's eight seeded categories take identity values 1-8. Seed B first and the whole gate payload stops matching."
+      },
+      {
+        "person": "B",
+        "email": "b@spendwise.test",
+        "display_name": "Person B",
+        "password": "correct-horse-battery-staple",
+        "role": "user",
+        "registration_order": 2,
+        "why": "B exists because a single-person seed cannot prove isolation, which is what the gate is for. B owns their own expenses and their own eight categories (ids 9-16)."
+      },
+      {
+        "person": "ADMIN",
+        "email": "admin@spendwise.test",
+        "display_name": "Bootstrap Admin",
+        "password": "correct-horse-battery-staple",
+        "role": "admin",
+        "registration_order": 3,
+        "why": "A THIRD account is the bootstrap admin, not A or B. P-ACC-02 refuses to start with zero admins, so the gate environment must set BOOTSTRAP_ADMIN_EMAIL - and whoever it names gets a 30-minute idle window instead of 14 days (P-ACC-04), which would change what NEG-X-20 is testing."
+      }
     ]
   },
   "categories": {
@@ -173,7 +202,68 @@
         "has_field": false,
         "when": "unhandled; the message is generic and never carries detail"
       }
-    ]
+    ],
+    "messages": {
+      "source": "SW-ADR-140 - SIT-E2-S7-02 requires '422 naming the cap', which is a binary assertion on a string nothing specified.",
+      "note": "One message per rule. The `field` column names which input a pairwise rule reports.",
+      "rules": [
+        {
+          "rule": "amount.scale",
+          "field": "amount",
+          "message": "Amount must have at most two decimal places."
+        },
+        {
+          "rule": "amount.grammar",
+          "field": "amount",
+          "message": "Amount must be a decimal string, for example \"1250.00\"."
+        },
+        {
+          "rule": "amount.bounds",
+          "field": "amount",
+          "message": "Amount must be greater than zero and at most 10000000000.00."
+        },
+        {
+          "rule": "spent_on.window",
+          "field": "spent_on",
+          "message": "Date must be within the last 10 years and no more than 1 year ahead."
+        },
+        {
+          "rule": "description.length",
+          "field": "description",
+          "message": "Description must be at most 500 characters."
+        },
+        {
+          "rule": "category.not_owned",
+          "field": "category_id",
+          "message": "That category does not exist."
+        },
+        {
+          "rule": "range.order",
+          "field": "to",
+          "message": "The end date must not be before the start date."
+        },
+        {
+          "rule": "range.span",
+          "field": "to",
+          "message": "A range may span at most 400 days."
+        },
+        {
+          "rule": "range.floor",
+          "field": "from",
+          "message": "The start date must be on or after 2000-01-01."
+        },
+        {
+          "rule": "range.required",
+          "field": "from",
+          "message": "Both from and to are required; there is no default range."
+        },
+        {
+          "rule": "filter.exclusive",
+          "field": "uncategorised",
+          "message": "category_id and uncategorised cannot both be given."
+        }
+      ]
+    }
   },
   "models": {
     "Expense": {
@@ -425,7 +515,520 @@
         "why": "Declared the other way, the literal `summary` is eaten by the int path parameter and the endpoint 422s. And a malformed id is a not-found id: 422 would leak that the id space is integers, which P-PRV-03's uniform 404 exists to avoid.",
         "source": "P-PRV-03 · SW-ADR-050",
         "asked_by": "slice run 2, guess 20"
+      },
+      {
+        "id": "CV-12",
+        "question": "Who commits the request transaction?",
+        "ruling": "The session dependency commits ONCE, after the handler returns. No service and no repository commits.",
+        "why": "The GUC is transaction-local, and the create response stitches `category_name` from the categories service AFTER the insert. Commit in the service and that read returns zero rows - `category_name` silently becomes null with nothing red.",
+        "source": "SW-ADR-136 D · GOTCHAS",
+        "asked_by": "slice run 3, guess 1"
+      },
+      {
+        "id": "CV-13",
+        "question": "How does an expected constraint violation not abort the request?",
+        "ruling": "The INSERT runs inside a SAVEPOINT. On the composite-FK violation, ROLLBACK TO SAVEPOINT, then return 422 field=category_id.",
+        "why": "One transaction per request plus 'enforced by the database' means the FK violation aborts the REQUEST transaction. Without a savepoint the handler cannot emit its 422 and returns 500 - and the naive fix, a second transaction, is the silent zero-rows failure SW-ADR-136 D forbids.",
+        "source": "SW-ADR-072 · P-REC-01 · NEG-X-11",
+        "asked_by": "slice run 3, guess 10"
+      },
+      {
+        "id": "CV-14",
+        "question": "How is 'today' pinned for the BROWSER-observed gate run?",
+        "ruling": "The clock dependency reads `APP_TODAY_OVERRIDE` when set. Absent in production; set in the gate container. The FastAPI dependency override of CV-06 covers in-process tests only.",
+        "why": "Art IX.4 and E0-S10 require the gate observed through a real browser against a running app, where no in-process override is reachable - so CV-06 alone could not produce the observed 75810.",
+        "source": "SW-ADR-096 · Art IX.4 · CV-06",
+        "asked_by": "slice run 3, guess 4"
+      },
+      {
+        "id": "CV-15",
+        "question": "Does the breakdown-sums-to-total invariant hold under a filter?",
+        "ruling": "It is asserted ONLY when no category filter is applied. With a filter the headline re-scopes and `by_category` does not, so they are not expected to agree.",
+        "why": "P-UND-05 states the invariant unqualified and CV-03 leaves by_category un-scoped. Both are right; the invariant simply has a precondition nobody wrote down, and a literal test walks straight into it.",
+        "source": "P-UND-05 · CV-03 · SW-ADR-109",
+        "asked_by": "slice run 3, contradiction C3"
+      },
+      {
+        "id": "CV-16",
+        "question": "What is the test stack?",
+        "ruling": "pytest + pytest-asyncio + httpx (ASGITransport) for API and unit tests; Playwright for the browser-observed gate. Added to SW-ADR-016's locked stack.",
+        "why": "Art IX.1 mandates failing-test-first and E0-S5 mandates a real browser, while SW-ADR-016 says do not substitute and named no tool for either - so the first engineer had to extend a stack the same document forbids extending.",
+        "source": "SW-ADR-016 · Art IX.1 · E0-S5",
+        "asked_by": "slice run 3, guess 13"
+      },
+      {
+        "id": "CV-17",
+        "question": "How is the percentage tie-break resolved?",
+        "ruling": "Integer arithmetic only. Ties go to the EARLIER position in the already-sorted list (total DESC, name ASC, synthetic last). Never float division.",
+        "why": "Art V.1 says never a float, and the generator that produces the normative payload used float division - so the only statement of the algorithm violated the Constitution, and its tie-break was an accident of Python's sort stability.",
+        "source": "SW-ADR-055 · Art V.1",
+        "asked_by": "slice run 3, contradiction C8"
+      },
+      {
+        "id": "CV-18",
+        "question": "What does a foreign category_id filter return on the summary?",
+        "ruling": "The filter APPLIES and matches nothing: total_paise 0, count 0, by_day all zeros, daily_average_paise computed over the elapsed days (so 0, not null). `by_category` stays un-scoped per CV-03 and is non-empty.",
+        "why": "NEG-X-08 said both 'B's OWN summary' and 'an unknown category_id filters to nothing' in one cell - the first reads as ignore the filter, the second as total 0.",
+        "source": "NEG-X-08 · CV-03 · P-PRV-03",
+        "asked_by": "slice run 3, guess 12"
       }
     ]
+  },
+  "routes": {
+    "source": "SW-ADR-140",
+    "note": "The route inventory lives here, as data. It was a hand-maintained Markdown table in PRD §6, hand-copied into 05_surface_route_map.md and again into CROSS_PERSON_COVERAGE.tsv - the exact failure SW-ADR-138 diagnosed for payloads, and it produced the same result: all three copies omitted GET /api/expenses/{expense_id}, which E0-S7 AC1 and the SEV-1 case NEG-X-01 both require, while the coverage matrix declared 25/25 routes covered.",
+    "routes": [
+      {
+        "method": "POST",
+        "path": "/api/auth/register",
+        "who": "anon",
+        "spec": [
+          "P-ACC-01"
+        ],
+        "request_model": "RegisterRequest",
+        "response_model": "Principal",
+        "error_codes": [
+          "VALIDATION_ERROR",
+          "EMAIL_TAKEN",
+          "RATE_LIMITED",
+          "BAD_REQUEST"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/api/auth/login",
+        "who": "anon",
+        "spec": [
+          "P-ACC-03"
+        ],
+        "request_model": "LoginRequest",
+        "response_model": "Principal",
+        "error_codes": [
+          "VALIDATION_ERROR",
+          "SESSION_INVALID",
+          "ACCOUNT_DEACTIVATED",
+          "RATE_LIMITED"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/api/auth/logout",
+        "who": "any",
+        "spec": [
+          "P-ACC-05"
+        ],
+        "error_codes": [
+          "UNAUTHENTICATED",
+          "SESSION_INVALID",
+          "ACCOUNT_DEACTIVATED"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/api/auth/me",
+        "who": "any",
+        "spec": [
+          "P-ACC-06"
+        ],
+        "response_model": "Principal",
+        "error_codes": [
+          "UNAUTHENTICATED",
+          "SESSION_INVALID",
+          "ACCOUNT_DEACTIVATED"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/api/auth/reset/complete",
+        "who": "anon",
+        "spec": [
+          "P-ACC-07"
+        ],
+        "request_model": "ResetCompleteRequest",
+        "error_codes": [
+          "VALIDATION_ERROR",
+          "NOT_FOUND",
+          "RATE_LIMITED"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/api/categories",
+        "who": "any",
+        "spec": [
+          "P-REC-05"
+        ],
+        "response_model": "Category[]",
+        "error_codes": [
+          "UNAUTHENTICATED",
+          "SESSION_INVALID",
+          "ACCOUNT_DEACTIVATED"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/api/categories",
+        "who": "any",
+        "spec": [
+          "P-REC-05"
+        ],
+        "request_model": "CategoryCreate",
+        "response_model": "Category",
+        "error_codes": [
+          "UNAUTHENTICATED",
+          "SESSION_INVALID",
+          "ACCOUNT_DEACTIVATED",
+          "VALIDATION_ERROR",
+          "CONFLICT"
+        ]
+      },
+      {
+        "method": "PATCH",
+        "path": "/api/categories/{category_id}",
+        "who": "owner",
+        "spec": [
+          "P-REC-05"
+        ],
+        "request_model": "CategoryUpdate",
+        "response_model": "Category",
+        "error_codes": [
+          "UNAUTHENTICATED",
+          "SESSION_INVALID",
+          "ACCOUNT_DEACTIVATED",
+          "VALIDATION_ERROR",
+          "NOT_FOUND",
+          "CONFLICT"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/api/categories/{category_id}",
+        "who": "owner",
+        "spec": [
+          "P-REC-05"
+        ],
+        "error_codes": [
+          "UNAUTHENTICATED",
+          "SESSION_INVALID",
+          "ACCOUNT_DEACTIVATED",
+          "NOT_FOUND"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/api/expenses",
+        "who": "any",
+        "spec": [
+          "P-REC-02"
+        ],
+        "response_model": "ExpensePage",
+        "error_codes": [
+          "UNAUTHENTICATED",
+          "SESSION_INVALID",
+          "ACCOUNT_DEACTIVATED",
+          "VALIDATION_ERROR"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/api/expenses",
+        "who": "any",
+        "spec": [
+          "P-REC-01"
+        ],
+        "request_model": "ExpenseCreate",
+        "response_model": "Expense",
+        "error_codes": [
+          "UNAUTHENTICATED",
+          "SESSION_INVALID",
+          "ACCOUNT_DEACTIVATED",
+          "VALIDATION_ERROR"
+        ],
+        "note": "201. A forged user_id or id in the body is discarded before validation (SW-ADR-130); a category_id that is not the caller's is refused by the composite FK and mapped to 422 field=category_id (NEG-X-11). No Location header (CV-10)."
+      },
+      {
+        "method": "GET",
+        "path": "/api/expenses/summary",
+        "who": "any",
+        "spec": [
+          "P-UND-01",
+          "P-UND-02",
+          "P-UND-03",
+          "P-UND-04",
+          "P-UND-05",
+          "P-UND-06"
+        ],
+        "response_model": "Summary",
+        "error_codes": [
+          "UNAUTHENTICATED",
+          "SESSION_INVALID",
+          "ACCOUNT_DEACTIVATED",
+          "VALIDATION_ERROR"
+        ],
+        "note": "MUST be registered BEFORE /api/expenses/{expense_id} or the literal `summary` is captured by the integer path parameter (CV-11)."
+      },
+      {
+        "method": "GET",
+        "path": "/api/expenses/{expense_id}",
+        "who": "owner",
+        "spec": [
+          "P-REC-02",
+          "P-PRV-03"
+        ],
+        "response_model": "Expense",
+        "error_codes": [
+          "UNAUTHENTICATED",
+          "SESSION_INVALID",
+          "ACCOUNT_DEACTIVATED",
+          "NOT_FOUND"
+        ],
+        "note": "ADDED 2026-08-05 by SW-ADR-140. It was required by Bible E0-S7 AC1, SIT-E0-S7-01 and the SEV-1 case NEG-X-01, and appeared in NO contract document - PRD §6, the route map and the coverage matrix all listed only PATCH and DELETE on this path."
+      },
+      {
+        "method": "PATCH",
+        "path": "/api/expenses/{expense_id}",
+        "who": "owner",
+        "spec": [
+          "P-REC-03"
+        ],
+        "request_model": "ExpenseUpdate",
+        "response_model": "Expense",
+        "error_codes": [
+          "UNAUTHENTICATED",
+          "SESSION_INVALID",
+          "ACCOUNT_DEACTIVATED",
+          "VALIDATION_ERROR",
+          "NOT_FOUND"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/api/expenses/{expense_id}",
+        "who": "owner",
+        "spec": [
+          "P-REC-04"
+        ],
+        "error_codes": [
+          "UNAUTHENTICATED",
+          "SESSION_INVALID",
+          "ACCOUNT_DEACTIVATED",
+          "NOT_FOUND"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/api/receipts/upload-url",
+        "who": "any",
+        "spec": [
+          "P-RCP-01"
+        ],
+        "request_model": "UploadUrlRequest",
+        "response_model": "UploadUrl",
+        "error_codes": [
+          "UNAUTHENTICATED",
+          "SESSION_INVALID",
+          "ACCOUNT_DEACTIVATED",
+          "VALIDATION_ERROR"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/api/receipts/attach",
+        "who": "owner",
+        "spec": [
+          "P-RCP-01"
+        ],
+        "request_model": "AttachRequest",
+        "response_model": "Expense",
+        "error_codes": [
+          "UNAUTHENTICATED",
+          "SESSION_INVALID",
+          "ACCOUNT_DEACTIVATED",
+          "VALIDATION_ERROR",
+          "NOT_FOUND"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/api/receipts/{expense_id}/url",
+        "who": "owner",
+        "spec": [
+          "P-RCP-02"
+        ],
+        "response_model": "SignedUrl",
+        "error_codes": [
+          "UNAUTHENTICATED",
+          "SESSION_INVALID",
+          "ACCOUNT_DEACTIVATED",
+          "NOT_FOUND"
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/api/receipts/{expense_id}",
+        "who": "owner",
+        "spec": [
+          "P-RCP-02"
+        ],
+        "error_codes": [
+          "UNAUTHENTICATED",
+          "SESSION_INVALID",
+          "ACCOUNT_DEACTIVATED",
+          "NOT_FOUND"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/api/admin/users",
+        "who": "admin",
+        "spec": [
+          "P-ADM-01"
+        ],
+        "response_model": "AdminUser[]",
+        "error_codes": [
+          "UNAUTHENTICATED",
+          "SESSION_INVALID",
+          "ACCOUNT_DEACTIVATED",
+          "FORBIDDEN"
+        ],
+        "note": "Audited read: writes one admin_audit_log row per request, in the same transaction, response serialised only after COMMIT (SW-ADR-135). Primary-only, never a replica or a cache."
+      },
+      {
+        "method": "GET",
+        "path": "/api/admin/sessions",
+        "who": "admin",
+        "spec": [
+          "P-ADM-02"
+        ],
+        "response_model": "AdminSession[]",
+        "error_codes": [
+          "UNAUTHENTICATED",
+          "SESSION_INVALID",
+          "ACCOUNT_DEACTIVATED",
+          "FORBIDDEN"
+        ],
+        "note": "Audited read (SW-ADR-135). No ip, no user_agent (SW-ADR-106)."
+      },
+      {
+        "method": "POST",
+        "path": "/api/admin/users/{user_id}/revoke-sessions",
+        "who": "admin",
+        "spec": [
+          "P-ADM-03"
+        ],
+        "error_codes": [
+          "UNAUTHENTICATED",
+          "SESSION_INVALID",
+          "ACCOUNT_DEACTIVATED",
+          "FORBIDDEN",
+          "NOT_FOUND"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/api/admin/users/{user_id}/reset",
+        "who": "admin",
+        "spec": [
+          "P-ADM-04"
+        ],
+        "response_model": "ResetToken",
+        "error_codes": [
+          "UNAUTHENTICATED",
+          "SESSION_INVALID",
+          "ACCOUNT_DEACTIVATED",
+          "FORBIDDEN",
+          "NOT_FOUND"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/api/admin/users/{user_id}/active",
+        "who": "admin",
+        "spec": [
+          "P-ADM-05"
+        ],
+        "request_model": "ActiveRequest",
+        "error_codes": [
+          "UNAUTHENTICATED",
+          "SESSION_INVALID",
+          "ACCOUNT_DEACTIVATED",
+          "FORBIDDEN",
+          "NOT_FOUND",
+          "VALIDATION_ERROR"
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/api/admin/users/{user_id}/role",
+        "who": "admin",
+        "spec": [
+          "P-ADM-06"
+        ],
+        "request_model": "RoleRequest",
+        "error_codes": [
+          "UNAUTHENTICATED",
+          "SESSION_INVALID",
+          "ACCOUNT_DEACTIVATED",
+          "FORBIDDEN",
+          "NOT_FOUND",
+          "CONFLICT"
+        ]
+      },
+      {
+        "method": "GET",
+        "path": "/api/admin/audit",
+        "who": "admin",
+        "spec": [
+          "P-ADM-08"
+        ],
+        "response_model": "AuditPage",
+        "error_codes": [
+          "UNAUTHENTICATED",
+          "SESSION_INVALID",
+          "ACCOUNT_DEACTIVATED",
+          "FORBIDDEN"
+        ],
+        "note": "Audited read (SW-ADR-135)."
+      },
+      {
+        "method": "GET",
+        "path": "/healthz",
+        "who": "anon",
+        "spec": [
+          "P-OPS-03"
+        ],
+        "error_codes": []
+      },
+      {
+        "method": "GET",
+        "path": "/readyz",
+        "who": "anon",
+        "spec": [
+          "P-OPS-03"
+        ],
+        "error_codes": []
+      }
+    ]
+  },
+  "serialisation": {
+    "source": "SW-ADR-140",
+    "datetime": "UTC, RFC 3339 with a `Z` suffix and exactly 3 fractional digits: `2026-08-01T09:14:22.481Z`. Not the framework default - configure the encoder.",
+    "date": "ISO 8601 date only, no time component: `2026-08-01`.",
+    "money": "`amount` and `total` and `daily_average` are decimal STRINGS in rupees with exactly two places. `*_paise` fields are integers. The client never divides by 100.",
+    "nulls": "An absent value is `null`, never omitted, never an empty string.",
+    "amount_grammar": {
+      "pattern": "^-?[0-9]{1,15}(\\.[0-9]{1,2})?$",
+      "note": "Applied BEFORE Decimal(). CV-04 rules on written scale, which is necessary and not sufficient: Decimal('1.25e3') has scale 0 and would pass a scale-only check, and Decimal(' 12.50 ') parses where a strict pattern refuses. Rejects scientific notation, surrounding whitespace, a leading '+', and a bare '.50'.",
+      "rejected_examples": [
+        "1.25e3",
+        " 12.50 ",
+        "+12.50",
+        ".50",
+        "1250.0000",
+        "abc"
+      ]
+    },
+    "extra_fields": "`extra=\"ignore\"` model-wide. An unknown key is discarded, never 422 - `extra=\"forbid\"` would reject the forged `user_id` of NEG-X-10, which must return 201 (SW-ADR-130).",
+    "example_created_at": "2026-08-01T09:14:22.481Z"
   }
 }

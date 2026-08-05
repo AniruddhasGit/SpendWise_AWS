@@ -20,7 +20,7 @@ Every `P-` row carries **two** references: a `[SRC:]` tag (where the requirement
 a **BRD row** (which business requirement it satisfies). A row missing either is a defect:
 no `[SRC:]` means invented, no BRD row means scope creep.
 
-Citations resolve against **currently APPROVED** records only. 21 of the 139 ADRs are
+Citations resolve against **currently APPROVED** records only. 21 of the 140 ADRs are
 superseded or withdrawn and are not authority.
 
 **Status:** `RULED` (decided, cited) · `PROVISIONAL` (buildable, a dependency outstanding) ·
@@ -58,7 +58,7 @@ Written once as `get_current_user` and `require_admin`, applied as a router-leve
 | Route | Surface | Who | Notes |
 |---|---|---|---|
 | `/signin` | Sign in · Create account · **Redeem reset code** | anonymous | one page, three modes `[SRC: SRC-001 §9.1, SW-ADR-110]` |
-| `/` | Dashboard | any signed-in | `from`, `to`, `category` in the query string `[SRC: SW-ADR-075]` |
+| `/` | Dashboard | any signed-in | `from`, `to`, `category` **(the browser URL — the API parameter is `category_id`, plus `uncategorised`; the dashboard route is not the API route)` in the query string `[SRC: SW-ADR-075]` |
 | `/admin` | Account administration | `admin` only | server-enforced, not UI-hidden `[SRC: SRC-001 §9.1]` |
 | `/admin/audit` | The administrative record | `admin` only | a sub-view; `§9.3`'s "Plus the audit log" `[SRC: SW-ADR-110]` |
 | *(any unmatched)* | Not-found screen | any | the SPA catch-all serves `index.html`; the client router shows a real 404 `[SRC: SW-ADR-075]` |
@@ -477,40 +477,53 @@ memory.
 
 ## §6 — API contract
 
-Base `/api`. JSON in, JSON out. Every non-2xx returns **one envelope** `[SRC: SW-ADR-051]`:
+<!-- BEGIN GENERATED ROUTES -->
 
-```json
-{ "error": { "code": "MACHINE_READABLE", "message": "human sentence", "field": "amount" } }
-```
+| Method | Path | Who | Spec | Errors |
+|---|---|---|---|---|
+| POST | `/api/auth/register` | anon | `P-ACC-01` | `VALIDATION_ERROR`, `EMAIL_TAKEN`, `RATE_LIMITED`, `BAD_REQUEST` |
+| POST | `/api/auth/login` | anon | `P-ACC-03` | `VALIDATION_ERROR`, `SESSION_INVALID`, `ACCOUNT_DEACTIVATED`, `RATE_LIMITED` |
+| POST | `/api/auth/logout` | any | `P-ACC-05` | `UNAUTHENTICATED`, `SESSION_INVALID`, `ACCOUNT_DEACTIVATED` |
+| GET | `/api/auth/me` | any | `P-ACC-06` | `UNAUTHENTICATED`, `SESSION_INVALID`, `ACCOUNT_DEACTIVATED` |
+| POST | `/api/auth/reset/complete` | anon | `P-ACC-07` | `VALIDATION_ERROR`, `NOT_FOUND`, `RATE_LIMITED` |
+| GET | `/api/categories` | any | `P-REC-05` | `UNAUTHENTICATED`, `SESSION_INVALID`, `ACCOUNT_DEACTIVATED` |
+| POST | `/api/categories` | any | `P-REC-05` | `UNAUTHENTICATED`, `SESSION_INVALID`, `ACCOUNT_DEACTIVATED`, `VALIDATION_ERROR`, `CONFLICT` |
+| PATCH | `/api/categories/{category_id}` | owner | `P-REC-05` | `UNAUTHENTICATED`, `SESSION_INVALID`, `ACCOUNT_DEACTIVATED`, `VALIDATION_ERROR`, `NOT_FOUND`, `CONFLICT` |
+| DELETE | `/api/categories/{category_id}` | owner | `P-REC-05` | `UNAUTHENTICATED`, `SESSION_INVALID`, `ACCOUNT_DEACTIVATED`, `NOT_FOUND` |
+| GET | `/api/expenses` | any | `P-REC-02` | `UNAUTHENTICATED`, `SESSION_INVALID`, `ACCOUNT_DEACTIVATED`, `VALIDATION_ERROR` |
+| POST | `/api/expenses` | any | `P-REC-01` | `UNAUTHENTICATED`, `SESSION_INVALID`, `ACCOUNT_DEACTIVATED`, `VALIDATION_ERROR` |
+| GET | `/api/expenses/summary` | any | `P-UND-01` · `P-UND-02` · `P-UND-03` · `P-UND-04` · `P-UND-05` · `P-UND-06` | `UNAUTHENTICATED`, `SESSION_INVALID`, `ACCOUNT_DEACTIVATED`, `VALIDATION_ERROR` |
+| GET | `/api/expenses/{expense_id}` | owner | `P-REC-02` · `P-PRV-03` | `UNAUTHENTICATED`, `SESSION_INVALID`, `ACCOUNT_DEACTIVATED`, `NOT_FOUND` |
+| PATCH | `/api/expenses/{expense_id}` | owner | `P-REC-03` | `UNAUTHENTICATED`, `SESSION_INVALID`, `ACCOUNT_DEACTIVATED`, `VALIDATION_ERROR`, `NOT_FOUND` |
+| DELETE | `/api/expenses/{expense_id}` | owner | `P-REC-04` | `UNAUTHENTICATED`, `SESSION_INVALID`, `ACCOUNT_DEACTIVATED`, `NOT_FOUND` |
+| POST | `/api/receipts/upload-url` | any | `P-RCP-01` | `UNAUTHENTICATED`, `SESSION_INVALID`, `ACCOUNT_DEACTIVATED`, `VALIDATION_ERROR` |
+| POST | `/api/receipts/attach` | owner | `P-RCP-01` | `UNAUTHENTICATED`, `SESSION_INVALID`, `ACCOUNT_DEACTIVATED`, `VALIDATION_ERROR`, `NOT_FOUND` |
+| GET | `/api/receipts/{expense_id}/url` | owner | `P-RCP-02` | `UNAUTHENTICATED`, `SESSION_INVALID`, `ACCOUNT_DEACTIVATED`, `NOT_FOUND` |
+| DELETE | `/api/receipts/{expense_id}` | owner | `P-RCP-02` | `UNAUTHENTICATED`, `SESSION_INVALID`, `ACCOUNT_DEACTIVATED`, `NOT_FOUND` |
+| GET | `/api/admin/users` | admin | `P-ADM-01` | `UNAUTHENTICATED`, `SESSION_INVALID`, `ACCOUNT_DEACTIVATED`, `FORBIDDEN` |
+| GET | `/api/admin/sessions` | admin | `P-ADM-02` | `UNAUTHENTICATED`, `SESSION_INVALID`, `ACCOUNT_DEACTIVATED`, `FORBIDDEN` |
+| POST | `/api/admin/users/{user_id}/revoke-sessions` | admin | `P-ADM-03` | `UNAUTHENTICATED`, `SESSION_INVALID`, `ACCOUNT_DEACTIVATED`, `FORBIDDEN`, `NOT_FOUND` |
+| POST | `/api/admin/users/{user_id}/reset` | admin | `P-ADM-04` | `UNAUTHENTICATED`, `SESSION_INVALID`, `ACCOUNT_DEACTIVATED`, `FORBIDDEN`, `NOT_FOUND` |
+| POST | `/api/admin/users/{user_id}/active` | admin | `P-ADM-05` | `UNAUTHENTICATED`, `SESSION_INVALID`, `ACCOUNT_DEACTIVATED`, `FORBIDDEN`, `NOT_FOUND`, `VALIDATION_ERROR` |
+| POST | `/api/admin/users/{user_id}/role` | admin | `P-ADM-06` | `UNAUTHENTICATED`, `SESSION_INVALID`, `ACCOUNT_DEACTIVATED`, `FORBIDDEN`, `NOT_FOUND`, `CONFLICT` |
+| GET | `/api/admin/audit` | admin | `P-ADM-08` | `UNAUTHENTICATED`, `SESSION_INVALID`, `ACCOUNT_DEACTIVATED`, `FORBIDDEN` |
+| GET | `/healthz` | anon | `P-OPS-03` | — |
+| GET | `/readyz` | anon | `P-OPS-03` | — |
 
-`field` uses the **client's** field name (rupees), not the converted one (paise), or the error
-cannot be anchored to the input the user typed. Validation errors are rewritten into this
-envelope — the framework default is not exposed.
+**28 routes** (26 under `/api/`, plus `/healthz` and `/readyz`). Generated from
+`contract.json`; `consistency_check.py` fails if any path named by a Bible criterion,
+a SIT case or a negative case does not resolve to a row here.
 
-| Method | Path | Who | Spec |
-|---|---|---|---|
-| POST | `/api/auth/register` | anon | `P-ACC-01` |
-| POST | `/api/auth/login` | anon | `P-ACC-03` |
-| POST | `/api/auth/logout` | any | `P-ACC-05` |
-| GET | `/api/auth/me` | any | `P-ACC-06` |
-| POST | `/api/auth/reset/complete` | anon | `P-ACC-07` |
-| GET·POST | `/api/categories` | any | `P-REC-05` |
-| PATCH·DELETE | `/api/categories/{id}` | owner | `P-REC-05` |
-| GET·POST | `/api/expenses` | any | `P-REC-01`, `P-REC-02` |
-| PATCH·DELETE | `/api/expenses/{id}` | owner | `P-REC-03`, `P-REC-04` |
-| GET | `/api/expenses/summary` | any | `P-UND-01`…`P-UND-06` |
-| POST | `/api/receipts/upload-url` | any | `P-RCP-01` |
-| POST | `/api/receipts/attach` | owner | `P-RCP-01` |
-| GET | `/api/receipts/{expense_id}/url` | owner | `P-RCP-02` |
-| DELETE | `/api/receipts/{expense_id}` | owner | `P-RCP-02` |
-| GET | `/api/admin/users` | admin | `P-ADM-01` |
-| GET | `/api/admin/sessions` | admin | `P-ADM-02` |
-| POST | `/api/admin/users/{id}/revoke-sessions` | admin | `P-ADM-03` |
-| POST | `/api/admin/users/{id}/reset` | admin | `P-ADM-04` |
-| POST | `/api/admin/users/{id}/active` | admin | `P-ADM-05` |
-| POST | `/api/admin/users/{id}/role` | admin | `P-ADM-06` |
-| GET | `/api/admin/audit` | admin | `P-ADM-08` |
-| GET | `/healthz` · `/readyz` | anon | `P-OPS-03` |
+**Route notes.**
+
+- `POST /api/expenses` — 201. A forged user_id or id in the body is discarded before validation (SW-ADR-130); a category_id that is not the caller's is refused by the composite FK and mapped to 422 field=category_id (NEG-X-11). No Location header (CV-10).
+- `GET /api/expenses/summary` — MUST be registered BEFORE /api/expenses/{expense_id} or the literal `summary` is captured by the integer path parameter (CV-11).
+- `GET /api/expenses/{expense_id}` — ADDED 2026-08-05 by SW-ADR-140. It was required by Bible E0-S7 AC1, SIT-E0-S7-01 and the SEV-1 case NEG-X-01, and appeared in NO contract document - PRD §6, the route map and the coverage matrix all listed only PATCH and DELETE on this path.
+- `GET /api/admin/users` — Audited read: writes one admin_audit_log row per request, in the same transaction, response serialised only after COMMIT (SW-ADR-135). Primary-only, never a replica or a cache.
+- `GET /api/admin/sessions` — Audited read (SW-ADR-135). No ip, no user_agent (SW-ADR-106).
+- `GET /api/admin/audit` — Audited read (SW-ADR-135).
+
+<!-- END GENERATED ROUTES -->
 
 **Status codes.** 200 read · 201 create · 204 delete · 400 malformed · 401 unauthenticated ·
 403 authenticated but forbidden by role · **404 not-yours-or-not-found on every verb**
@@ -691,9 +704,29 @@ only of what it now says.
 | `CV-09` | What sets `updated_at`? | **The service, on PATCH only. No database trigger. A create leaves it null.** | A trigger would fire on the audit-log-adjacent writes too and make 'never edited' unrepresentable. Null means never edited, and that is a fact worth keeping. | P-REC-03 · datamodel.json | slice run 2, guess 18 |
 | `CV-10` | Does a 201 carry a `Location` header? | **No. The created resource is in the body; there is no separate fetch to point at.** | One convention, stated once, rather than a per-endpoint judgement call. | SW-ADR-051 | slice run 2, guess 19 |
 | `CV-11` | Route ordering, and what a non-integer id returns | **`/api/expenses/summary` MUST be declared before `/api/expenses/{expense_id}`. A path parameter that fails integer coercion returns **404**, not 422.** | Declared the other way, the literal `summary` is eaten by the int path parameter and the endpoint 422s. And a malformed id is a not-found id: 422 would leak that the id space is integers, which P-PRV-03's uniform 404 exists to avoid. | P-PRV-03 · SW-ADR-050 | slice run 2, guess 20 |
+| `CV-12` | Who commits the request transaction? | **The session dependency commits ONCE, after the handler returns. No service and no repository commits.** | The GUC is transaction-local, and the create response stitches `category_name` from the categories service AFTER the insert. Commit in the service and that read returns zero rows - `category_name` silently becomes null with nothing red. | SW-ADR-136 D · GOTCHAS | slice run 3, guess 1 |
+| `CV-13` | How does an expected constraint violation not abort the request? | **The INSERT runs inside a SAVEPOINT. On the composite-FK violation, ROLLBACK TO SAVEPOINT, then return 422 field=category_id.** | One transaction per request plus 'enforced by the database' means the FK violation aborts the REQUEST transaction. Without a savepoint the handler cannot emit its 422 and returns 500 - and the naive fix, a second transaction, is the silent zero-rows failure SW-ADR-136 D forbids. | SW-ADR-072 · P-REC-01 · NEG-X-11 | slice run 3, guess 10 |
+| `CV-14` | How is 'today' pinned for the BROWSER-observed gate run? | **The clock dependency reads `APP_TODAY_OVERRIDE` when set. Absent in production; set in the gate container. The FastAPI dependency override of CV-06 covers in-process tests only.** | Art IX.4 and E0-S10 require the gate observed through a real browser against a running app, where no in-process override is reachable - so CV-06 alone could not produce the observed 75810. | SW-ADR-096 · Art IX.4 · CV-06 | slice run 3, guess 4 |
+| `CV-15` | Does the breakdown-sums-to-total invariant hold under a filter? | **It is asserted ONLY when no category filter is applied. With a filter the headline re-scopes and `by_category` does not, so they are not expected to agree.** | P-UND-05 states the invariant unqualified and CV-03 leaves by_category un-scoped. Both are right; the invariant simply has a precondition nobody wrote down, and a literal test walks straight into it. | P-UND-05 · CV-03 · SW-ADR-109 | slice run 3, contradiction C3 |
+| `CV-16` | What is the test stack? | **pytest + pytest-asyncio + httpx (ASGITransport) for API and unit tests; Playwright for the browser-observed gate. Added to SW-ADR-016's locked stack.** | Art IX.1 mandates failing-test-first and E0-S5 mandates a real browser, while SW-ADR-016 says do not substitute and named no tool for either - so the first engineer had to extend a stack the same document forbids extending. | SW-ADR-016 · Art IX.1 · E0-S5 | slice run 3, guess 13 |
+| `CV-17` | How is the percentage tie-break resolved? | **Integer arithmetic only. Ties go to the EARLIER position in the already-sorted list (total DESC, name ASC, synthetic last). Never float division.** | Art V.1 says never a float, and the generator that produces the normative payload used float division - so the only statement of the algorithm violated the Constitution, and its tie-break was an accident of Python's sort stability. | SW-ADR-055 · Art V.1 | slice run 3, contradiction C8 |
+| `CV-18` | What does a foreign category_id filter return on the summary? | **The filter APPLIES and matches nothing: total_paise 0, count 0, by_day all zeros, daily_average_paise computed over the elapsed days (so 0, not null). `by_category` stays un-scoped per CV-03 and is non-empty.** | NEG-X-08 said both 'B's OWN summary' and 'an unknown category_id filters to nothing' in one cell - the first reads as ignore the filter, the second as total 0. | NEG-X-08 · CV-03 · P-PRV-03 | slice run 3, guess 12 |
 
 A convention absent from this table and from §6.1 is **not** a licence to choose one.
 It is an `OPEN` item: escalate, never invent (`CONSTITUTION.md` Art X).
+
+### §6.3 — Serialisation
+
+| | |
+|---|---|
+| **Timestamps** | UTC, RFC 3339 with a `Z` suffix and exactly 3 fractional digits: `2026-08-01T09:14:22.481Z`. Not the framework default - configure the encoder. |
+| **Dates** | ISO 8601 date only, no time component: `2026-08-01`. |
+| **Money** | `amount` and `total` and `daily_average` are decimal STRINGS in rupees with exactly two places. `*_paise` fields are integers. The client never divides by 100. |
+| **Nulls** | An absent value is `null`, never omitted, never an empty string. |
+| **Unknown body keys** | `extra="ignore"` model-wide. An unknown key is discarded, never 422 - `extra="forbid"` would reject the forged `user_id` of NEG-X-10, which must return 201 (SW-ADR-130). |
+| **`amount` grammar** | `^-?[0-9]{1,15}(\.[0-9]{1,2})?$` — applied **before** `Decimal()`. Applied BEFORE Decimal(). CV-04 rules on written scale, which is necessary and not sufficient: Decimal('1.25e3') has scale 0 and would pass a scale-only check, and Decimal(' 12.50 ') parses where a strict pattern refuses. Rejects scientific notation, surrounding whitespace, a leading '+', and a bare '.50'. |
+
+Rejected by that pattern: `1.25e3`, ` 12.50 `, `+12.50`, `.50`, `1250.0000`, `abc`.
 
 <!-- END GENERATED §6.1 -->
 

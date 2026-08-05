@@ -10,8 +10,9 @@ PATCH	/api/categories/{id}	NEG-X-04	—	COVERED
 DELETE	/api/categories/{id}	NEG-X-05	—	COVERED
 GET	/api/expenses	NEG-X-09, NEG-X-13, NEG-X-14	NEG-X-17 (at the database)	COVERED
 POST	/api/expenses	NEG-X-10, NEG-X-11	NEG-X-18, NEG-X-19 (at the database)	COVERED
-PATCH	/api/expenses/{id}	NEG-X-02	—	COVERED
-DELETE	/api/expenses/{id}	NEG-X-03	—	COVERED
+GET	/api/expenses/{expense_id}	NEG-X-01	SIT-E0-S7-01 (E0-S7 AC1)	COVERED
+PATCH	/api/expenses/{expense_id}	NEG-X-02	—	COVERED
+DELETE	/api/expenses/{expense_id}	NEG-X-03	—	COVERED
 GET	/api/expenses/summary	NEG-X-08, NEG-X-20	NEG-X-21 (GUC red-proof)	COVERED
 POST	/api/receipts/upload-url	NEG-X-16	NEG-S-01, NEG-S-02	COVERED
 POST	/api/receipts/attach	NEG-X-15	—	COVERED

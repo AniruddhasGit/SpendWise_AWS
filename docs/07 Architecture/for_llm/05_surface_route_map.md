@@ -13,7 +13,7 @@
 | `POST /api/auth/register · login · reset/complete` | anonymous, rate limited |
 | `POST /api/auth/logout` · `GET /api/auth/me` | signed in |
 | `GET·POST /api/categories` · `PATCH·DELETE /api/categories/{id}` | owner, RLS |
-| `GET·POST /api/expenses` · `PATCH·DELETE /api/expenses/{id}` | owner, RLS |
+| `GET·POST /api/expenses` · `GET·PATCH·DELETE /api/expenses/{expense_id}` | owner, RLS |
 | `GET /api/expenses/summary` | owner, RLS |
 | `/api/receipts/*` | **owner only — no administrative path exists** |
 | `/api/admin/*` | `require_admin` as a **router** dependency, applied once |
@@ -40,7 +40,7 @@ A naive set-difference between the two therefore reports a mismatch that is not 
 correct check is *containment*: every PRD route must resolve to an entry here, by exact match
 or by a wildcard prefix.
 
-**Verified 2026-08-05: 25 PRD routes, all covered, none missing.**
+**Verified 2026-08-05: the route inventory is generated from `docs/03 PRD/api/contract.json` (`SW-ADR-140`), and `consistency_check.py` fails if any route a test names is missing from it. This note previously claimed 25 routes verified while the set omitted `GET /api/expenses/{expense_id}`, which a SEV-1 case requires.**
 
 > **Correction, recorded rather than quietly fixed.** The first version of this note claimed
 > "all 18 PRD routes resolve" — written *before* the check was re-run correctly, and the run it

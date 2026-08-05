@@ -61,8 +61,8 @@ and the Bible reproduces it rather than quietly resolving it.
 ## Integrity, computed not claimed
 
 ```
-51 rows          7 epics, 44 stories
-178 acceptance criteria, every one binary
+55 rows          7 epics, 48 stories
+195 acceptance criteria, every one binary
 unresolved ParentID  : none
 unresolved DependsOn : none
 stories with no AC   : none

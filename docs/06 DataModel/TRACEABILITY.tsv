@@ -70,4 +70,4 @@ indexes/ix_expenses_user_id__spent_on_desc	SRC-001 §6.8	RULED
 indexes/ix_expenses_user_id__category_id	SRC-001 §6.8	RULED
 indexes/ix_admin_audit_log_admin_id__created_at_desc	SW-ADR-039	RULED
 indexes/ix_admin_audit_log_target_user_id	SW-ADR-039	RULED
-functions/admin_expense_stats	SW-ADR-129 (supersedes SW-ADR-129, restores SW-ADR-043) · SRC-001 §4.5	RULED
+functions/admin_expense_stats	SW-ADR-129 (supersedes SW-ADR-077, restores SW-ADR-043) · SRC-001 §4.5	RULED

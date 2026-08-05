@@ -38,6 +38,8 @@ CODES = os.path.join(HERE, "error_codes.md")
 
 BEGIN = "<!-- BEGIN GENERATED §6.1 — py \"docs/03 PRD/api/generate_api.py\" -->"
 END = "<!-- END GENERATED §6.1 -->"
+ROUTES_BEGIN = "<!-- BEGIN GENERATED ROUTES -->"
+ROUTES_END = "<!-- END GENERATED ROUTES -->"
 
 
 def rupees(paise):
@@ -52,13 +54,22 @@ def half_up(total, divisor):
 
 
 def largest_remainder(parts, total):
-    """Percentages that sum to exactly 100 (SW-ADR-055)."""
+    """Percentages that sum to exactly 100 (SW-ADR-055), in INTEGERS ONLY.
+
+    The first version of this function used `p * 100 / total` — float division,
+    to compute the value the generated payload calls normative, in a project
+    whose Constitution Art V.1 says never a float. Its tie-break was also an
+    accident of Python's stable sort rather than a stated rule. Both are fixed
+    here and the rule is stated: ties go to the EARLIER position in the
+    already-sorted list (CV-17).
+    """
     if not total:
         return [0] * len(parts)
-    exact = [p * 100 / total for p in parts]
-    floors = [int(x) for x in exact]
+    floors = [p * 100 // total for p in parts]
+    rem = [p * 100 - f * total for p, f in zip(parts, floors)]   # exact integer remainder
     short = 100 - sum(floors)
-    order = sorted(range(len(parts)), key=lambda i: exact[i] - floors[i], reverse=True)
+    # -rem[i] descending, then i ascending: a tie goes to the earlier position
+    order = sorted(range(len(parts)), key=lambda i: (-rem[i], i))
     for i in order[:short]:
         floors[i] += 1
     return floors
@@ -144,13 +155,25 @@ def render_codes(spec):
 
 def render_prd_block(spec, summary):
     g = spec["gate"]
-    create_req = {"amount": "1250.00", "category_id": 3, "description": "Auto to office",
-                  "spent_on": "2026-08-01", "user_id": 99, "id": 4242}
-    create_res = {"id": 8801, "user_id": 7, "category_id": 3, "category_name": "Transport",
-                  "amount": "1250.00", "amount_paise": 125000, "currency": "INR",
-                  "description": "Auto to office", "spent_on": "2026-08-01",
-                  "receipt_key": None, "created_at": "2026-08-01T09:14:22.481Z",
-                  "updated_at": None}
+    # The create pair is DERIVED from the seed fixture's first expense and the
+    # category list. It was hard-coded here until 2026-08-05 — under a heading
+    # that says "Generated from contract.json", which made the banner partly
+    # false in exactly the way SW-ADR-138 was written to end.
+    first = spec["seed_fixture"]["expenses"][0]
+    cats = {c["id"]: c for c in spec["categories"]["seeded"]}
+    ts = spec["serialisation"]["example_created_at"]
+    create_req = {"amount": rupees(first["amount_paise"]),
+                  "category_id": first["category_id"],
+                  "description": first["description"],
+                  "spent_on": first["spent_on"],
+                  "user_id": 99, "id": 4242}
+    create_res = {"id": 8801, "user_id": 7,
+                  "category_id": first["category_id"],
+                  "category_name": cats[first["category_id"]]["name"],
+                  "amount": rupees(first["amount_paise"]),
+                  "amount_paise": first["amount_paise"], "currency": "INR",
+                  "description": first["description"], "spent_on": first["spent_on"],
+                  "receipt_key": None, "created_at": ts, "updated_at": None}
 
     # the day series is long; show the shape and the days that matter
     shown = [d for d in summary["by_day"][:6]]
@@ -274,7 +297,52 @@ def render_prd_block(spec, summary):
               "It is an `OPEN` item: escalate, never invent (`CONSTITUTION.md` Art X).",
               ""]
 
+    ser = spec.get("serialisation")
+    if ser:
+        L += ["### §6.3 — Serialisation",
+              "",
+              "| | |",
+              "|---|---|",
+              "| **Timestamps** | %s |" % ser["datetime"],
+              "| **Dates** | %s |" % ser["date"],
+              "| **Money** | %s |" % ser["money"],
+              "| **Nulls** | %s |" % ser["nulls"],
+              "| **Unknown body keys** | %s |" % ser["extra_fields"],
+              "| **`amount` grammar** | `%s` — applied **before** `Decimal()`. %s |"
+              % (ser["amount_grammar"]["pattern"], ser["amount_grammar"]["note"]),
+              "",
+              "Rejected by that pattern: %s."
+              % ", ".join("`%s`" % x for x in ser["amount_grammar"]["rejected_examples"]),
+              ""]
+
     L.append(END)
+    return "\n".join(L)
+
+
+def render_routes(spec):
+    """PRD §6's route table, from the spec of record rather than by hand."""
+    rt = spec["routes"]
+    L = [ROUTES_BEGIN, "",
+         "| Method | Path | Who | Spec | Errors |", "|---|---|---|---|---|"]
+    for r in rt["routes"]:
+        L.append("| %s | `%s` | %s | %s | %s |"
+                 % (r["method"], r["path"], r["who"],
+                    " · ".join("`%s`" % s for s in r["spec"]),
+                    ", ".join("`%s`" % c for c in r["error_codes"]) or "—"))
+    L += ["",
+          "**%d routes** (%d under `/api/`, plus `/healthz` and `/readyz`). Generated from"
+          % (len(rt["routes"]), sum(1 for r in rt["routes"] if r["path"].startswith("/api/"))),
+          "`contract.json`; `consistency_check.py` fails if any path named by a Bible criterion,",
+          "a SIT case or a negative case does not resolve to a row here.",
+          ""]
+    notes = [r for r in rt["routes"] if r.get("note")]
+    if notes:
+        L.append("**Route notes.**")
+        L.append("")
+        for r in notes:
+            L.append("- `%s %s` — %s" % (r["method"], r["path"], r["note"]))
+        L.append("")
+    L.append(ROUTES_END)
     return "\n".join(L)
 
 
@@ -293,24 +361,38 @@ def build():
     expected = json.dumps(summary, indent=2, ensure_ascii=False) + "\n"
     codes = render_codes(spec)
     block = render_prd_block(spec, summary)
-    return spec, summary, expected, codes, block
+    routes = render_routes(spec)
+    return spec, summary, expected, codes, block, routes
 
 
-def inject(prd_text, block):
+def inject(prd_text, block, routes_block):
     if BEGIN in prd_text and END in prd_text:
-        return re.sub(re.escape(BEGIN) + r".*?" + re.escape(END), lambda _: block,
-                      prd_text, flags=re.S)
-    m = re.search(r"^## §7 — Cross-cutting floors", prd_text, re.M)
+        prd_text = re.sub(re.escape(BEGIN) + r".*?" + re.escape(END), lambda _: block,
+                          prd_text, flags=re.S)
+    else:
+        m = re.search(r"^## §7 — Cross-cutting floors", prd_text, re.M)
+        if not m:
+            raise SystemExit("FAIL  cannot find §7 to anchor the generated block")
+        prd_text = prd_text[:m.start()] + block + "\n\n---\n\n" + prd_text[m.start():]
+
+    if ROUTES_BEGIN in prd_text and ROUTES_END in prd_text:
+        return re.sub(re.escape(ROUTES_BEGIN) + r".*?" + re.escape(ROUTES_END),
+                      lambda _: routes_block, prd_text, flags=re.S)
+    # first run: replace the hand-maintained table between the §6 heading and
+    # the Status codes paragraph
+    m = re.search(r"(## §6 — API contract\n\n)(?:.*?\n)*?(\*\*Status codes\.\*\*)",
+                  prd_text, re.S)
     if not m:
-        raise SystemExit("FAIL  cannot find §7 to anchor the generated block")
-    return prd_text[:m.start()] + block + "\n\n---\n\n" + prd_text[m.start():]
+        raise SystemExit("FAIL  cannot find the §6 route table to replace")
+    return (prd_text[:m.start(1)] + m.group(1) + routes_block + "\n\n"
+            + prd_text[m.start(2):])
 
 
 def main():
-    spec, summary, expected, codes, block = build()
+    spec, summary, expected, codes, block, routes = build()
     with open(PRD, encoding="utf-8") as f:
         prd_now = f.read()
-    prd_new = inject(prd_now, block)
+    prd_new = inject(prd_now, block, routes)
 
     targets = [(EXPECTED, expected), (CODES, codes), (PRD, prd_new)]
     if "--check" in sys.argv:

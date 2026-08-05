@@ -1,5 +1,13 @@
 # Security and isolation
 
+> **⚠ CORRECTED 2026-08-05 by `SW-ADR-136`.** This diagram previously ordered the
+> session lookup **before** `set_config`. `sessions` is under `FORCE ROW LEVEL
+> SECURITY` with a policy on `app.user_id`, so that order returns **zero rows for
+> every request ever made**. The identity comes from the token's `sub` claim.
+>
+> `SW-ADR-136` asserted this file had been corrected before it had been. Found by
+> the third uncoached slice, as contradiction C1.
+
 ## Two layers, and what each catches
 
 ```mermaid
@@ -9,10 +17,10 @@ sequenceDiagram
     participant D as PostgreSQL
     B->>A: GET /api/expenses (cookie)
     A->>A: verify signature, pin algorithms=["HS256"]
-    A->>D: SELECT session WHERE id = jti
+    A->>D: SELECT set_config('app.user_id', :sub, true)   %% FIRST — SW-ADR-136
+    A->>D: SELECT session WHERE id = jti                  %% only now readable
     D-->>A: row (or none)
     A->>A: check revoked_at, expires_at, idle window, is_active
-    A->>D: SELECT set_config('app.user_id', :uid, true)
     Note over A,D: bound parameter. SET LOCAL cannot take one,<br/>and interpolating is the f-string-near-SQL §10.3 forbids
     A->>D: SELECT ... WHERE user_id = :uid
     D->>D: RLS policy filters AGAIN, independently
