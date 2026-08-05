@@ -25,3 +25,15 @@ reason: *"because I will forget one."*
 **Not-yours and not-found are the same response: 404, on every verb** (`SW-ADR-050`). A 403 on an
 existing record is an id oracle. This is also what makes sequential integer ids safe — the two
 decisions must be reversed together or not at all.
+
+---
+
+## On granularity, so a two-way check does not misread it
+
+This map groups where the PRD enumerates: `/api/admin/*` here is nine endpoints in
+`03 PRD` §6, and `/api/receipts/*` is four. That is deliberate — **this document orients a
+session; the PRD is the contract.**
+
+A naive set-difference between the two therefore reports a mismatch that is not one. The
+correct check is *containment*: every PRD route must resolve to an entry here, by exact match
+or by a wildcard prefix. Verified 2026-08-05 — **all 18 PRD routes resolve, none missing.**
