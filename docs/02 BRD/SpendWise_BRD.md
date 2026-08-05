@@ -243,7 +243,7 @@ now `RULED` here with its closing record cited — v0.3's single largest change.
 
 | | |
 |---|---|
-| `OPEN-NAME-01` | Until a named human signs the Constitution, this document and all 140 ADRs are formally ungoverned. |
+| `OPEN-NAME-01` | Until a named human signs the Constitution, this document and all 141 ADRs are formally ungoverned. |
 | `OPEN-CAT-01` | Which eight categories are seeded, and their colours. Blocks `R-REC-05` and the day-one fixture. **A one-message question.** |
 | `OPEN-MIGRATE-01` | Two of the client's own APPROVED ADRs contradict each other. `R-OPS-05`. |
 | `OPEN-CREDS-01` | Where database credentials live. Reserved: secrets. |

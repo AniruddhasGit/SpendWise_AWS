@@ -150,7 +150,53 @@ def render_codes(spec):
             "the audit-log action allowlist is closed (`SW-ADR-105`): an unlisted value is a defect,",
             "not an extension point.",
             ""]
+
+    msgs = ec.get("messages")
+    if msgs:
+        out += ["## Messages — one per rule", "",
+                msgs["note"], "",
+                "| Rule | `field` | Message |", "|---|---|---|"]
+        for m in msgs["rules"]:
+            out.append("| `%s` | `%s` | %s |" % (m["rule"], m["field"], m["message"]))
+        ph = msgs.get("placeholders")
+        if ph:
+            out += ["", "**Placeholders.** " + ph["note"], "",
+                    "| `{field}` | `{expected}` | `{example}` |", "|---|---|---|"]
+            for t in ph["types"]:
+                out.append("| `%s` | %s | `%s` |" % (t["field"], t["expected"], t["example"]))
+        out.append("")
+
+    pr = ec.get("precedence")
+    if pr:
+        out += ["## Precedence — when one body breaks two rules", "",
+                "**" + pr["rule"] + "**", "",
+                pr["note"], "", pr["why"], "",
+                "```", " -> ".join(pr["order"]), "```", ""]
     return "\n".join(out)
+
+
+def render_request_models(spec):
+    rm = spec.get("request_models")
+    if not rm:
+        return []
+    L = ["### §6.4 — Request models", "",
+         "**Generated from `contract.json`. Do not hand-edit — regenerate.**", "",
+         rm["note"], "", "**Null policy.** " + rm["null_policy"], ""]
+    for name, m in rm["models"].items():
+        L += ["**`%s`** — %s" % (name, m["source"] if "source" in m else "response shape"), ""]
+        if m.get("note"):
+            L += [m["note"], ""]
+        L += ["| Field | Type | Required | |", "|---|---|---|---|"]
+        for f in m["fields"]:
+            L.append("| `%s` | `%s` | %s | %s |"
+                     % (f["name"], f["type"],
+                        "**yes**" if f.get("required") else ("no" if "required" in f else "—"),
+                        f.get("note", "")))
+        L.append("")
+        if m.get("discarded"):
+            L += ["Discarded before validation: %s. %s"
+                  % (", ".join("`%s`" % d for d in m["discarded"]), m["discarded_note"]), ""]
+    return L
 
 
 def render_prd_block(spec, summary):

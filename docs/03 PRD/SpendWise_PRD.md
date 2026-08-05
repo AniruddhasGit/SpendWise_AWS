@@ -20,7 +20,7 @@ Every `P-` row carries **two** references: a `[SRC:]` tag (where the requirement
 a **BRD row** (which business requirement it satisfies). A row missing either is a defect:
 no `[SRC:]` means invented, no BRD row means scope creep.
 
-Citations resolve against **currently APPROVED** records only. 21 of the 140 ADRs are
+Citations resolve against **currently APPROVED** records only. 21 of the 141 ADRs are
 superseded or withdrawn and are not authority.
 
 **Status:** `RULED` (decided, cited) · `PROVISIONAL` (buildable, a dependency outstanding) ·
@@ -221,7 +221,14 @@ ordered last** regardless of size, clickable to filter `category_id IS NULL`.
 · **Invariant, asserted in tests: the breakdown sums exactly to the headline total.**
 
 **`P-UND-06` Empty range** — BRD `R-UND-10` · `[SRC: SW-ADR-054]`
-total 0, count 0, average null, breakdown `[]`, and the **full day series of zero-valued days**.
+total 0, count 0, breakdown `[]`, and the **full day series of zero-valued days**.
+**The average is `null` only when `days_elapsed` is 0** — a wholly future range `[SRC: SW-ADR-053]`. An empty range that HAS elapsed (a new account opening 1–31 August on the
+5th — the first screen every new user sees) has `days_elapsed: 5` and therefore
+`daily_average_paise: 0`, which is the truth: five days elapsed, nothing spent.
+*(Corrected 2026-08-05. This sentence previously read "average null" beside "full day series",
+and those cannot both hold — a full series means time has elapsed. Built as written, the first
+screen renders ₹0.00 where `P-UND-02` requires an em-dash. Found by the fourth uncoached
+slice, contradiction C1.)*
 The client shows a distinct first-run state for a brand-new account and a distinct
 "nothing in this period" state for an empty filter — **and never renders zeros for a failed
 request**, which in a money app is indistinguishable from a true zero `[SRC: SW-ADR-057]`.
@@ -711,6 +718,8 @@ only of what it now says.
 | `CV-16` | What is the test stack? | **pytest + pytest-asyncio + httpx (ASGITransport) for API and unit tests; Playwright for the browser-observed gate. Added to SW-ADR-016's locked stack.** | Art IX.1 mandates failing-test-first and E0-S5 mandates a real browser, while SW-ADR-016 says do not substitute and named no tool for either - so the first engineer had to extend a stack the same document forbids extending. | SW-ADR-016 · Art IX.1 · E0-S5 | slice run 3, guess 13 |
 | `CV-17` | How is the percentage tie-break resolved? | **Integer arithmetic only. Ties go to the EARLIER position in the already-sorted list (total DESC, name ASC, synthetic last). Never float division.** | Art V.1 says never a float, and the generator that produces the normative payload used float division - so the only statement of the algorithm violated the Constitution, and its tie-break was an accident of Python's sort stability. | SW-ADR-055 · Art V.1 | slice run 3, contradiction C8 |
 | `CV-18` | What does a foreign category_id filter return on the summary? | **The filter APPLIES and matches nothing: total_paise 0, count 0, by_day all zeros, daily_average_paise computed over the elapsed days (so 0, not null). `by_category` stays un-scoped per CV-03 and is non-empty.** | NEG-X-08 said both 'B's OWN summary' and 'an unknown category_id filters to nothing' in one cell - the first reads as ignore the filter, the second as total 0. | NEG-X-08 · CV-03 · P-PRV-03 | slice run 3, guess 12 |
+| `CV-19` | May an optional field be sent as explicit null? | **Yes. Explicit `null` and omission are equivalent on input. Unknown keys are discarded, never rejected.** | `extra="forbid"` would 422 the forged `user_id` of NEG-X-10, which must return 201. | SW-ADR-130 · SW-ADR-141 | slice run 4, guess 6 |
+| `CV-20` | What format does APP_TODAY_OVERRIDE take? | **`APP_TODAY_OVERRIDE=2026-08-05` — a bare ISO date, parsed with `date.fromisoformat`, read as an Asia/Kolkata calendar date. Malformed: refuse to start (P-OPS-01 fails fast).** | CV-14 exists because the in-process override of CV-06 cannot reach a browser-observed run, and it stopped one line short of being executable. | CV-14 · SW-ADR-096 | slice run 4, guess 8 |
 
 A convention absent from this table and from §6.1 is **not** a licence to choose one.
 It is an `OPEN` item: escalate, never invent (`CONSTITUTION.md` Art X).

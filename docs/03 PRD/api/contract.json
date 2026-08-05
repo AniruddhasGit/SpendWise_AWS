@@ -1,7 +1,7 @@
 {
   "spec_of_record": true,
   "source": "SW-ADR-138",
-  "note": "The API contract's spec of record. openapi.yaml, the PRD §6.1 worked payloads, and docs/06 DataModel/seed/expected_summary.json are all GENERATED from this file by generate_api.py. Hand-writing a payload into Markdown is exactly as driftable as the prose it replaces - the first attempt omitted a required field, contradicted itself on null vs 0, named two categories that do not exist, printed an array out of the order the same page mandates, and cited the wrong ADR for the one number that is never waivable. Verify with: py \"docs/03 PRD/api/generate_api.py\" --check",
+  "note": "The API contract's spec of record. The PRD's §6 route table, §6.1 worked payloads, §6.2 conventions and §6.3 serialisation, docs/03 PRD/api/error_codes.md, and docs/06 DataModel/seed/expected_summary.json are all GENERATED from this file by generate_api.py. (An earlier version of this sentence also named an openapi.yaml, which was never written - a false claim inside the one document whose stated purpose is to be the place that cannot drift. Found by the fourth uncoached slice.) Hand-writing a payload into Markdown is exactly as driftable as the prose it replaces - the first attempt omitted a required field, contradicted itself on null vs 0, named two categories that do not exist, printed an array out of the order the same page mandates, and cited the wrong ADR for the one number that is never waivable. Verify with: py \"docs/03 PRD/api/generate_api.py\" --check",
   "seed_fixture": {
     "source": "SW-ADR-010 · docs/06 DataModel/seed/README.md · SW-ADR-092 (the category list)",
     "note": "The category assignment was unstated until 2026-08-05, so any test asserting on by_category had to invent one. Assigned here, in the spec of record, so the seed and the expected payload cannot disagree.",
@@ -158,7 +158,7 @@
         "code": "SESSION_INVALID",
         "status": 401,
         "has_field": false,
-        "when": "credential presented but revoked, expired, idle-timed-out or signed with a rotated secret"
+        "when": "credential presented but revoked, expired, idle-timed-out, signed with a rotated secret, or **otherwise unverifiable** — a bad signature, alg=none, a missing claim or a structurally broken token. UNAUTHENTICATED is only for no credential at all, so a tampered token has exactly one code that fits."
       },
       {
         "code": "ACCOUNT_DEACTIVATED",
@@ -205,8 +205,18 @@
     ],
     "messages": {
       "source": "SW-ADR-140 - SIT-E2-S7-02 requires '422 naming the cap', which is a binary assertion on a string nothing specified.",
-      "note": "One message per rule. The `field` column names which input a pairwise rule reports.",
+      "note": "One message per rule. The `field` column names which input a pairwise rule reports. `field.required` and `field.type` were missing until 2026-08-05: the registry was written with the argument that '422 naming the cap' is a binary assertion on a string nothing specified, and that argument was applied to eleven value rules and then stopped - while absence and type are more common in real traffic than every value rule combined.",
       "rules": [
+        {
+          "rule": "field.required",
+          "field": "<the missing key>",
+          "message": "{field} is required."
+        },
+        {
+          "rule": "field.type",
+          "field": "<the ill-typed key>",
+          "message": "{field} must be {expected}, for example {example}."
+        },
         {
           "rule": "amount.scale",
           "field": "amount",
@@ -262,7 +272,63 @@
           "field": "uncategorised",
           "message": "category_id and uncategorised cannot both be given."
         }
-      ]
+      ],
+      "placeholders": {
+        "note": "`{field}`, `{expected}` and `{example}` are substituted at render time. The rendered sentence is what a test asserts on, so the substitutions are part of the contract.",
+        "types": [
+          {
+            "field": "amount",
+            "expected": "a decimal string",
+            "example": "\"1250.00\""
+          },
+          {
+            "field": "spent_on",
+            "expected": "a date",
+            "example": "\"2026-08-01\""
+          },
+          {
+            "field": "category_id",
+            "expected": "an integer or null",
+            "example": "3"
+          },
+          {
+            "field": "description",
+            "expected": "a string or null",
+            "example": "\"Auto to office\""
+          },
+          {
+            "field": "from",
+            "expected": "a date",
+            "example": "\"2026-08-01\""
+          },
+          {
+            "field": "to",
+            "expected": "a date",
+            "example": "\"2026-08-31\""
+          }
+        ]
+      }
+    },
+    "precedence": {
+      "source": "SW-ADR-141",
+      "note": "The envelope carries exactly ONE field and ONE message, and every negative case varies exactly one input - so nothing forced this question and nothing answered it. Two engineers would have implemented opposite orders and both passed their own tests, which is the Art IX.3 failure: an acceptance criterion with a 50/50 expected value is not binary.",
+      "rule": "Report the FIRST failure in the order below and stop. Validation short-circuits; it does not collect.",
+      "order": [
+        "field.required",
+        "field.type",
+        "amount.grammar",
+        "amount.scale",
+        "amount.bounds",
+        "spent_on.window",
+        "description.length",
+        "range.required",
+        "range.order",
+        "range.span",
+        "range.floor",
+        "filter.exclusive",
+        "category.not_owned"
+      ],
+      "why": "Presence before type before value, then fields in the order §6.1's worked payload lists them. `category.not_owned` is last because it is raised by the database, after every in-process rule has already passed."
     }
   },
   "models": {
@@ -286,7 +352,7 @@
         {
           "name": "category_name",
           "type": "string|null",
-          "note": "service-to-service from the categories module (SW-ADR-017)"
+          "note": "service-to-service from the categories module (SW-ADR-017). **`null` when `category_id` is null** — the `Uncategorised` label belongs to `CategoryBucket` alone (SW-ADR-131), and putting it on an expense row would make a synthetic display string indistinguishable from a real category name. Day one exercises this: the seed's fourth expense has no category."
         },
         {
           "name": "amount",
@@ -352,7 +418,7 @@
         {
           "name": "percent",
           "type": "integer",
-          "note": "largest remainder, so printed percentages sum to exactly 100 (SW-ADR-055, Bible E3-S3)"
+          "note": "largest remainder over the SUM OF THE BUCKETS, not over the headline `total_paise` (SW-ADR-055, CV-17). Identical under no filter; under a category filter the headline re-scopes and `by_category` does not (CV-03, CV-15), so dividing by the headline would print percentages summing to several hundred. Integer arithmetic only; ties to the earlier position."
         }
       ],
       "ordering": "total_paise DESC, category_name ASC; the synthetic null bucket ALWAYS last regardless of size (SW-ADR-131)"
@@ -571,6 +637,22 @@
         "why": "NEG-X-08 said both 'B's OWN summary' and 'an unknown category_id filters to nothing' in one cell - the first reads as ignore the filter, the second as total 0.",
         "source": "NEG-X-08 · CV-03 · P-PRV-03",
         "asked_by": "slice run 3, guess 12"
+      },
+      {
+        "id": "CV-19",
+        "question": "May an optional field be sent as explicit null?",
+        "ruling": "Yes. Explicit `null` and omission are equivalent on input. Unknown keys are discarded, never rejected.",
+        "why": "`extra=\"forbid\"` would 422 the forged `user_id` of NEG-X-10, which must return 201.",
+        "source": "SW-ADR-130 · SW-ADR-141",
+        "asked_by": "slice run 4, guess 6"
+      },
+      {
+        "id": "CV-20",
+        "question": "What format does APP_TODAY_OVERRIDE take?",
+        "ruling": "`APP_TODAY_OVERRIDE=2026-08-05` — a bare ISO date, parsed with `date.fromisoformat`, read as an Asia/Kolkata calendar date. Malformed: refuse to start (P-OPS-01 fails fast).",
+        "why": "CV-14 exists because the in-process override of CV-06 cannot reach a browser-observed run, and it stopped one line short of being executable.",
+        "source": "CV-14 · SW-ADR-096",
+        "asked_by": "slice run 4, guess 8"
       }
     ]
   },
@@ -1030,5 +1112,112 @@
     },
     "extra_fields": "`extra=\"ignore\"` model-wide. An unknown key is discarded, never 422 - `extra=\"forbid\"` would reject the forged `user_id` of NEG-X-10, which must return 201 (SW-ADR-130).",
     "example_created_at": "2026-08-01T09:14:22.481Z"
+  },
+  "request_models": {
+    "source": "SW-ADR-141",
+    "note": "`models` held only the RESPONSE shapes. `ExpenseCreate` and `Principal` appeared as bare strings in the route table and were defined nowhere - so the half of the contract every 422 test touches was outside the spec of record that SW-ADR-138 created precisely because hand-written shapes drift.",
+    "null_policy": "An optional field may be sent as explicit `null` or omitted; the two are equivalent. Unknown keys are discarded, never rejected (`extra=\"ignore\"`, CV-19 / SW-ADR-130).",
+    "models": {
+      "ExpenseCreate": {
+        "source": "P-REC-01 · SW-ADR-130",
+        "fields": [
+          {
+            "name": "amount",
+            "type": "string",
+            "required": true,
+            "note": "decimal string in rupees; a JSON number is 422 (amount.grammar)"
+          },
+          {
+            "name": "spent_on",
+            "type": "date",
+            "required": true,
+            "note": "never defaulted server-side (SW-ADR-111)"
+          },
+          {
+            "name": "category_id",
+            "type": "integer|null",
+            "required": false,
+            "default": null,
+            "note": "ownership enforced by the composite FK, not a pre-read (SW-ADR-072)"
+          },
+          {
+            "name": "description",
+            "type": "string|null",
+            "required": false,
+            "default": null,
+            "note": "empty or whitespace-only is normalised to null (SW-ADR-115)"
+          }
+        ],
+        "discarded": [
+          "user_id",
+          "id",
+          "amount_paise",
+          "currency",
+          "created_at",
+          "updated_at",
+          "receipt_key",
+          "category_name"
+        ],
+        "discarded_note": "Discarded BEFORE validation, never 422 (SW-ADR-130). NEG-X-10 requires 201 for a forged user_id, so extra=\"forbid\" is not available."
+      },
+      "ExpenseUpdate": {
+        "source": "P-REC-03",
+        "fields": [
+          {
+            "name": "amount",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "spent_on",
+            "type": "date",
+            "required": false
+          },
+          {
+            "name": "category_id",
+            "type": "integer|null",
+            "required": false
+          },
+          {
+            "name": "description",
+            "type": "string|null",
+            "required": false
+          }
+        ],
+        "note": "Every field optional; at least one must be present or 422 field.required with field='body'. The service sets updated_at (CV-09)."
+      },
+      "Principal": {
+        "source": "P-ACC-06",
+        "fields": [
+          {
+            "name": "id",
+            "type": "integer"
+          },
+          {
+            "name": "email",
+            "type": "string"
+          },
+          {
+            "name": "display_name",
+            "type": "string"
+          },
+          {
+            "name": "role",
+            "type": "string",
+            "note": "`user` or `admin`"
+          },
+          {
+            "name": "currency",
+            "type": "string",
+            "note": "the expenses service reads currency from HERE, never from the users table (CV-05, SRC-001 §3.4)"
+          },
+          {
+            "name": "is_active",
+            "type": "boolean"
+          }
+        ],
+        "note": "A response model, but listed here because the route table names it and `models` did not define it."
+      }
+    }
   }
 }
