@@ -329,9 +329,16 @@ PLANTS = [
      lambda t: t.replace("APPROVED", "TOTALLY_FINE", 1)),
     ("fingerprint", "docs/00 SourceOfTruth/SRC-001_requirements_2026-08-05.md",
      lambda t: t + "\n\nPlanted: a frozen source was edited.\n"),
+    # The plant must carry enough of SW-ADR-119's own vocabulary to clear the
+    # threshold, or this "red-proof" proves only that a weak signal is ignored.
     ("citation-topic", "docs/02 BRD/SpendWise_BRD.md",
-     lambda t: t + "\n\nPlanted: every destructive action confirms, naming the blast radius "
-                   "and the count of affected expenses, per `SW-ADR-118`.\n"),
+     lambda t: t + (
+         "\n\nPlanted: every destructive action confirms, naming the blast radius. "
+         "Delete category names the count of expenses that become uncategorised; "
+         "delete expense names the amount and date and warns the receipt goes; "
+         "deactivate warns they will be signed out immediately; no undo exists, so "
+         "the confirm is the protection, with no type-the-name friction anywhere. "
+         "Per `SW-ADR-118`.\n")),
     ("dangling-citation", "docs/01 ADR/all-ADRs/SW-ADR-002.md",
      lambda t: t.replace("| Sources |", "| Sources | `Client statement, 2026-08-05` ·", 1)),
 ]
