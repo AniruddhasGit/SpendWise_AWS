@@ -255,3 +255,60 @@ technically: `OPEN-TZ-01`, `OPEN-USERSRLS-01`.
 **Blockers:** `OPEN-NAME-01` · `OPEN-CREDS-01` · `OPEN-MODEL-01` · `OPEN-CAT-01` (the eight seeded
 categories — a one-message question that blocks the day-one fixture) · `OPEN-MIGRATE-01` (two of
 the client's own APPROVED ADRs contradict each other) · AWS prep queue items 0–9.
+
+---
+
+## 2026-08-05 · Session 1 (cont.) · GOAL_03 — the BRD
+
+**v0.1 written, reviewed, and it failed.** 28 findings from a fresh zero-context reviewer,
+3 CRITICAL. Repaired as v0.2.
+
+**The three criticals — all mine:**
+- **The BRD cited two WITHDRAWN ADRs as live authority** for `N-ISO-01`, the product's central
+  security promise. `SW-ADR-018` and `SW-ADR-041` were both superseded during the `GOAL_02`
+  remediation *earlier in this same session*. A PRD written from `SW-ADR-041` would have put
+  `password_resets` behind RLS and **broken account recovery** — the exact critical bug
+  `SW-ADR-071` was written to fix, reintroduced one document later.
+- **`N-ISO-01` asserted an absolute guarantee that is false.** Two tables sit outside the
+  database layer deliberately, and whether that is acceptable is `OPEN-USERSRLS-01` — reserved
+  to the client. The BRD stated the settled version and made the carve-outs invisible.
+- **§6 closed two reserved OPEN rows**, one marked IRREVERSIBLE, by listing them as scope
+  exclusions and citing the open rows themselves as the authority. The document's own §1 says
+  "escalate, never invent".
+
+**The largest coverage hole:** `SRC-001 §9.4` had **zero** representation — accessibility, phone
+width, and the entire visual identity. Since `§12.1` excludes a native app, phone-width web *is*
+the whole mobile product, and it had no requirement at all.
+
+**Also caught:** the colophon's "nothing was invented" was false in six places · `R-UND-04`
+quoted the superseded formulation of the daily-average rule and dropped both the null case and
+half-up rounding, making the day-one `75810` unreproducible · §7 said two blockers where the
+register lists five · `R-ADM-04`/`06` authorised complete admin-on-admin account takeover as
+settled · the negative half of the permission matrix (what a non-admin *cannot* do) had no home ·
+rate limiting and the locked-out state were both absent, the second being the sole justification
+for the administrator persona · `N-MON-01` forbade the `Decimal` parsing that `SRC-001 §10.1`
+mandates · the day-one proof was stated read-only when `SW-ADR-078` extended it to writes and
+deletes.
+
+**v0.2:** 77 requirement rows (up from 53), 31 OPEN, 3 PROVISIONAL. Scope corrected to the **70
+live** records, not all 90. `OPEN-RENAME-01` raised — `SRC-001 §7.2` justifies its delete
+behaviour with "I don't want to lose history because I renamed something" while listing no
+rename endpoint. Same defect shape as `OPEN-USERDEL-01`.
+
+**Verified:** `consistency_check` PASS · 21 ADRs flipped `included_in_brd` with the carrying row
+cited, **live records only** · 2 stale flags cleared · no withdrawn record cited as authority
+(the two matches are §2 naming them as examples of what is *out* of scope).
+
+**What this says about the method:** the mechanical checker passed the BRD in both versions. It
+resolves every reference in a document that cited withdrawn decisions as live authority — because
+"does it resolve?" and "is it still true?" are different questions. `GOAL_13`'s agent layer is
+the only thing that catches this, and it caught it here.
+
+**In progress:** nothing half-finished. GOAL_03 closed.
+
+**Open / next:** `GOAL_04` — the design system. `OPEN-A11Y-01` must be settled *before* it is
+written, per the register's own note: the category ribbon is the primary filter control and has
+no keyboard equivalent.
+
+**Blockers:** `OPEN-NAME-01` · `OPEN-CAT-01` · `OPEN-MIGRATE-01` · `OPEN-CREDS-01` ·
+`OPEN-MODEL-01` · AWS prep queue items 0–9.
