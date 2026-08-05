@@ -151,12 +151,51 @@ async def main() -> int:
             await shot(page, "05-person-b-sees-only-their-own")
             await ctx.close()
 
+            ctx, page = await new_page(**desktop)
+            await sign_in(page, made["A"])
+            await page.wait_for_selector('[data-testid="daily-average"]')
+            await page.get_by_test_id("theme-dark").click()
+            await page.wait_for_timeout(500)
+            await shot(page, "06-dashboard-dark")
+
+            await page.get_by_test_id("nav-categories").click()
+            await page.wait_for_selector('[data-testid="category-list"]')
+            await shot(page, "07-categories-dark")
+
+            await page.get_by_test_id("theme-light").click()
+            await page.wait_for_timeout(400)
+            await page.get_by_test_id("nav-settings").click()
+            await page.wait_for_selector('[data-testid="deactivate"]')
+            await shot(page, "08-settings")
+            await ctx.close()
+
+            # The administrator. Promoted through the owner connection, because
+            # promoting requires an admin and this is the first one.
+            from sqlalchemy import text as _text
+            from sqlalchemy.ext.asyncio import create_async_engine as _engine
+            eng = _engine(owner, poolclass=None)
+            async with eng.begin() as c:
+                await c.execute(_text("UPDATE users SET role='admin' WHERE id=:i"),
+                                {"i": made["A"]["id"]})
+            await eng.dispose()
+
+            ctx, page = await new_page(**desktop)
+            await sign_in(page, made["A"])
+            await page.get_by_test_id("nav-admin").click()
+            await page.wait_for_selector('[data-testid="admin-overview"]', timeout=20000)
+            await shot(page, "09-admin-overview")
+
+            await page.get_by_test_id("admin-tab-accounts").click()
+            await page.wait_for_selector('[data-testid="admin-users"]', timeout=20000)
+            await shot(page, "10-admin-accounts")
+            await ctx.close()
+
             ctx, page = await new_page(viewport={"width": 375, "height": 812},
                                        device_scale_factor=2,
                                        has_touch=True, is_mobile=True)
             await sign_in(page, made["A"])
             await page.wait_for_selector('[data-testid="daily-average"]')
-            await shot(page, "06-phone-375px")
+            await shot(page, "11-phone-375px")
             await ctx.close()
 
             await browser.close()

@@ -95,6 +95,11 @@ export const api = {
   logout: () => request('POST', '/api/auth/logout'),
   me: () => request('GET', '/api/auth/me'),
 
+  updateMe: (body) => request('PATCH', '/api/auth/me', body),
+  changePassword: (body) => request('POST', '/api/auth/password', body),
+  deactivate: () => request('POST', '/api/auth/deactivate'),
+  exportMine: () => request('GET', '/api/auth/export'),
+
   categories: () => request('GET', '/api/categories'),
   createCategory: (body) => request('POST', '/api/categories', body),
   updateCategory: (id, body) => request('PATCH', `/api/categories/${id}`, body),
@@ -105,4 +110,16 @@ export const api = {
   createExpense: (body) => request('POST', '/api/expenses', body),
   updateExpense: (id, body) => request('PATCH', `/api/expenses/${id}`, body),
   deleteExpense: (id) => request('DELETE', `/api/expenses/${id}`),
+
+  // ── admin. Every one of these is 403 for a `user`, enforced on the ROUTER
+  // (`SRC-001 §4.3`) — hiding the link is cosmetic and the client knows it.
+  adminOverview: () => request('GET', '/api/admin/overview'),
+  adminUsers: (params) => request('GET', `/api/admin/users${q(params || {})}`),
+  adminSessions: (params) => request('GET', `/api/admin/sessions${q(params || {})}`),
+  adminAudit: (params) => request('GET', `/api/admin/audit${q(params || {})}`),
+  adminRevoke: (id) => request('POST', `/api/admin/users/${id}/revoke-sessions`),
+  adminSetActive: (id, is_active) =>
+    request('POST', `/api/admin/users/${id}/active`, { is_active }),
+  adminSetRole: (id, role) => request('POST', `/api/admin/users/${id}/role`, { role }),
+  adminReset: (id) => request('POST', `/api/admin/users/${id}/reset`),
 }

@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { plain } from '../lib/money.js'
 import { today } from '../lib/period.js'
 
@@ -26,6 +27,10 @@ export default function ExpensePanel({ open, editing, categories, draft, onDraft
   const panel = useRef(null)
   const returnFocusTo = useRef(null)
   const [busy, setBusy] = useState(false)
+  // The Escape listener is bound once per open; `tryClose` closes over `dirty`,
+  // which changes on every keystroke. A ref keeps the listener current without
+  // re-binding it forty times while someone types an amount.
+  const tryCloseRef = useRef(() => {})
   const [error, setError] = useState(null)
 
   const blank = { amount: '', spent_on: today(), category_id: '', description: '' }
@@ -77,6 +82,41 @@ export default function ExpensePanel({ open, editing, categories, draft, onDraft
     setTimeout(() => trigger?.focus?.(), 0)
   }
 
+  // THE DIALOG makes the rest of the application inert, and it does it to the
+  // whole shell — not to the pane it happens to be rendered beside.
+  //
+  // The first version let the dashboard mark its own content inert. That was
+  // correct until the sidebar, the mobile top bar and the footer sign-out
+  // moved OUT of the dashboard, at which point a modal left the entire
+  // application chrome clickable behind it and nothing said so. A dialog is
+  // responsible for the whole background being inert, so it owns the flag.
+  useEffect(() => {
+    if (!open) return
+    const shellEl = document.querySelector('.app') || document.getElementById('root')
+    if (shellEl) shellEl.inert = true
+    return () => { if (shellEl) shellEl.inert = false }
+  }, [open])
+
+  // ESCAPE IS BOUND TO THE DOCUMENT, not to the panel.
+  //
+  // Bound to the panel it only fires when focus is already inside — and focus
+  // arrives on a zero timeout, because the trigger sits in a subtree that
+  // becomes `inert` in the same commit and an inert subtree cannot hold focus.
+  // Between the paint and that timeout there is a window in which the dialog
+  // is open and Escape does nothing. It is a handful of milliseconds and a
+  // browser test caught it, but it is a real one: the first thing an impatient
+  // person does with a dialog they opened by mistake is hit Escape.
+  useEffect(() => {
+    if (!open) return
+    const onEscape = (event) => {
+      if (event.key !== 'Escape') return
+      event.stopPropagation()
+      tryCloseRef.current()
+    }
+    document.addEventListener('keydown', onEscape, true)
+    return () => document.removeEventListener('keydown', onEscape, true)
+  }, [open])
+
   const tryClose = () => {
     if (dirty && !window.confirm('Discard this expense?')) return
     if (!editing) onDraft(null)
@@ -84,12 +124,9 @@ export default function ExpensePanel({ open, editing, categories, draft, onDraft
     restoreFocus()
   }
 
+  tryCloseRef.current = tryClose
+
   const onKeyDown = (event) => {
-    if (event.key === 'Escape') {
-      event.stopPropagation()
-      tryClose()
-      return
-    }
     if (event.key !== 'Tab') return
     // The trap. `inert` on the background handles pointer and screen-reader
     // access; Tab still needs wrapping, because inert is applied to a sibling
@@ -137,7 +174,10 @@ export default function ExpensePanel({ open, editing, categories, draft, onDraft
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
   const errorOn = (field) => (error && error.field === field ? error.message : null)
 
-  return (
+  // PORTALLED to <body>. `inert` applies to a subtree, so a dialog rendered
+  // inside `.app` would make itself inert the moment it asked for the
+  // background to be.
+  return createPortal(
     <div className="scrim" onMouseDown={(e) => e.target === e.currentTarget && tryClose()}>
       <div
         className="panel"
@@ -252,6 +292,7 @@ export default function ExpensePanel({ open, editing, categories, draft, onDraft
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

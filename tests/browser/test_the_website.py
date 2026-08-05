@@ -178,7 +178,11 @@ async def test_the_background_is_inert_while_the_panel_is_open(page, clean_db) -
     await page.get_by_test_id("first-add").click()
     await page.wait_for_selector('[data-testid="expense-panel"]')
 
-    assert await page.evaluate("document.querySelector('.shell').inert") is True
+    # The whole SHELL, not the pane the dialog sits beside. The sidebar, the
+    # mobile top bar and the footer sign-out are all outside the dashboard, and
+    # a modal that only disabled the dashboard would leave every one of them
+    # clickable behind the scrim.
+    assert await page.evaluate("document.querySelector('.app').inert") is True
 
     landed = await page.evaluate("""
         () => {
@@ -213,7 +217,9 @@ async def test_the_day_one_gate_is_visible_in_the_browser(page, seeded) -> None:
 
     assert await page.get_by_test_id("total").inner_text() == A_TOTAL
     assert await page.get_by_test_id("count").inner_text() == "4"
-    assert await page.get_by_test_id("days-elapsed").inner_text() == "5 days"
+    # The card wraps it ("over 5 days"); the criterion is the FIVE, which is
+    # the divisor 75810 depends on.
+    assert "5 days" in await page.get_by_test_id("days-elapsed").inner_text()
 
     # And the whole page really contains it, not just an element we happened to
     # query — the form a person would recognise.
@@ -547,7 +553,16 @@ async def test_a_half_typed_expense_survives_the_session_ending(page, seeded) ->
 
     await page.get_by_test_id("add-expense").click()
     await page.wait_for_selector('[data-testid="expense-panel"]')
-    assert await page.input_value("input[name='amount']") == "432.10"
+
+    # WAITED for. `wait_for_selector` resolves on the first render in which the
+    # panel exists, and the form is populated by an effect — which React runs
+    # after that render commits. Sampling `input_value` immediately reads the
+    # empty initial state, and does so only when the machine is busy enough for
+    # the two to land in different frames. The same race as the ribbon's
+    # opacity transition and the focus restore, and the same fix.
+    await page.wait_for_function(
+        "document.querySelector(\"input[name='amount']\")?.value === '432.10'",
+        timeout=5000)
     assert await page.input_value("input[name='description']") == "Half typed"
 
 
