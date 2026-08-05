@@ -3,8 +3,9 @@
 > A personal expense tracker, built end to end from documents, by LLMs.
 > **The build session writes application code. The client builds all AWS by hand.**
 >
-> Gate: `CONSTITUTION.md` · Frozen source: `docs/00 SourceOfTruth/SRC-001` ·
-> Decisions: `docs/01 ADR/ADR_DECISION_RELEASE_LEDGER.tsv`
+> Gate: `CONSTITUTION.md` · Frozen sources: `docs/00 SourceOfTruth/` ·
+> Decisions: `docs/01 ADR/ADR_DECISION_RELEASE_LEDGER.tsv` ·
+> **Before committing: `py tools/consistency_check.py` (and `--selftest` before trusting a green).**
 
 ## Read at the start of EVERY session
 
@@ -31,19 +32,19 @@ Numbered in dependency order. Each is derived from the ones above it and **cites
 
 | Folder | What it holds | State |
 |---|---|---|
-| `00 SourceOfTruth/` | `SRC-001` — the client's requirements, **frozen and hashed**. 7 errata at its foot. | **written** |
-| `01 ADR/` | 22 decision records + the fail-closed ledger. | **written** |
-| `02 BRD/` | Business requirements — what and why, no technology. | empty |
-| `03 PRD/` | Product requirements — every screen, rule, error. **What the code is written from.** | empty |
-| `05 Bible/` | Epics → stories → tasks, each with binary `AcceptanceCriteria`. | empty |
-| `05 B DesignSystem/` | Paper and pine green, the three fonts, as tokens. | empty |
-| `06 DataModel/` | A **package, not a document**: `schema.sql`, migrations, `security.sql`, `TRACEABILITY.tsv`, `permissions.tsv`, `AGENT_CONTRACT.md`. | empty |
-| `07 Architecture/` | `for_humans/` + `for_llm/`. | empty |
-| `08 SIT/` · `09 NegativeTesting/` | Test cases as rows, each citing a Bible story. Negative cases weighted at cross-user isolation. | empty |
-| `10 EngineeringLedger/` | The build ledger, derived from the Bible. **`/ss` reads this for the frontier** — verified, the hook finds it and prints the milestone matrix. Only `Status` is hand-edited. | **written** |
-| `11 Journeys/` | User and admin persona journeys. | empty |
-| `12 DesignReview/` · `13 Fixes/` | Pre-code audit and its fixes. | empty |
-| `14 Project_Plan/` · `15 ChangeRequest/` · `20 UAT/` · `30 Deployment/` · `35 Hypercare/` · `40 AMS/` | Lifecycle. | placeholders |
+| `00 SourceOfTruth/` | `SRC-001` the client's requirements + `SRC-002` their rulings — **frozen and hashed**. **10 errata.** | **written** |
+| `01 ADR/` | **128 decision records** (108 live, 20 superseded or withdrawn) + the fail-closed ledger. | **written** |
+| `02 BRD/` | 76 business requirements, each citing a source. | **written** |
+| `03 PRD/` | **42 specifications — the document the code is written from.** Plus the API contract and the §9 coverage map. | **written** |
+| `05 Bible/` | 44 stories, **178 binary acceptance criteria**. The scope arbiter. | **written** |
+| `05 B DesignSystem/` | Tokens + real CSS. Every contrast figure computed, not claimed. | **written** |
+| `06 DataModel/` | A **package**: `datamodel.json` (spec of record) → generated `schema.sql`, `security.sql`, `TRACEABILITY.tsv`, plus `AGENT_CONTRACT.md` and runnable invariant checks. | **written** |
+| `07 Architecture/` | `for_llm/` 8 docs, 11 diagrams · `for_humans/` overview, decisions owed, **the accepted weaknesses**. | **written** |
+| `08 SIT/` · `09 NegativeTesting/` | 178 positive cases (one per acceptance criterion) + 70 negative, **19 cross-person, 46 severity one**. | **written** |
+| `10 EngineeringLedger/` | Derived from the Bible. **`/ss` reads this for the frontier** — verified: the hook finds it and prints the milestone matrix. Only `Status` is hand-edited. | **written** |
+| `11 Journeys/` | Two personas, 16 walks, each naming the seam it crosses. | **written** |
+| `12 DesignReview/` | The consolidated exit gate + the uncoached slice. | in progress |
+| `14`–`40` | Lifecycle. `30 Deployment` holds the client's AWS prep queue. | placeholders |
 
 **Authority on conflict** (`CONSTITUTION.md` Art II.1): raw `SRC-001` → a client ruling → an
 `APPROVED` ADR → PRD → BRD → Bible → everything else. **Stricter always wins.**
@@ -120,7 +121,14 @@ cannot demote themselves if they are the last one.
 | `ASSUMED` | inference; never hardens into a constraint |
 
 An agent that hits `OPEN` and fills in something sensible has committed the cardinal sin of this
-project. Open items live in `CONSTITUTION.md` Article X. **Nine are open right now.**
+project. Open items live in `CONSTITUTION.md` Article X.
+
+**All 38 were adjudicated by Fable 5 on 2026-08-05** (`SW-ADR-091`…`128`), so no behaviour is
+unruled. **Two remain client-only** and gate nothing: the ratification signature
+(`OPEN-NAME-01`) and legal sub-processor posture (`OPEN-MODEL-01`), both with working defaults.
+**Four rulings are flagged for the client's digest** and one message reverses any of them:
+`OPEN-TZ-01` (irreversible on the write path), `OPEN-USERSRLS-01` (a quality-check waiver),
+`OPEN-PRUNE-01` (deletes rows), `OPEN-CAT-01` (product content).
 
 ## Reserved — no model decides these, at any confidence
 
