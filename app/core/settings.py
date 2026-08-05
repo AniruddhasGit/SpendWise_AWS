@@ -30,6 +30,17 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 log = logging.getLogger("spendwise.settings")
 
+# `app/core/settings.py` -> app/core -> app -> the repository root.
+#
+# ANCHORED TO THE FILE, not to the working directory. `env_file=".env"` is
+# resolved relative to the CWD, so `py -m uvicorn app.main:app` from `client/`
+# — the directory you are already in after `npm run build` — found no `.env`
+# and aborted 78 naming three variables that were sitting one level up. The
+# error was correct and the diagnosis it invites is wrong: it reads as "your
+# configuration is missing", not "you are standing in the wrong place".
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+DOTENV = os.path.join(ROOT, ".env")
+
 
 class Settings(BaseSettings):
     """The whole configuration surface. Every field here must appear in
@@ -39,7 +50,7 @@ class Settings(BaseSettings):
         # SPENDWISE_DOTENV=0 disables the .env fallback. The AC3 test needs a
         # genuinely empty environment; without this it would silently pass by
         # reading the developer's own .env.
-        env_file=".env" if os.getenv("SPENDWISE_DOTENV", "1") != "0" else None,
+        env_file=DOTENV if os.getenv("SPENDWISE_DOTENV", "1") != "0" else None,
         env_file_encoding="utf-8",
         case_sensitive=True,
         extra="ignore",

@@ -222,3 +222,35 @@ def test_ac4_the_manifest_actually_loads_as_a_dotenv() -> None:
     (REPO / ".env.probe").unlink(missing_ok=True)
     assert "MANIFEST LOADS" in proc.stdout, (
         f".env.example does not load as a .env:\n{proc.stdout}\n{proc.stderr}")
+
+
+def test_the_dotenv_is_found_from_any_working_directory() -> None:
+    """`.env` is anchored to the REPOSITORY, not to the shell's cwd.
+
+    `env_file=".env"` resolves relative to the working directory, so
+    `py -m uvicorn app.main:app` run from `client/` — the directory you are
+    already standing in after `npm run build` — found nothing and aborted 78
+    naming three variables that were one level up. The message was accurate
+    and the diagnosis it invites is wrong: it reads as "your configuration is
+    missing", not "you are in the wrong place".
+
+    Asserted structurally rather than by chdir-ing: the path must be absolute
+    and must be the repository's own, whatever the caller's cwd happens to be.
+    """
+    import os
+
+    from app.core import settings as mod
+
+    assert os.path.isabs(mod.DOTENV), "the dotenv path is relative to the cwd"
+    assert mod.DOTENV == os.path.join(mod.ROOT, ".env")
+    assert os.path.isdir(os.path.join(mod.ROOT, "app")), (
+        f"ROOT resolved to {mod.ROOT!r}, which does not look like the repository")
+
+    configured = mod.Settings.model_config["env_file"]
+    if os.getenv("SPENDWISE_DOTENV", "1") != "0":
+        assert configured == mod.DOTENV
+    else:
+        # The escape hatch still works — the AC3 test needs a genuinely empty
+        # environment, and an absolute path would defeat it just as well as a
+        # relative one.
+        assert configured is None

@@ -58,11 +58,18 @@ one warning — the backend does not depend on the frontend toolchain.
 
 ### 4. Start
 
+**From the repository root** — `client/` is where you were for step 3:
+
 ```
+cd D:\Project\SpendWise
 py -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
 Open <http://localhost:8000>.
+
+(`.env` is found relative to the repository, not the shell's working
+directory, so this works from anywhere — but `app.main` still has to be
+importable, which means the root.)
 
 For frontend work, `npm run dev` in `client/` proxies `/api` to port 8000, so
 the development setup keeps the single-origin shape production has.
