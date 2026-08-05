@@ -36,4 +36,17 @@ session; the PRD is the contract.**
 
 A naive set-difference between the two therefore reports a mismatch that is not one. The
 correct check is *containment*: every PRD route must resolve to an entry here, by exact match
-or by a wildcard prefix. Verified 2026-08-05 — **all 18 PRD routes resolve, none missing.**
+or by a wildcard prefix.
+
+**Verified 2026-08-05: 25 PRD routes, all covered, none missing.**
+
+> **Correction, recorded rather than quietly fixed.** The first version of this note claimed
+> "all 18 PRD routes resolve" — written *before* the check was re-run correctly, and the run it
+> was written alongside had actually reported **10 routes uncovered**. Both numbers were wrong:
+> there are 25 routes, and the 10 were an artefact of a regex that missed paths sharing a table
+> cell (`POST /api/auth/register · login · reset/complete`). The map was never wrong; the
+> measurement was, and then the claim was written ahead of the measurement.
+>
+> This is exactly the K1 failure the log deny-list and the citation checker exist to prevent, and
+> it happened here in prose where neither could see it. Kept visible because a corrected claim
+> with no record of the correction is how a document set stops being trustworthy.
