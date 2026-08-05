@@ -4,10 +4,10 @@ OBJECTIVE
   produces a verdict, never new scope. It runs BEFORE any product code.
 
 WHY IT EXISTS
-  Per-goal QA asks "is this artifact right?" Nothing asks "do they agree?" - and GOAL_02's
-  review found 3 contradictions BETWEEN ADRs that no single-document check could see. By
-  GOAL_12, eight documents each derive from the last: a contradiction caught here costs one
-  fix, caught after the Bible it costs re-deriving three documents.
+  Per-goal QA asks "is this artifact right?" Nothing asks "do they agree?" GOAL_02's review
+  found 3 contradictions BETWEEN ADRs no single-document check could see. Eight documents
+  each derive from the last: a contradiction caught here costs one fix; after the Bible it
+  costs re-deriving three documents.
 
 CONTEXT
   CONSTITUTION.md . docs/00 SourceOfTruth/ . every folder 01..12 . tools/consistency_check.py
@@ -23,14 +23,13 @@ PART 1 - MECHANICAL (cheap, first)
   internally.
 
 PART 2 - CROSS-ARTIFACT ASSURANCE - one FRESH zero-context agent per lens, in parallel
-  X-01 CONTRADICTIONS. Every pair of documents that could disagree. -> CONFLICT_MAP.tsv,
-       one row per conflict: both locations, the incompatible claims, severity, resolved or
-       open. GOAL_02 proved this lane is load-bearing.
+  X-01 CONTRADICTIONS. Every pair of documents that could disagree -> CONFLICT_MAP.tsv:
+       both locations, the incompatible claims, severity, resolved or open.
   X-02 TWO-WAY COVERAGE at every seam: SRC-001<->BRD<->PRD<->Bible<->SIT/DataModel, and
        ADR<->all. Both directions - no-gap AND no-creep. Any non-zero cell is a finding.
-  X-03 AUTHORITY AUDIT. Every BUILD_SESSION ADR: does it actually decide money, secrets,
-       legal, product identity, scope, or waive a check? Those belong in Article X.
-       GOAL_02 shipped two such breaches - assume more.
+  X-03 AUTHORITY AUDIT. Every BUILD_SESSION ADR: does it decide money, secrets, legal,
+       product identity, scope, or waive a check? Those belong in Article X. GOAL_02
+       shipped two such breaches - assume more.
   X-04 CLAIMED-BUT-NOT-DONE. Every sentence asserting an action ("filed as", "added to",
        "recorded in"), verified against the artifact it names. K1 lives or dies here.
   X-05 UNKNOWN-UNKNOWNS RED TEAM. What is missing that nobody thought to look for?
@@ -46,7 +45,7 @@ DELIVERABLES - docs/12 DesignReview/EX_Consolidated-Exit-Gate/
   02_ROOT_CAUSE_REGISTER.tsv      grouped by cause, not symptom
   03_CONFLICT_MAP.tsv  .  04_COVERAGE_MATRIX.tsv
   05_UNCOACHED_SLICE_LOG.md       every question asked, per run
-  06_HUMAN_DECISION_QUEUE.md      what only the client can settle, rulable in 5 minutes
+  06_HUMAN_DECISION_QUEUE.md      what only the client can settle, rulable in 5 min
   07_MACHINE_VERDICT.json         {pass|fail, per-lane counts, blocking list}
   08_REVIEWER_SELF_CHALLENGE.md   what this gate did NOT look at
 
@@ -57,12 +56,12 @@ DEFINITION OF DONE - binary
   [ ] every BUILD_SESSION ADR passed X-03, or moved to Article X
   [ ] zero unverified "claimed action" assertions remain after X-04
   [ ] the uncoached slice reached ZERO questions on a fresh run. Report the count per
-      attempt - a first attempt above zero is EXPECTED. Report the curve, not the end.
+      attempt - a first attempt above zero is EXPECTED. Report the curve.
   [ ] 08_REVIEWER_SELF_CHALLENGE names three things this gate cannot see
   [ ] PROGRESS.md appended; handoff written
 
 GUARDRAILS - full set in CLAUDE.md.
   - A reviewer never fixes what it found.
   - "Found nothing" is SUSPICIOUS. State what you attacked and what you did not; an empty
-    finding list with a thin attack log is a failure of the review, not a clean result.
+    finding list with a thin attack log is a failed review, not a clean result.
   - No new scope. A gap is an Article X row, never a document invented to cover it.
