@@ -13,7 +13,7 @@ Citation form ..... SRC-001 §n
 > invalidated and must be re-derived — never silently reused (`CONSTITUTION.md` Art II.4).
 >
 > The **only** permitted modification is a clearly-marked `ERRATUM` block appended at the foot,
-> which governs over the text it corrects. Three errata already exist — see §E.
+> which governs over the text it corrects. Ten errata now exist — see §E. They govern over the text they correct.
 >
 > Clause anchors `§n` were added when the text was filed. **No wording was changed.**
 
@@ -363,3 +363,19 @@ begins. → `SW-ADR-009`, `SW-ADR-010`
 **E-7 · §6.1/§6.2 — currency is fixed and snapshotted.** v1 is Indian Rupees only, stored as integer
 paise. The `currency` column is kept on `users` and added to `expenses`, snapshotted at write time,
 so a later currency change cannot silently reinterpret history. → `SW-ADR-013`
+
+**E-8 · §2.4 — "no CORS to configure" is wrong for the S3 upload path.** §2.4's premise holds
+for the API — one origin, no CORS. It is **false** for §8.1's direct browser-to-S3 upload, which
+is a second origin. Without a bucket CORS policy every receipt upload fails in the browser with
+an opaque error and no usable response body, so the application cannot even report why.
+A bucket CORS rule is required. → `SW-ADR-069`
+
+**E-9 · §6.6 — the money column is `amount_paise`, not `amount_cents`.** `SW-ADR-013` fixed the
+product at Indian Rupees, whose minor unit is the paisa. A column named `cents` holding paise is
+a comment that lies, which is the exact class of silent reinterpretation `SW-ADR-013` exists to
+prevent. → `SW-ADR-029`
+
+**E-10 · §8.1 — uploads use a presigned POST with a policy, not a bare presigned PUT.** §8.3
+states a 10 MB cap and a type allowlist as facts. A plain presigned PUT enforces neither — the
+signing server never sees the bytes — so an object can be stored with `Content-Type: text/html`
+and later served as HTML from a signed URL. → `SW-ADR-047`

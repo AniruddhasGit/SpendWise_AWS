@@ -1,5 +1,9 @@
 # SW-ADR-018 — Per-user isolation is enforced twice: in the application and by Postgres row-level security
 
+> **⚠ AMENDED 2026-08-05 by `SW-ADR-082` (QA FINDING-17 (MEDIUM)).**
+> The text below is retained unedited. Where it conflicts with the superseding
+> record, the superseding record governs (Art III.2).
+
 | Field | Value |
 |---|---|
 | ADR | `SW-ADR-018` |

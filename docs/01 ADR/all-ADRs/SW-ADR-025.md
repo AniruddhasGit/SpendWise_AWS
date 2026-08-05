@@ -1,5 +1,9 @@
 # SW-ADR-025 — Asia/Kolkata is the application calendar
 
+> **⚠ WITHDRAWN 2026-08-05 by `SW-ADR-089`.** This ruling exceeded the build session's
+> authority — it is IRREVERSIBLE by its own text. The question is now `OPEN-TZ-01`, for the
+> client. The analysis below stands; the decision does not.
+
 | Field | Value |
 |---|---|
 | ADR | `SW-ADR-025` |

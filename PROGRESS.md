@@ -189,3 +189,69 @@ claimed; add the four missing prep-queue rows; correct the wrong premises. The B
 written on top of this.
 
 **Blockers:** unchanged, plus `OPEN-MIGRATE-01`.
+
+---
+
+## 2026-08-05 · Session 1 (cont.) · GOAL_02 remediation
+
+**All 24 QA findings adjudicated.** 20 superseding ADRs written (`SW-ADR-071`…`SW-ADR-090`),
+3 errata filed, 4 prep-queue rows added, 2 rulings withdrawn.
+
+**The two I should not have made, handed back:**
+- `SW-ADR-025` (application timezone) → **withdrawn** by `SW-ADR-089`. It stated in its own text
+  that it was IRREVERSIBLE and was ruled under the technical delegation anyway. Now `OPEN-TZ-01`.
+- `SW-ADR-042` (`users` outside RLS) → **withdrawn** by `SW-ADR-090`. It waived a quality check,
+  which Art IX.6 reserves to the client. Now `OPEN-USERSRLS-01`, with the stricter alternative
+  the original never offered.
+
+**The three CRITICALs:**
+- `SW-ADR-071` — password reset was **uncompletable**. RLS keyed on a verified user id cannot
+  serve a path that is unauthenticated by definition. `password_resets` leaves RLS, with the
+  root cause named once rather than patched twice.
+- `SW-ADR-072` — the composite FK could not work: `ON DELETE SET NULL` nulls *every* referencing
+  column including `NOT NULL user_id`. Now `NO ACTION` plus an explicit service-side update, with
+  no PostgreSQL version floor required.
+- `SW-ADR-089` — above.
+
+**Three more contradictions, resolved:** `SW-ADR-073` (version endpoint), `SW-ADR-077` (admin
+expense counts), `SW-ADR-076` (timestamp nullability — "all NOT NULL" made `revoked_at IS NULL`
+unsatisfiable while a sibling ADR indexed exactly that condition).
+
+**Wrong premises corrected, decisions kept:** `SW-ADR-078` (RLS write behaviour — a `FOR ALL …
+USING` policy *does* constrain writes; a `FOR SELECT`-only policy fails loud, not silent),
+`SW-ADR-079` (`sum(bigint)` returns `numeric` and cannot overflow — the risk is the mandated
+cast), `SW-ADR-080` (PyJWT 2.x already requires `algorithms`; the real missing control was a
+version floor), `SW-ADR-085` (a muddled worked example in the ADR that makes the gate
+deterministic).
+
+**Two design collapses the sweep missed and the QA caught:** `SW-ADR-081` — `FORCE ROW LEVEL
+SECURITY` subjects the *owner* to policies, so data migrations would silently affect zero rows;
+`SW-ADR-082` — `SET LOCAL` cannot take a bind parameter, so the stated RLS mechanism forced the
+f-string-near-SQL that Art IV.8 forbids. Both were reachable through the design's own text.
+
+**Verified:**
+```
+consistency_check.py            VERDICT: PASS — every cross-reference resolves   (exit 0)
+consistency_check.py --selftest 7/7 checks observed firing on a planted violation
+ledger rows: 90 · ADR files: 90 · errata: E-1..E-10 · frozen sources fingerprinted: 2
+```
+
+**`SRC-001` hash changed** when E-8/E-9/E-10 were appended. Adjudicated in writing inside
+`fingerprints.json` rather than left as a silent bump: errata are additive, and the derived
+artifacts affected are exactly the three ADRs that filed them.
+
+**Residual the mechanical layer cannot see:** `SW-ADR-070`'s body cites "`SW-ADR-071`'s
+prep-queue row". `SW-ADR-071` now exists — but it is about password resets, not a prep-queue
+row. The reference *resolves* and is *semantically wrong*. `SW-ADR-070` is superseded by
+`SW-ADR-073` and carries a banner, so the reader is directed correctly. This is a live example
+of exactly why `GOAL_13`'s agent layer exists: a checker that only asks "does it resolve?"
+cannot ask "does it mean the right thing?"
+
+**In progress:** nothing half-finished. **GOAL_02 is now closed.**
+
+**Open / next:** `GOAL_03` — the BRD. Two Article X rows are newly the client's and gate nothing
+technically: `OPEN-TZ-01`, `OPEN-USERSRLS-01`.
+
+**Blockers:** `OPEN-NAME-01` · `OPEN-CREDS-01` · `OPEN-MODEL-01` · `OPEN-CAT-01` (the eight seeded
+categories — a one-message question that blocks the day-one fixture) · `OPEN-MIGRATE-01` (two of
+the client's own APPROVED ADRs contradict each other) · AWS prep queue items 0–9.

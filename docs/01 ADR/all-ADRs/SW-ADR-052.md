@@ -1,5 +1,9 @@
 # SW-ADR-052 — Date ranges are inclusive at both ends
 
+> **⚠ AMENDED 2026-08-05 by `SW-ADR-085` (QA FINDING-22 (LOW) — arithmetic in the prose).**
+> The text below is retained unedited. Where it conflicts with the superseding
+> record, the superseding record governs (Art III.2).
+
 | Field | Value |
 |---|---|
 | ADR | `SW-ADR-052` |

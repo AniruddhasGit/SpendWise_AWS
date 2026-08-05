@@ -1,5 +1,9 @@
 # SW-ADR-042 — The users table sits outside RLS, deliberately and in writing
 
+> **⚠ WITHDRAWN 2026-08-05 by `SW-ADR-090`.** This ruling waived a quality check, which
+> Art IX.6 reserves to the client. The question is now `OPEN-USERSRLS-01`. The analysis
+> below stands; the decision does not.
+
 | Field | Value |
 |---|---|
 | ADR | `SW-ADR-042` |

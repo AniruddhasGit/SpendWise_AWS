@@ -4,8 +4,8 @@
   "invalidation_rule": "If any hash below changes, every artifact derived from that source is INVALID and must be re-derived, never silently reused.",
   "sources": {
     "SRC-001_requirements_2026-08-05.md": {
-      "sha256": "19bc8eb7bca5b8812457e597e78448e7f99d6ea98fbc9ee444df545285812b71",
-      "bytes": 18661,
+      "sha256": "298489ac7337bf7c861d4b1e18fed2a3358d3fb4a46cee268e229c997e89f408",
+      "bytes": 19803,
       "status": "FROZEN"
     },
     "SRC-002_client_rulings_2026-08-05.md": {
@@ -13,5 +13,6 @@
       "bytes": 12601,
       "status": "FROZEN"
     }
-  }
+  },
+  "invalidation_adjudication": "2026-08-05: SRC-001's hash changed when errata E-8, E-9 and E-10 were appended. An appended ERRATUM is the ONE modification Art II.2 permits, and errata are additive \u2014 they correct a clause without altering any other. The derived artifacts affected are exactly the ADRs that filed them (SW-ADR-029, 047, 069), each of which already carries the corrected position. Re-derivation is therefore discharged by inspection, not skipped. Recorded here rather than left as a silent hash bump. The reading banner's erratum count (build-session metadata added at filing time, not client text) was corrected from three to ten in the same pass."
 }

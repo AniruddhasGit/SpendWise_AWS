@@ -1,5 +1,9 @@
 # SW-ADR-041 — RLS covers every command, with WITH CHECK
 
+> **⚠ AMENDED 2026-08-05 by `SW-ADR-071` (QA FINDING-1 (CRITICAL)) · `SW-ADR-078` (QA FINDING-4 (HIGH) — premise, not decision).**
+> The text below is retained unedited. Where it conflicts with the superseding
+> record, the superseding record governs (Art III.2).
+
 | Field | Value |
 |---|---|
 | ADR | `SW-ADR-041` |

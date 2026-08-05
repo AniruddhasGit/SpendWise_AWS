@@ -1,5 +1,9 @@
 # SW-ADR-070 — Health and readiness: what each endpoint discloses
 
+> **⚠ AMENDED 2026-08-05 by `SW-ADR-073` (QA FINDING-6 (HIGH)).**
+> The text below is retained unedited. Where it conflicts with the superseding
+> record, the superseding record governs (Art III.2).
+
 | Field | Value |
 |---|---|
 | ADR | `SW-ADR-070` |

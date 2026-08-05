@@ -1,5 +1,9 @@
 # SW-ADR-036 — Expense amounts are bounded above
 
+> **⚠ AMENDED 2026-08-05 by `SW-ADR-079` (QA FINDING-13 (MEDIUM) — premise).**
+> The text below is retained unedited. Where it conflicts with the superseding
+> record, the superseding record governs (Art III.2).
+
 | Field | Value |
 |---|---|
 | ADR | `SW-ADR-036` |

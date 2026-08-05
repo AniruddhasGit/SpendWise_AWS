@@ -1,5 +1,9 @@
 # SW-ADR-035 — A composite foreign key enforces that an expense's category belongs to its owner
 
+> **⚠ AMENDED 2026-08-05 by `SW-ADR-072` (QA FINDING-3 (CRITICAL)).**
+> The text below is retained unedited. Where it conflicts with the superseding
+> record, the superseding record governs (Art III.2).
+
 | Field | Value |
 |---|---|
 | ADR | `SW-ADR-035` |

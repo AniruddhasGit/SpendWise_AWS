@@ -1,5 +1,8 @@
 # SW-ADR-029 — The money column is amount_paise; currency is NOT NULL on both tables
 
+> **⚠ AMENDED 2026-08-05.** This record said the erratum was an "erratum candidate".
+> A candidate is not a filing. **`ERRATUM E-9` is now actually filed** against `SRC-001 §6.6`.
+
 | Field | Value |
 |---|---|
 | ADR | `SW-ADR-029` |

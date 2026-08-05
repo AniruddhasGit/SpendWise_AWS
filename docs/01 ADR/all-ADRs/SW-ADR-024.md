@@ -1,5 +1,9 @@
 # SW-ADR-024 — All timestamps are TIMESTAMPTZ, NOT NULL, stored in UTC
 
+> **⚠ AMENDED 2026-08-05 by `SW-ADR-076` (QA FINDING-10 (HIGH)).**
+> The text below is retained unedited. Where it conflicts with the superseding
+> record, the superseding record governs (Art III.2).
+
 | Field | Value |
 |---|---|
 | ADR | `SW-ADR-024` |

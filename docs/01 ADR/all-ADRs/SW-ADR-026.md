@@ -1,5 +1,9 @@
 # SW-ADR-026 — String column types and lengths
 
+> **⚠ AMENDED 2026-08-05 by `SW-ADR-084` (QA FINDING-21 (LOW)).**
+> The text below is retained unedited. Where it conflicts with the superseding
+> record, the superseding record governs (Art III.2).
+
 | Field | Value |
 |---|---|
 | ADR | `SW-ADR-026` |

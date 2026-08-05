@@ -1,5 +1,9 @@
 # SW-ADR-046 — Receipt keys are derived server-side; the admin role cannot reach receipts
 
+> **⚠ AMENDED 2026-08-05 by `SW-ADR-074` (QA FINDING-8 (HIGH)).**
+> The text below is retained unedited. Where it conflicts with the superseding
+> record, the superseding record governs (Art III.2).
+
 | Field | Value |
 |---|---|
 | ADR | `SW-ADR-046` |

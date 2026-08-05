@@ -177,10 +177,14 @@ def check_all(root: str) -> Report:
                 r.fail("erratum-claim",
                        f"{f}: claims ERRATUM {eid} is filed — it does not exist in SRC-001 §E")
     for f, t in corpus.items():
-        if re.search(r"erratum candidate", t, re.I):
-            r.fail("erratum-claim",
-                   f"{f}: says 'erratum candidate' — a candidate is not a filing. "
-                   f"File it or drop the claim.")
+        if not re.search(r"erratum candidate", t, re.I):
+            continue
+        # discharged if the same document also names an erratum that actually exists
+        if any(e in t for e in errata):
+            continue
+        r.fail("erratum-claim",
+               f"{f}: says 'erratum candidate' — a candidate is not a filing. "
+               f"File it, or reference the erratum that discharges it.")
     r.note(f"erratum claims checked: {n} (errata that exist: {', '.join(sorted(errata)) or 'none'})")
 
     # -- 5. a prep-queue row claimed by an ADR must exist -------------------

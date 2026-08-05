@@ -102,13 +102,50 @@ this rules.
 | **EC2 instance for ECS** | before the first deploy | `t2`/`t3.micro`, 750 h/month free for 12 months. **1 GB RAM must host the ECS agent and your container together** — workable, tight |
 | **ECS cluster + task definition** | before the first deploy | EC2 launch type, **not Fargate** (`SW-ADR-014`). Task publishes to a host port |
 | **No load balancer** | — | Reached by the instance's public IP or an Elastic IP. **Therefore no TLS**, therefore `Secure=false` on the cookie in that environment, therefore **it is never called production** |
-| **S3 bucket** | when receipts are built | Block all public access; per-user key prefix; 5-minute signed URLs |
-| **SSM Parameter Store** | with the task definition | Free at Standard tier. Execution role reads parameters; task role reaches S3 (`SRC-001 §11.5`) |
+| **S3 bucket** | when receipts are built | Block all public access; per-user key prefix; 5-minute signed URLs. **Plus a CORS rule** — see item 6. |
+| **SSM Parameter Store** | with the task definition | Free at Standard tier. **Both `DATABASE_URL` and `JWT_SECRET` must be `SecureString`, not `String`** — see item 7. Execution role reads parameters; task role reaches S3 (`SRC-001 §11.5`) |
 | **CloudWatch alarms** | before anything is trusted | Every alarm must be **forced once** to prove it fires. An alarm nobody has watched fire is decoration |
 
 **Deliberately not used, and why:** Fargate (no meaningful free tier) · Application Load Balancer
 (~$16–18/month regardless of traffic) · NAT Gateway (~$32/month, larger than everything else
 combined) · Secrets Manager (~$0.40/secret/month where SSM is free).
+
+---
+
+## ADDED 2026-08-05 — four items owed as advance notice, found by the GOAL_02 review
+
+These were promised by an ADR and never written down. That is the obligation `SW-ADR-005`
+trades for the code-only boundary, so the lapse is recorded rather than quietly corrected.
+
+### 6. A CORS rule on the S3 bucket  (`SW-ADR-069`, `SRC-001` erratum E-8)
+
+`SRC-001 §2.4` says there is no CORS to configure. **That is wrong for receipts.** The browser
+uploads straight to S3, which is a second origin. Without this rule every upload fails with an
+opaque browser error and no response body the app can read.
+
+Allow `PUT` and `POST` from the application's origin, with the headers the presigned policy
+signs, and `ETag` exposed. **Needed by:** the first receipt upload (`GOAL_08` onwards).
+
+### 7. Both SSM parameters as `SecureString`  (`SW-ADR-045`)
+
+`DATABASE_URL` and `JWT_SECRET`. A plain `String` parameter is **unencrypted**, is returned to
+anything holding broad SSM read permission, and — unlike `SecureString` — needs no KMS grant, so
+the least-effort choice is the insecure one. `SecureString` additionally needs `kms:Decrypt` on
+the **execution** role for the key you choose. **Needed by:** the first deploy.
+
+### 8. A second database in the same RDS instance  (`SW-ADR-068`)
+
+`spendwise_dev` and `spendwise_test`, with the same two roles in each. The day-one proof drops
+and rebuilds the schema from empty — run against a single database that destroys whatever you
+were working with. Costs nothing extra; it is two `CREATE DATABASE` statements.
+**Needed by:** the first test run, which is before any application code.
+
+### 9. An ECS task-definition health check  (`SW-ADR-070`, `OPEN-MONITOR-01`)
+
+`SRC-001 §7.7` justified `/healthz` by "that's what the load balancer calls" — and `SW-ADR-014`
+removed the load balancer. **`/healthz` currently exists and nothing calls it.** Point the task
+definition's health check at it so ECS itself restarts an unhealthy task.
+**Needed by:** the first deploy. See also `OPEN-LOGS-01` — there is still no CloudWatch Logs row.
 
 ---
 

@@ -1,5 +1,9 @@
 # SW-ADR-044 — Two database URLs, and a boot assertion that proves the runtime role is restricted
 
+> **⚠ AMENDED 2026-08-05 by `SW-ADR-081` (QA FINDING-16 (MEDIUM)).**
+> The text below is retained unedited. Where it conflicts with the superseding
+> record, the superseding record governs (Art III.2).
+
 | Field | Value |
 |---|---|
 | ADR | `SW-ADR-044` |

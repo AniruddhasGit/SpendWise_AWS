@@ -1,5 +1,9 @@
 # SW-ADR-023 — Primary keys are BIGINT identity columns
 
+> **⚠ AMENDED 2026-08-05 by `SW-ADR-088` (QA FINDING-19 (MEDIUM)).**
+> The text below is retained unedited. Where it conflicts with the superseding
+> record, the superseding record governs (Art III.2).
+
 | Field | Value |
 |---|---|
 | ADR | `SW-ADR-023` |

@@ -1,5 +1,9 @@
 # SW-ADR-045 — JWT algorithm is pinned; both secrets are SSM SecureString
 
+> **⚠ AMENDED 2026-08-05 by `SW-ADR-080` (QA FINDING-15 (MEDIUM) — premise + a real gap).**
+> The text below is retained unedited. Where it conflicts with the superseding
+> record, the superseding record governs (Art III.2).
+
 | Field | Value |
 |---|---|
 | ADR | `SW-ADR-045` |

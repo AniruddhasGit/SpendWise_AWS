@@ -1,5 +1,9 @@
 # SW-ADR-031 — The audit log is immutable at the database level
 
+> **⚠ AMENDED 2026-08-05 by `SW-ADR-083` (QA FINDING-18 (MEDIUM)).**
+> The text below is retained unedited. Where it conflicts with the superseding
+> record, the superseding record governs (Art III.2).
+
 | Field | Value |
 |---|---|
 | ADR | `SW-ADR-031` |
