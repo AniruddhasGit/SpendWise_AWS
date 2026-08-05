@@ -45,7 +45,7 @@ or by a wildcard prefix.
 > **Correction, recorded rather than quietly fixed.** The first version of this note claimed
 > "all 18 PRD routes resolve" — written *before* the check was re-run correctly, and the run it
 > was written alongside had actually reported **10 routes uncovered**. Both numbers were wrong:
-> there are 25 routes, and the 10 were an artefact of a regex that missed paths sharing a table
+> there are 26 API routes (28 with `/healthz` and `/readyz`), generated from `contract.json`, and the 10 were an artefact of a regex that missed paths sharing a table
 > cell (`POST /api/auth/register · login · reset/complete`). The map was never wrong; the
 > measurement was, and then the claim was written ahead of the measurement.
 >

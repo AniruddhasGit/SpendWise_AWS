@@ -12,7 +12,7 @@ verified identity, and row-level security filters again at the database. Attack 
 
 ## Cross-person coverage, route by route
 
-`CROSS_PERSON_COVERAGE.tsv` beside this file maps **all 25 API routes** to the case ids that
+`CROSS_PERSON_COVERAGE.tsv` beside this file maps **all 26 API routes** to the case ids that
 satisfy this plan's goal — *make person B observe any data belonging to person A*. Every row is
 non-empty, which is what makes Bible `E6-S3`'s second criterion auditable **as written**
 (`SW-ADR-134`).

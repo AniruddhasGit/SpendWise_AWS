@@ -20,7 +20,7 @@ Every `P-` row carries **two** references: a `[SRC:]` tag (where the requirement
 a **BRD row** (which business requirement it satisfies). A row missing either is a defect:
 no `[SRC:]` means invented, no BRD row means scope creep.
 
-Citations resolve against **currently APPROVED** records only. 21 of the 143 ADRs are
+Citations resolve against **currently APPROVED** records only. 21 of the 144 ADRs are
 superseded or withdrawn and are not authority.
 
 **Status:** `RULED` (decided, cited) · `PROVISIONAL` (buildable, a dependency outstanding) ·
@@ -725,7 +725,12 @@ only of what it now says.
 | `CV-21` | Which rule owns a non-string `amount` that is not a number either? | **`amount.grammar` owns EVERY non-conforming amount - boolean, array, object, number. `amount` is modelled as `Any` and grammar-checked; it never reaches `field.type`.** | One concept, one sentence. The `amount` row of the field.type placeholder table is therefore unreachable and is removed. | NEG-M-06 · SW-ADR-142 | slice run 5, guess 6 |
 | `CV-22` | Is `description` trimmed, and is 500 measured before or after? | **Whitespace-only becomes `null` FIRST; the length is then measured on the survivor. A non-empty description is stored **verbatim** - never trimmed.** | SW-ADR-115 says normalised to null, not stripped. Trimming would silently alter what the person typed, which SW-ADR-112 refuses to do for amounts. | SW-ADR-115 · SW-ADR-112 | slice run 5, guess 7 |
 | `CV-23` | How is `today ± N years` computed at the boundary? | **Calendar arithmetic (`relativedelta`), clamping 29 February to 28 February. Never fixed day counts.** | Every other date rule here is calendar-based and Asia/Kolkata-anchored; the two readings differ by up to three days, exactly on the boundary NEG-M-08/09 probe. | SW-ADR-111 · SW-ADR-096 | slice run 5, guess 8 |
-| `CV-24` | How is database state reset between test cases? | **Function-scoped **truncate-and-reseed through the real endpoints**. NOT the usual outer-transaction-and-rollback pattern.** | That pattern is unavailable here and nothing said so. It contradicts CV-12 (the dependency commits, once, per request) and it breaks `set_config(..., true)`, which is transaction-local - nest the request inside an outer transaction and the GUC's lifetime stops matching the request's. The seed README states isolation 'between runs'; between CASES was never stated, and it bites immediately: a test that creates a fifth expense makes the day-one gate read 379049 + n and fail for a reason that has nothing to do with the code. | seed/README.md · CV-12 · SW-ADR-136 D | slice run 6, guess 6 |
+| `CV-24` | How is database state reset between test cases? | **Function-scoped reset on a **separate `spendwise_owner` connection owned by the test fixture** - not the app, not the seeder:
+
+    TRUNCATE users, sessions, categories, expenses, password_resets,
+             admin_audit_log RESTART IDENTITY CASCADE;
+
+then reseed through the real endpoints. NOT the outer-transaction-and-rollback pattern.** | That pattern is unavailable here and nothing said so. It contradicts CV-12 (the dependency commits, once, per request) and it breaks `set_config(..., true)`, which is transaction-local - nest the request inside an outer transaction and the GUC's lifetime stops matching the request's. The seed README states isolation 'between runs'; between CASES was never stated, and it bites immediately: a test that creates a fifth expense makes the day-one gate read 379049 + n and fail for a reason that has nothing to do with the code. Two further things were unstated and each breaks immediately. **Role:** `spendwise_app` holds no DELETE on `users` and `verify_invariants.sql` check 11 asserts it cannot - so the runtime role cannot perform the truncate. **RESTART IDENTITY:** plain TRUNCATE does not reset a GENERATED ALWAYS AS IDENTITY sequence, so the second test case's A gets categories 17-24 and every by_category assertion in expected_summary.json fails. That phrase appeared NOWHERE in the document set. The fixture owns the connection so seed/README.md's rule - 'the seeder does not acquire a user-deletion path by the back door' - still holds of the seeder. | seed/README.md · CV-12 · SW-ADR-136 D | slice run 6, guess 6 |
 | `CV-25` | Truncate or round when rendering a timestamp to 3 fractional digits? | ****Truncate, never round.**** | `now()` yields microseconds and rounding can carry into the next second, moving a timestamp across a boundary - including a day boundary, which is the one thing the Asia/Kolkata rule exists to get right. | serialisation.datetime | slice run 6, guess 7 |
 | `CV-26` | What caching posture do authenticated JSON responses take? | ****`Cache-Control: no-store` on every `/api/*` response.**** | The deployment has no TLS (SW-ADR-014, a recorded weakness), and FastAPI's default is no header at all, which permits heuristic caching of a summary. A money response cached by an intermediary is a cross-person leak achieved without touching the database. | SW-ADR-014 · P-OPS-05 | slice run 6, guess 8 |
 
@@ -748,8 +753,16 @@ Rejected by that pattern: `1.25e3`, ` 12.50 `, `+12.50`, `.50`, `abc`, `1,250.00
 Rejected by `amount.scale`, **not** by the pattern: `1250.0000`, `12.345` — the grammar checks shape,
 the scale rule counts decimal places and owns `P-REC-01`'s sentence.
 
+**Transaction.**
+
+| | |
+|---|---|
 | **Isolation** | **REPEATABLE READ** on any request that reads the summary. The level is selected **on the connection at checkout, before `BEGIN`** — in SQLAlchemy, `engine.connect().execution_options(isolation_level='REPEATABLE READ')` behind a second session dependency (`get_db_rr`) that only the summary route declares. |
+| **Level selection** | The level is resolved from a module-level route table, `REPEATABLE_READ_ROUTES = {('GET', '/api/expenses/summary')}`, consulted by the factory — so it cannot depend on dependency-resolution order. `get_db_rr` stays declared on the route as documentation, and a **boot assertion fails closed** if the declared markers and the table disagree. |
+| **Session ownership** | **One session factory, one AsyncSession, one transaction — held on `request.state.db`.** `get_db` and `get_db_rr` both delegate to it; a second call asking for a DIFFERENT isolation level raises rather than silently reusing the wrong one. |
 | **Commit** | The session dependency commits ONCE, after the handler returns (CV-12). |
+| **Write path** | READ COMMITTED is correct for the create path: it takes one snapshot per statement and there is only one statement inside the savepoint. |
+| **A write inside the snapshot** | The summary transaction is REPEATABLE READ and contains a WRITE - the `last_seen_at` heartbeat. Two concurrent requests on one session that both see it stale will both UPDATE the row, and under REPEATABLE READ the loser gets **40001, could not serialize access due to concurrent update**, and the request dies. Under READ COMMITTED it would simply block and succeed. J-U-09 documents the dashboard firing several requests at once, so this is a 500 on the dashboard, intermittently, in production only. **The bump runs inside its own SAVEPOINT; on 40001 the savepoint is rolled back and the request continues** - losing one bump is harmless, because the transaction that won already performed it. |
 
 ### §6.4 — Request models
 
@@ -860,6 +873,27 @@ The object key is NEVER accepted from the client (P-RCP-02); it is server-derive
 | Field | Type | Required | |
 |---|---|---|---|
 | `role` | `string` | **yes** | `user` or `admin`; last-admin guard is 409 |
+
+**`SummaryQuery`** — P-UND-01…P-UND-06 · CV-02 · CV-07 · SW-ADR-144
+
+Five of the thirteen validation rules - range.required, range.order, range.span, range.floor, filter.exclusive - fire ONLY here, and `precedence.tie_break` resolves same-class collisions by 'the order the request model declares them'. There was no such model, so `?from=x&to=y` (both failing field.type) had no stated expected `field`.
+
+| Field | Type | Required | |
+|---|---|---|---|
+| `from` | `date` | **yes** | no default range; the server never guesses |
+| `to` | `date` | **yes** |  |
+| `category_id` | `integer|null` | no |  |
+| `uncategorised` | `boolean` | no | strict: only true/false. `false` is treated as absent. Mutually exclusive with category_id (CV-02) |
+
+**`ExpenseListQuery`** — P-REC-02 · SW-ADR-038
+
+| Field | Type | Required | |
+|---|---|---|---|
+| `from` | `date` | no |  |
+| `to` | `date` | no |  |
+| `category_id` | `integer|null` | no |  |
+| `limit` | `integer` | no | maximum 200 |
+| `offset` | `integer` | no | NEG-X-12 requires '422 naming offset' for offset=-1; the rule is `offset.bounds` |
 
 <!-- END GENERATED §6.1 -->
 

@@ -420,6 +420,34 @@ def check_all(root: str) -> Report:
     # existed. Under that cover it grew an admin policy absent from the spec of
     # record - the isolation hole SW-ADR-129 closes. The banner was the defect's
     # hiding place, so the banner is now executable.
+    # -- 10b. Art II.6 — an amended record is MARKED where it stands ---------
+    # "Superseded text MUST be marked superseded where it stands. An unmarked
+    # contradiction between two live documents is a defect, not a reader's
+    # judgement call." This was the one rule in the Constitution with no check
+    # behind it, and it failed exactly as written: SW-ADR-141 C and SW-ADR-143 E
+    # gave opposite answers, both APPROVED, 141 unmarked, and the resolution
+    # lived only in a cell that reached no page. An engineer who resolves the
+    # ambiguity the way this document set trains them to - by going to the ADRs -
+    # implements the wrong one, and every negative case still passes, because
+    # each varies exactly one input.
+    amended = 0
+    for aid in sorted(adr_files):
+        t = corpus_all.get("docs/01 ADR/all-ADRs/" + aid + ".md", "")
+        m = re.search(r"^\|\s*Amends\s*\|\s*(.+?)\s*\|$", t, re.M)
+        if not m:
+            continue
+        for target in re.findall(r"SW-ADR-\d{3}", m.group(1)):
+            amended += 1
+            tt = corpus_all.get("docs/01 ADR/all-ADRs/" + target + ".md", "")
+            head = tt[:900]
+            if aid not in head or not re.search(r"⚠|AMENDED|SUPERSEDED|NOT CURRENT", head):
+                r.fail("amendment-marker",
+                       f"{aid} amends {target}, but {target} carries no banner naming {aid}. "
+                       f"Art II.6: superseded text MUST be marked where it stands — an unmarked "
+                       f"contradiction between two live records is a defect, not a reader's "
+                       f"judgement call")
+    r.note(f"amendment markers checked: {amended}")
+
     # -- 11b. the day-one acceptance value agrees with itself, everywhere ---
     # 75810 paise is the never-waivable gate, asserted across seventeen files and
     # derived from four fixture amounts. If the fixture ever changes, every one of
@@ -560,6 +588,32 @@ def check_all(root: str) -> Report:
             ("transaction", prd_t, "PRD §6.3",
              [contract.get("transaction", {}).get("isolation", "")]),
         ]
+        # Per-KEY, not per-block: `precedence` rendered four of its five keys and
+        # the block still looked covered, so the tie-break rule reached no page
+        # while the page printed "(see tie_break)".
+        for blk, target, where in (("error_codes.precedence", codes_t, "error_codes.md"),
+                                   ("transaction", prd_t, "PRD §6.3"),
+                                   ("serialisation", prd_t, "PRD §6.3")):
+            obj = contract
+            for part in blk.split("."):
+                obj = obj.get(part, {}) if isinstance(obj, dict) else {}
+            for k, v in (obj.items() if isinstance(obj, dict) else []):
+                if not isinstance(v, str) or len(v) < 25:
+                    continue
+                # A `why`/`note`/`alternative` cell is RATIONALE, and rationale
+                # belongs in the ADR that ruled it, not in a reference table. It
+                # still has to reach a reader somewhere — an unpublished rationale
+                # is how SW-ADR-141 C and SW-ADR-143 E ended up disagreeing with
+                # the resolution visible in neither.
+                rationale = k in ("note", "alternative") or k.startswith("why")
+                haystacks = ([t for t in corpus.values()] if rationale else [target])
+                if not any(v[:80] in h for h in haystacks):
+                    r.fail("spec-completeness",
+                           f"contract.json `{blk}.{k}`: its text reaches "
+                           f"{'no document at all' if rationale else where}. "
+                           f"A renderer that reads some keys of an object leaves the rest "
+                           f"invisible while the block still looks covered")
+
         reached = 0
         for block, target, where, items in REACHES:
             missing = [str(x) for x in items if x and str(x)[:90] not in target]

@@ -1,5 +1,16 @@
 # SW-ADR-143 — Isolation is set at checkout, and a generated block must reach its page
 
+> **⚠ DECISION A AMENDED 2026-08-05 by `SW-ADR-144 A`.** A names "a second session dependency
+> (`get_db_rr`) that only the summary route declares" and stops there. **Implemented literally it
+> opens TWO transactions**: `get_current_user` is a router-level dependency, FastAPI resolves those
+> before a path operation's own parameters, so `set_config` lands in transaction #1 and every
+> summary query runs in transaction #2 with no `app.user_id` — RLS returns **zero rows**.
+> `SW-ADR-144 A` puts one session on `request.state.db` and resolves the level from a route table.
+> Decisions B–E stand.
+>
+> *Found by the seventh uncoached slice. This banner is required by Art II.6 and is now enforced by
+> the `amendment-marker` check, which fired on this very record before it was written.*
+
 | Field | Value |
 |---|---|
 | ADR | `SW-ADR-143` |
@@ -8,6 +19,7 @@
 | Decision status | **APPROVED** |
 | Decision outcome | APPROVED_FOR_IMPLEMENTATION |
 | Supersedes | — (it makes `SW-ADR-136 B` and `SW-ADR-142 F` co-executable) |
+| Amends | `SW-ADR-141` (Decision C, the precedence tie-break) |
 | Raised by | GOAL_13 uncoached slice run 6 |
 | Decided by | BUILD_SESSION (under `SW-ADR-015`) |
 | Decision date | 2026-08-05 |

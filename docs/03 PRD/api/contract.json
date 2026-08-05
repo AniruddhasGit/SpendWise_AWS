@@ -322,6 +322,12 @@
           "rule": "filter.exclusive",
           "field": "uncategorised",
           "message": "category_id and uncategorised cannot both be given."
+        },
+        {
+          "rule": "offset.bounds",
+          "field": "offset",
+          "message": "offset must be zero or greater.",
+          "note": "NEG-X-12 (SEV-1) requires '422 validation error naming offset', and the closed registry contained no rule capable of producing it - found by slice run 7."
         }
       ],
       "placeholders": {
@@ -351,6 +357,21 @@
             "field": "to",
             "expected": "a date",
             "example": "\"2026-08-31\""
+          },
+          {
+            "field": "uncategorised",
+            "expected": "true or false",
+            "example": "true"
+          },
+          {
+            "field": "limit",
+            "expected": "an integer",
+            "example": "50"
+          },
+          {
+            "field": "offset",
+            "expected": "an integer",
+            "example": "0"
           }
         ]
       },
@@ -422,6 +443,7 @@
         "range.order",
         "range.span",
         "range.floor",
+        "offset.bounds",
         "filter.exclusive",
         "category.not_owned"
       ],
@@ -977,8 +999,8 @@
       {
         "id": "CV-24",
         "question": "How is database state reset between test cases?",
-        "ruling": "Function-scoped **truncate-and-reseed through the real endpoints**. NOT the usual outer-transaction-and-rollback pattern.",
-        "why": "That pattern is unavailable here and nothing said so. It contradicts CV-12 (the dependency commits, once, per request) and it breaks `set_config(..., true)`, which is transaction-local - nest the request inside an outer transaction and the GUC's lifetime stops matching the request's. The seed README states isolation 'between runs'; between CASES was never stated, and it bites immediately: a test that creates a fifth expense makes the day-one gate read 379049 + n and fail for a reason that has nothing to do with the code.",
+        "ruling": "Function-scoped reset on a **separate `spendwise_owner` connection owned by the test fixture** - not the app, not the seeder:\n\n    TRUNCATE users, sessions, categories, expenses, password_resets,\n             admin_audit_log RESTART IDENTITY CASCADE;\n\nthen reseed through the real endpoints. NOT the outer-transaction-and-rollback pattern.",
+        "why": "That pattern is unavailable here and nothing said so. It contradicts CV-12 (the dependency commits, once, per request) and it breaks `set_config(..., true)`, which is transaction-local - nest the request inside an outer transaction and the GUC's lifetime stops matching the request's. The seed README states isolation 'between runs'; between CASES was never stated, and it bites immediately: a test that creates a fifth expense makes the day-one gate read 379049 + n and fail for a reason that has nothing to do with the code. Two further things were unstated and each breaks immediately. **Role:** `spendwise_app` holds no DELETE on `users` and `verify_invariants.sql` check 11 asserts it cannot - so the runtime role cannot perform the truncate. **RESTART IDENTITY:** plain TRUNCATE does not reset a GENERATED ALWAYS AS IDENTITY sequence, so the second test case's A gets categories 17-24 and every by_category assertion in expected_summary.json fails. That phrase appeared NOWHERE in the document set. The fixture owns the connection so seed/README.md's rule - 'the seeder does not acquire a user-deletion path by the back door' - still holds of the seeder.",
         "source": "seed/README.md · CV-12 · SW-ADR-136 D",
         "asked_by": "slice run 6, guess 6"
       },
@@ -1153,7 +1175,8 @@
           "SESSION_INVALID",
           "ACCOUNT_DEACTIVATED",
           "VALIDATION_ERROR"
-        ]
+        ],
+        "request_model": "ExpenseListQuery"
       },
       {
         "method": "POST",
@@ -1191,7 +1214,8 @@
           "ACCOUNT_DEACTIVATED",
           "VALIDATION_ERROR"
         ],
-        "note": "MUST be registered BEFORE /api/expenses/{expense_id} or the literal `summary` is captured by the integer path parameter (CV-11)."
+        "note": "MUST be registered BEFORE /api/expenses/{expense_id} or the literal `summary` is captured by the integer path parameter (CV-11).",
+        "request_model": "SummaryQuery"
       },
       {
         "method": "GET",
@@ -1434,7 +1458,8 @@
         ],
         "error_codes": []
       }
-    ]
+    ],
+    "error_code_scope": "`error_codes` on a route lists its **route-specific** codes. Three are reachable on every route and are not repeated: `BAD_REQUEST` (any body-taking route), `RATE_LIMITED` (PRD §7 makes the global limiter reachable on every authenticated path) and `INTERNAL`. Bible E1-S7 AC1 walks the route table asserting the envelope SHAPE, not the code set - asserting the set would fail on correct behaviour."
   },
   "serialisation": {
     "source": "SW-ADR-140",
@@ -1710,6 +1735,69 @@
             "note": "`user` or `admin`; last-admin guard is 409"
           }
         ]
+      },
+      "SummaryQuery": {
+        "source": "P-UND-01…P-UND-06 · CV-02 · CV-07 · SW-ADR-144",
+        "note": "Five of the thirteen validation rules - range.required, range.order, range.span, range.floor, filter.exclusive - fire ONLY here, and `precedence.tie_break` resolves same-class collisions by 'the order the request model declares them'. There was no such model, so `?from=x&to=y` (both failing field.type) had no stated expected `field`.",
+        "fields": [
+          {
+            "name": "from",
+            "type": "date",
+            "required": true,
+            "note": "no default range; the server never guesses"
+          },
+          {
+            "name": "to",
+            "type": "date",
+            "required": true
+          },
+          {
+            "name": "category_id",
+            "type": "integer|null",
+            "required": false
+          },
+          {
+            "name": "uncategorised",
+            "type": "boolean",
+            "required": false,
+            "default": false,
+            "note": "strict: only true/false. `false` is treated as absent. Mutually exclusive with category_id (CV-02)"
+          }
+        ]
+      },
+      "ExpenseListQuery": {
+        "source": "P-REC-02 · SW-ADR-038",
+        "fields": [
+          {
+            "name": "from",
+            "type": "date",
+            "required": false
+          },
+          {
+            "name": "to",
+            "type": "date",
+            "required": false
+          },
+          {
+            "name": "category_id",
+            "type": "integer|null",
+            "required": false
+          },
+          {
+            "name": "limit",
+            "type": "integer",
+            "required": false,
+            "default": 50,
+            "note": "maximum 200"
+          },
+          {
+            "name": "offset",
+            "type": "integer",
+            "required": false,
+            "default": 0,
+            "note": "NEG-X-12 requires '422 naming offset' for offset=-1; the rule is `offset.bounds`"
+          }
+        ]
       }
     },
     "parsing": "**Types are strict.** The only coercion is ISO-8601 text to `date`, on `spent_on`, `from` and `to` - JSON has no date type, so that one is unavoidable. `{\"category_id\": \"9\"}` is **422 `field.type`**, not a 201: a quoted integer is a client bug and stricter wins (Art II.1). `amount` is the deliberate exception - modelled `Any` and grammar-checked, so a JSON number returns `amount.grammar` rather than `field.type` (CV-21)."
@@ -1723,6 +1811,9 @@
     "write_path": "READ COMMITTED is correct for the create path: it takes one snapshot per statement and there is only one statement inside the savepoint.",
     "how": "The level is selected **on the connection at checkout, before `BEGIN`** — in SQLAlchemy, `engine.connect().execution_options(isolation_level='REPEATABLE READ')` behind a second session dependency (`get_db_rr`) that only the summary route declares.",
     "why_how": "SW-ADR-136 B makes `set_config` the FIRST STATEMENT of the request transaction, and SW-ADR-142 F requires REPEATABLE READ on the summary. PostgreSQL rejects `SET TRANSACTION ISOLATION LEVEL` after any query in the transaction - SQLSTATE **25001**, 'SET TRANSACTION ISOLATION LEVEL must be called before any query'. Executed literally, the two APPROVED records either 500 on every summary request or silently stay READ COMMITTED, which is the exact intermittent breakage F was written to prevent. `SET SESSION CHARACTERISTICS` does not rescue it: it does not affect a transaction already in progress. Setting the level at checkout is the only reading under which neither record is violated. Found by the sixth uncoached slice, contradiction C4. **Reasoned, not observed.**",
-    "write_inside_the_snapshot": "The summary transaction is REPEATABLE READ and contains a WRITE - the `last_seen_at` heartbeat. Two concurrent requests on one session that both see it stale will both UPDATE the row, and under REPEATABLE READ the loser gets **40001, could not serialize access due to concurrent update**, and the request dies. Under READ COMMITTED it would simply block and succeed. J-U-09 documents the dashboard firing several requests at once, so this is a 500 on the dashboard, intermittently, in production only. **The bump runs inside its own SAVEPOINT; on 40001 the savepoint is rolled back and the request continues** - losing one bump is harmless, because the transaction that won already performed it."
+    "write_inside_the_snapshot": "The summary transaction is REPEATABLE READ and contains a WRITE - the `last_seen_at` heartbeat. Two concurrent requests on one session that both see it stale will both UPDATE the row, and under REPEATABLE READ the loser gets **40001, could not serialize access due to concurrent update**, and the request dies. Under READ COMMITTED it would simply block and succeed. J-U-09 documents the dashboard firing several requests at once, so this is a 500 on the dashboard, intermittently, in production only. **The bump runs inside its own SAVEPOINT; on 40001 the savepoint is rolled back and the request continues** - losing one bump is harmless, because the transaction that won already performed it.",
+    "session_ownership": "**One session factory, one AsyncSession, one transaction — held on `request.state.db`.** `get_db` and `get_db_rr` both delegate to it; a second call asking for a DIFFERENT isolation level raises rather than silently reusing the wrong one.",
+    "why_session_ownership": "SW-ADR-143 A said the level is chosen by 'a second session dependency that only the summary route declares', and stopped there. But `get_current_user` is a ROUTER-level dependency (SRC-001 §4.3: written once, applied to the whole router, never copy-pasted per handler), and FastAPI resolves router-level dependencies BEFORE a path operation's own parameters. So `get_current_user`'s session opens first at READ COMMITTED, `set_config` lands in THAT transaction, and `get_db_rr` then opens a SECOND one. Every summary query in transaction #2 has no `app.user_id`, so RLS returns **zero rows** - the failure GOTCHAS calls the worst shape in this system, produced by faithfully implementing the record that was supposed to prevent it. Found by the seventh uncoached slice, guess 1.",
+    "level_selection": "The level is resolved from a module-level route table, `REPEATABLE_READ_ROUTES = {('GET', '/api/expenses/summary')}`, consulted by the factory — so it cannot depend on dependency-resolution order. `get_db_rr` stays declared on the route as documentation, and a **boot assertion fails closed** if the declared markers and the table disagree."
   }
 }

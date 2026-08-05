@@ -191,6 +191,12 @@ def render_codes(spec):
                     "| `field.required` | %s |" % sc["field_required"],
                     "| `range.required` | %s |" % sc["range_required"],
                     "", sc["note"], ""]
+        # `tie_break` was pointed at from this page — "(see `tie_break`)" — and
+        # never rendered, so the pointer resolved to nothing and a reader who
+        # followed it back to the ADRs found the OPPOSITE order in SW-ADR-141 C.
+        tb = pr.get("tie_break")
+        if tb:
+            out += ["### Tie-break — two keys, one rule class", "", "**" + tb + "**", ""]
     return "\n".join(out)
 
 
@@ -389,10 +395,21 @@ def render_prd_block(spec, summary):
                           for x in ser["amount_grammar"]["rejected_by_scale_not_grammar"]),
               "the scale rule counts decimal places and owns `P-REC-01`'s sentence.",
               ""]
-        tx = spec.get("transaction")
-        if tx:
-            L += ["| **Isolation** | %s %s |" % (tx["isolation"], tx["how"]),
-                  "| **Commit** | %s |" % tx["commit"], ""]
+    # These were appended AFTER the serialisation table closed and two paragraphs
+    # of prose, so they rendered as literal piped text rather than table rows —
+    # the two most operationally consequential lines in §6.3, malformed, and
+    # --check could not see it. Their own table now.
+    tx = spec.get("transaction")
+    if tx:
+        L += ["**Transaction.**", "",
+              "| | |", "|---|---|",
+              "| **Isolation** | %s %s |" % (tx["isolation"], tx["how"]),
+              "| **Level selection** | %s |" % tx["level_selection"],
+              "| **Session ownership** | %s |" % tx["session_ownership"],
+              "| **Commit** | %s |" % tx["commit"],
+              "| **Write path** | %s |" % tx["write_path"],
+              "| **A write inside the snapshot** | %s |" % tx["write_inside_the_snapshot"],
+              ""]
 
     # This section was DEFINED and never called until 2026-08-05: `SW-ADR-141`
     # asserted "Rendered as PRD §6.4" and no §6.4 existed, while --check printed

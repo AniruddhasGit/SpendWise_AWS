@@ -1,5 +1,16 @@
 # SW-ADR-141 — The error path joins the spec of record
 
+> **⚠ DECISION C AMENDED 2026-08-05 by `SW-ADR-143 E`.** The tie-break below says *"then
+> fields in the order §6.1's worked payload lists them"*. It is **the order the REQUEST
+> MODEL declares them** — `request_models.<Model>.fields`. The two differ whenever
+> `spent_on` competes with `category_id` or `description` in one rule class, and Pydantic
+> reports in declaration order, so the natural implementation silently produced the other
+> answer. Every other decision in this record stands.
+>
+> *This banner exists because the seventh uncoached slice found the contradiction. Art II.6
+> required it from the moment `SW-ADR-143` was written, and Art II.6 was the one rule in
+> the Constitution with no automated check behind it. There is one now.*
+
 | Field | Value |
 |---|---|
 | ADR | `SW-ADR-141` |

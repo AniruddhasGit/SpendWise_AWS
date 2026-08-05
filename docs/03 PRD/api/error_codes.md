@@ -46,6 +46,7 @@ One message per rule. The `field` column names which input a pairwise rule repor
 | `range.floor` | `from` | The start date must be on or after 2000-01-01. |
 | `range.required` | `<from or to, whichever is missing; `from` when BOTH are absent>` | Both from and to are required; there is no default range. |
 | `filter.exclusive` | `uncategorised` | category_id and uncategorised cannot both be given. |
+| `offset.bounds` | `offset` | offset must be zero or greater. |
 
 ### One message per non-validation code
 
@@ -74,6 +75,9 @@ One message per rule. The `field` column names which input a pairwise rule repor
 | `description` | a string or null | `"Auto to office"` |
 | `from` | a date | `"2026-08-01"` |
 | `to` | a date | `"2026-08-31"` |
+| `uncategorised` | true or false | `true` |
+| `limit` | an integer | `50` |
+| `offset` | an integer | `0` |
 
 ## Precedence — when one body breaks two rules
 
@@ -84,7 +88,7 @@ The envelope carries exactly ONE field and ONE message, and every negative case 
 Presence before type before value, then fields in the order the request model declares them (see `tie_break`). `category.not_owned` is last because the database raises it, after every in-process rule has already passed.
 
 ```
-field.required -> field.type -> amount.grammar -> amount.scale -> amount.bounds -> spent_on.window -> description.length -> range.required -> range.order -> range.span -> range.floor -> filter.exclusive -> category.not_owned
+field.required -> field.type -> amount.grammar -> amount.scale -> amount.bounds -> spent_on.window -> description.length -> range.required -> range.order -> range.span -> range.floor -> offset.bounds -> filter.exclusive -> category.not_owned
 ```
 
 ### Scope — which rule owns an absence
@@ -95,3 +99,7 @@ field.required -> field.type -> amount.grammar -> amount.scale -> amount.bounds 
 | `range.required` | The summary's QUERY pair only. A missing `from` or `to` is `range.required`, with `field` set to the key that is actually missing - not `field.required`, which would otherwise make `range.required` unreachable (G2). |
 
 Both rules were live and `field.required` was first in the order, which read literally made `range.required` dead text. A rule that can never fire is the same defect as a missing one, and CV-07 exists precisely to describe the query-pair case.
+
+### Tie-break — two keys, one rule class
+
+**When two keys fail the SAME rule class, report the one that comes first in `request_models.<Model>.fields` - the declaration order, which is what Pydantic reports in. An earlier `why` cell said '§6.1's worked payload order' (amount, category_id, description, spent_on) while ExpenseCreate declares (amount, spent_on, category_id, description), so the natural implementation silently produced the other answer. The model is authoritative because it is the thing the code is built from. Found by the sixth uncoached slice, C5.**

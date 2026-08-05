@@ -126,3 +126,23 @@ The day series uses `generate_series` LEFT JOINed to `expenses`. Put `e.user_id 
 `WHERE` clause and the LEFT JOIN quietly degenerates to an INNER JOIN: the zero-spend days vanish,
 the series shortens, and **only `SIT-E0-S9-05` notices** — the totals and the average stay correct,
 so every other test still passes.
+
+## The summary runs REPEATABLE READ, and it contains a write
+
+`SW-ADR-142 F` put the three summary aggregates in one snapshot so the breakdown sums to the
+headline. `SW-ADR-136` also has `get_current_user` bump `last_seen_at` — **a write, inside that
+snapshot.**
+
+Two concurrent requests on one session that both see the timestamp stale will both `UPDATE` the
+row. Under `REPEATABLE READ` the loser gets **`40001`, could not serialize access due to concurrent
+update**, and the request dies. Under `READ COMMITTED` it would simply block and succeed. `J-U-09`
+documents the dashboard firing several requests at once, so this is a 500 on the dashboard,
+intermittently, in production only.
+
+The bump runs inside its own `SAVEPOINT`; on `40001` roll back to it and carry on. Losing one bump
+is harmless — the transaction that won already performed it.
+
+**And the level cannot be set with `SET TRANSACTION ISOLATION LEVEL`**, because `set_config` is the
+first statement and PostgreSQL then raises `25001`. It is selected on the connection at checkout,
+before `BEGIN`, from a route table — never from dependency-resolution order, which would open a
+second transaction and silently return zero rows everywhere (`SW-ADR-143`, `SW-ADR-144`).
