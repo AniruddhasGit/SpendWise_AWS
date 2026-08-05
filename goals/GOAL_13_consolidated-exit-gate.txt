@@ -32,7 +32,7 @@ PART 2 - CROSS-ARTIFACT ASSURANCE - one FRESH zero-context agent per lens, in pa
        shipped two such breaches - assume more.
   X-04 CLAIMED-BUT-NOT-DONE. Every sentence asserting an action ("filed as", "added to")
        verified against the artifact it names. K1 lives or dies here.
-  X-05 UNKNOWN-UNKNOWNS RED TEAM. What is missing that nobody thought to look for?
+  X-05 RED TEAM. What is missing that nobody thought to look for?
 
 PART 3 - THE UNCOACHED VERTICAL SLICE (the only test that actually proves it)
   Hand a FRESH agent the frozen documents and NOTHING else - no conversation, no coaching,
