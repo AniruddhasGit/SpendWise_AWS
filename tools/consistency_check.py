@@ -57,10 +57,20 @@ def in_scope(relpath: str) -> bool:
 class Report:
     def __init__(self) -> None:
         self.failures: list[tuple[str, str]] = []
+        self.reviews: list[tuple[str, str]] = []
         self.notes: list[str] = []
 
     def fail(self, check: str, detail: str) -> None:
         self.failures.append((check, detail))
+
+    def review(self, check: str, detail: str) -> None:
+        """A heuristic finding: worth a human glance, never a gate.
+
+        Keyword overlap cannot reliably tell a wrong citation from a paragraph that
+        legitimately discusses two ADRs at once. Failing the build on it would train
+        everyone to ignore the tool, which is worse than not having the check.
+        """
+        self.reviews.append((check, detail))
 
     def note(self, msg: str) -> None:
         self.notes.append(msg)
@@ -89,6 +99,12 @@ def rel(root: str, p: str) -> str:
     return os.path.relpath(p, root).replace("\\", "/")
 
 
+def _title(corpus_all, aid):
+    t = corpus_all.get("docs/01 ADR/all-ADRs/" + aid + ".md", "")
+    m = re.search(r"^# SW-ADR-\d+ . (.+)$", t, re.M)
+    return (m.group(1)[:48] if m else "?")
+
+
 # ── the checks ──────────────────────────────────────────────────────────────────
 def check_all(root: str) -> Report:
     r = Report()
@@ -98,7 +114,8 @@ def check_all(root: str) -> Report:
     const_p = os.path.join(root, "CONSTITUTION.md")
 
     files = walk(root)
-    corpus = {rel(root, p): read(p) for p in files if in_scope(rel(root, p))}
+    corpus_all = {rel(root, p): read(p) for p in files}
+    corpus = {k: v for k, v in corpus_all.items() if in_scope(k)}
 
     # -- what actually exists -----------------------------------------------
     src_clauses: dict[str, set[str]] = {}
@@ -248,6 +265,53 @@ def check_all(root: str) -> Report:
             r.fail("dangling-citation",
                    f"{f}: cites 'Client statement' — cite a SRC-002 clause instead")
 
+
+    # -- 9. TOPICAL DRIFT: a citation that RESOLVES but points at the WRONG ADR ----
+    # The GOAL_04 review found 20 of these across six documents. Every one resolved —
+    # the ADR existed — it just meant something else entirely. Check 2 cannot see this
+    # class at all, which is exactly why it needs its own.
+    STOP = set(("the a an and or of for to in on at is are be with by from that this it its "
+                "not no never every each all any one two into out up down over under").split())
+
+    def _kw(x):
+        return {w for w in re.findall(r"[a-z0-9_]+", x.lower())
+                if len(w) > 3 and w not in STOP}
+
+    adr_kw = {}
+    for aid in sorted(adr_files):
+        t = corpus_all.get("docs/01 ADR/all-ADRs/" + aid + ".md", "")
+        ttl = re.search(r"^# SW-ADR-\d+ . (.+)$", t, re.M)
+        dec = re.search(r"## Decision\s+(.{0,400})", t, re.S)
+        if ttl:
+            adr_kw[aid] = _kw(ttl.group(1)) | (_kw(dec.group(1)) if dec else set())
+
+    drift = 0
+    for f, t in corpus.items():
+        # In a delimited file every row is its own statement, so a character window
+        # would span unrelated rows and manufacture false positives. Scope to the row.
+        row_scoped = f.endswith((".tsv", ".csv"))
+        for m in re.finditer(r"SW-ADR-(\d{3})", t):
+            aid = "SW-ADR-" + m.group(1)
+            if aid not in adr_kw:
+                continue
+            if row_scoped:
+                ls = t.rfind(chr(10), 0, m.start()) + 1
+                le = t.find(chr(10), m.end())
+                window = t[ls: le if le != -1 else len(t)]
+            else:
+                window = t[max(0, m.start() - 260): m.end() + 60]
+            ctx = _kw(window)
+            if adr_kw[aid] & ctx:
+                continue
+            best = sorted(((len(adr_kw[a] & ctx), a) for a in adr_kw), reverse=True)[:1]
+            if best and best[0][0] >= 7:
+                drift += 1
+                r.review("citation-topic",
+                       f"{f}: cites {aid} ({_title(corpus_all, aid)}) but the surrounding "
+                       f"text matches {best[0][1]} ({_title(corpus_all, best[0][1])})")
+    r.note(f"topical drift: {len(adr_kw)} ADRs indexed, {drift} citation(s) to eyeball "
+           f"(heuristic - reported, never a gate)")
+
     return r
 
 
@@ -265,6 +329,9 @@ PLANTS = [
      lambda t: t.replace("APPROVED", "TOTALLY_FINE", 1)),
     ("fingerprint", "docs/00 SourceOfTruth/SRC-001_requirements_2026-08-05.md",
      lambda t: t + "\n\nPlanted: a frozen source was edited.\n"),
+    ("citation-topic", "docs/02 BRD/SpendWise_BRD.md",
+     lambda t: t + "\n\nPlanted: every destructive action confirms, naming the blast radius "
+                   "and the count of affected expenses, per `SW-ADR-118`.\n"),
     ("dangling-citation", "docs/01 ADR/all-ADRs/SW-ADR-002.md",
      lambda t: t.replace("| Sources |", "| Sources | `Client statement, 2026-08-05` ·", 1)),
 ]
@@ -339,6 +406,13 @@ def main() -> int:
     for note in r.notes:
         print(f"  {note}")
     print()
+    if r.reviews:
+        print(f"REVIEW [citation-topic] — {len(r.reviews)} citation(s) worth an eyeball.")
+        print("  Heuristic, not a gate. A paragraph may legitimately discuss two ADRs.")
+        for _, d in r.reviews:
+            print(f"   {d}")
+        print()
+
     if r.ok:
         print("VERDICT: PASS — every cross-reference resolves.")
         print("         This is the cheap layer only. It cannot see a semantic contradiction")

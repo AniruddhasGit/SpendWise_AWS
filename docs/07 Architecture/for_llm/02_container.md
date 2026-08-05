@@ -17,7 +17,7 @@ distribution for the frontend.
 
 **The trap this creates:** the catch-all serves `index.html` for anything unmatched — so a typo'd
 `/api/` path would return **HTML with a 200** to a caller expecting JSON. Unmatched `/api/*` is
-therefore excluded from the catch-all and returns a JSON 404 (`SW-ADR-075`).
+therefore excluded from the catch-all and returns a JSON 404 (`SW-ADR-059`).
 
 **Module layout** (`SRC-001 §3`): `auth · users · expenses · categories · receipts · admin`, each
 with `router · service · repository · schemas · models`. Routers never write queries; repositories

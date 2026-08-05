@@ -141,7 +141,7 @@
           "nullability": "NULL",
           "default": null,
           "check": null,
-          "source": "SRC-001 \u00a76.3 \u00b7 never returned by any admin model (SW-ADR-107)"
+          "source": "SRC-001 \u00a76.3 \u00b7 never returned by any admin model (SW-ADR-106)"
         }
       ]
     },
@@ -298,7 +298,7 @@
           "nullability": "NULL",
           "default": null,
           "check": "description IS NULL OR char_length(description) <= 500",
-          "source": "SW-ADR-116"
+          "source": "SW-ADR-115"
         },
         {
           "name": "spent_on",
@@ -361,7 +361,7 @@
           "nullability": "NOT NULL",
           "default": null,
           "check": "action IN ('password_reset_issued','sessions_revoked','user_deactivated','user_reactivated','role_changed','bootstrap_admin_claimed','users_list_viewed','sessions_list_viewed','audit_log_viewed')",
-          "source": "SW-ADR-106 \u2014 a closed allowlist of nine"
+          "source": "SW-ADR-105 \u2014 a closed allowlist of nine"
         },
         {
           "name": "target_user_id",
@@ -377,7 +377,7 @@
           "nullability": "NOT NULL",
           "default": "'{}'::jsonb",
           "check": null,
-          "source": "SW-ADR-106 \u2014 shape validated per action BEFORE the write"
+          "source": "SW-ADR-105 \u2014 shape validated per action BEFORE the write"
         },
         {
           "name": "created_at",
@@ -391,7 +391,7 @@
     },
     "app_meta": {
       "rls": false,
-      "source": "SW-ADR-126",
+      "source": "SW-ADR-125",
       "note": "One row. Holds the signing-secret fingerprint so rotation revokes sessions automatically.",
       "columns": [
         {
@@ -400,7 +400,7 @@
           "nullability": "NOT NULL",
           "default": "1",
           "check": "id = 1",
-          "source": "SW-ADR-126 \u2014 single row enforced by the check"
+          "source": "SW-ADR-125 \u2014 single row enforced by the check"
         },
         {
           "name": "jwt_secret_fingerprint",
@@ -408,7 +408,7 @@
           "nullability": "NOT NULL",
           "default": null,
           "check": "char_length(jwt_secret_fingerprint) = 64",
-          "source": "SW-ADR-126"
+          "source": "SW-ADR-125"
         },
         {
           "name": "updated_at",

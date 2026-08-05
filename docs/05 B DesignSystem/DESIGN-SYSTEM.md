@@ -4,8 +4,8 @@
 |---|---|
 | Version | v0.1-draft · **binding UX standard** |
 | Decision status | NOT_DECIDED (fail-closed) |
-| Sources | `SRC-001 §9.2`, `§9.4` · `SW-ADR-092` (categories) · `SW-ADR-118` (accessibility) · `SW-ADR-113` (ribbon) · `SW-ADR-056` (money format) |
-| Conformance target | **WCAG 2.1 AA** (`SW-ADR-118`) |
+| Sources | `SRC-001 §9.2`, `§9.4` · `SW-ADR-092` (categories) · `SW-ADR-117` (accessibility) · `SW-ADR-109` (ribbon) · `SW-ADR-056` (money format) |
+| Conformance target | **WCAG 2.1 AA** (`SW-ADR-117`) |
 
 > **This binds front-end engineering only. It is NOT a schema source.**
 > Every contrast figure below was **computed** from the hex values in `tokens.css`, not
@@ -90,9 +90,9 @@ band is a UI component, not text.
 **All bands pass.**
 
 "Uncategorised" is `#948c87` — a warm stone grey, deliberately distinct from the seeded
-"Other" `#7d8471`, and it always sorts last regardless of size (`SW-ADR-114`).
+"Other" `#7d8471`, and it always sorts last regardless of size (`SW-ADR-113`).
 
-> **Adjusted here, and why that is the process working.** `SW-ADR-114` specified `#a8a29e`.
+> **Adjusted here, and why that is the process working.** `SW-ADR-113` specified `#a8a29e`.
 > Measured against paper it is **2.36:1** — below the 3:1 floor a UI component needs. It was
 > darkened within the same hue to the value above. `SW-ADR-092` anticipated this exact case:
 > *"the design system adopts these as tokens and MUST verify each at >=3:1 against the paper
@@ -128,7 +128,7 @@ One scale each, in `tokens.css`. Motion is `--sw-motion-fast` for state changes 
 
 **Under `prefers-reduced-motion: reduce`, every transition and animation is disabled** — the
 add-expense panel *appears instantly* rather than sliding. "Appears instantly" is the
-definition, and it is what a test asserts (`SW-ADR-118`).
+definition, and it is what a test asserts (`SW-ADR-117`).
 
 ---
 
@@ -143,7 +143,7 @@ Every component specifies default · hover · focus · disabled · error/empty.
 | hover | `--sw-pine-deep` fill |
 | focus | the global focus ring — never removed |
 | disabled | `--sw-paper-sunken` fill, `--sw-ink-faint` text, `cursor: not-allowed`, `aria-disabled` |
-| destructive | `--sw-danger` fill; always behind a confirm (`SW-ADR-120`) |
+| destructive | `--sw-danger` fill; always behind a confirm (`SW-ADR-119`) |
 
 Minimum target **44×44 CSS px** at phone width.
 
@@ -151,7 +151,7 @@ Minimum target **44×44 CSS px** at phone width.
 default `--sw-border` hairline · focus the ring plus `--sw-pine` border · error `--sw-danger`
 border with the message below the field, not in a toast · disabled `--sw-paper-sunken`.
 
-The amount field restricts entry to two decimal places (`SW-ADR-115`) so the server's 422 is a
+The amount field restricts entry to two decimal places (`SW-ADR-112`) so the server's 422 is a
 backstop the user should never meet.
 
 ### Card · Table row · Chip · Panel
@@ -162,7 +162,7 @@ Escape closes, the background is `inert`, and a dirty form confirms before disca
 
 ### §5.1 — The category ribbon — the one that needed a ruling
 
-`SRC-001 §9.2` makes this **both the chart and the filter**. `SW-ADR-118` makes it a control
+`SRC-001 §9.2` makes this **both the chart and the filter**. `SW-ADR-117` makes it a control
 rather than a picture:
 
 - Container `role="group"`, `aria-label="Spending by category"`.
@@ -180,7 +180,7 @@ rather than a picture:
 
 Selecting a band re-scopes the total, count, average, day bars and list — but **not the ribbon
 itself**, which stays whole-period so proportions remain visible and other bands stay
-reachable (`SW-ADR-113`).
+reachable (`SW-ADR-109`).
 
 ### §5.2 — The per-day bar chart
 `aria-hidden="true"` decoration inside a labelled container. Its accessible data representation

@@ -89,7 +89,7 @@ CREATE TABLE admin_audit_log (
     CONSTRAINT ck_admin_audit_log_action CHECK (action IN ('password_reset_issued','sessions_revoked','user_deactivated','user_reactivated','role_changed','bootstrap_admin_claimed','users_list_viewed','sessions_list_viewed','audit_log_viewed'))
 );
 
--- app_meta  [SW-ADR-126]  One row. Holds the signing-secret fingerprint so rotation revokes sessions automatically.
+-- app_meta  [SW-ADR-125]  One row. Holds the signing-secret fingerprint so rotation revokes sessions automatically.
 CREATE TABLE app_meta (
     id SMALLINT NOT NULL DEFAULT 1,
     jwt_secret_fingerprint TEXT NOT NULL,

@@ -53,12 +53,12 @@
   --sw-motion-fast: 120ms; --sw-motion-base: 200ms;
   --sw-motion-ease: cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* focus — SW-ADR-118. One rule, never overridden without a replacement. */
+  /* focus — SW-ADR-117. One rule, never overridden without a replacement. */
   --sw-focus-width: 2px;
   --sw-focus-offset: 2px;
   --sw-focus-color: var(--sw-pine);
 
-  /* the smallest a control may be at phone width — SW-ADR-118 (5) */
+  /* the smallest a control may be at phone width — SW-ADR-117 (5) */
   --sw-target-min: 44px;
 }
 
@@ -76,7 +76,7 @@
   outline-offset: var(--sw-focus-offset);
 }
 
-/* Reduced motion means INSTANT, not slower — SW-ADR-118 (2). Testable. */
+/* Reduced motion means INSTANT, not slower — SW-ADR-117 (2). Testable. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

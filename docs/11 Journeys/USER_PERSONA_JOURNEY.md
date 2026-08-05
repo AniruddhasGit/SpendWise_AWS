@@ -65,7 +65,7 @@ person concludes their data changed. ✅
 
 | # | Intent | What happens | Spec |
 |---|---|---|---|
-| 1 | Clicks the Groceries band. | **Total, count, average, day bars and the list all re-scope.** | `SW-ADR-113`, §5.2 |
+| 1 | Clicks the Groceries band. | **Total, count, average, day bars and the list all re-scope.** | `SW-ADR-109`, §5.2 |
 | 2 | Looks at the ribbon. | **It does not re-scope** — it stays whole-period so proportions stay visible and other bands stay reachable. Groceries is emphasised; the rest dim. | §5.2 |
 | 3 | Uses the keyboard instead. | One Tab reaches the ribbon; `←`/`→` move between bands; Enter toggles; Escape clears. Each band announces "Groceries: ₹2,140.00, 34% of total". | design system §5.1 |
 | 4 | Clicks the active band again. | Filter clears. | §5.2 |
@@ -112,7 +112,7 @@ account was reset. `P-UND-06`
 **Seam checked:** step 5 is the one this journey exists to find. `SRC-001` retained the
 completion endpoint and listed no screen for it — built literally, the locked-out person, the
 exact persona the administrator role exists for, would have received a code and a dead end.
-Closed by `SW-ADR-112`. ✅
+Closed by `SW-ADR-110`. ✅
 
 ## J-U-09 — Signed out from under them
 

@@ -39,7 +39,7 @@ to close them.
 
 Had journeys run *before* that sweep, these are exactly the two defects they would have found:
 
-- **`SW-ADR-112`** — the reset code with no screen to type it on. `SRC-001` kept the completion
+- **`SW-ADR-110`** — the reset code with no screen to type it on. `SRC-001` kept the completion
   endpoint and listed no page for it, so the locked-out person — the exact persona the
   administrator role exists for — would have received a code and a dead end.
 - **`SW-ADR-098`** — the last-administrator guard covered demotion but not deactivation, so the

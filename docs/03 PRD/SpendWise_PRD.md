@@ -57,10 +57,10 @@ Written once as `get_current_user` and `require_admin`, applied as a router-leve
 
 | Route | Surface | Who | Notes |
 |---|---|---|---|
-| `/signin` | Sign in · Create account · **Redeem reset code** | anonymous | one page, three modes `[SRC: SRC-001 §9.1, SW-ADR-112]` |
+| `/signin` | Sign in · Create account · **Redeem reset code** | anonymous | one page, three modes `[SRC: SRC-001 §9.1, SW-ADR-110]` |
 | `/` | Dashboard | any signed-in | `from`, `to`, `category` in the query string `[SRC: SW-ADR-075]` |
 | `/admin` | Account administration | `admin` only | server-enforced, not UI-hidden `[SRC: SRC-001 §9.1]` |
-| `/admin/audit` | The administrative record | `admin` only | a sub-view; `§9.3`'s "Plus the audit log" `[SRC: SW-ADR-112]` |
+| `/admin/audit` | The administrative record | `admin` only | a sub-view; `§9.3`'s "Plus the audit log" `[SRC: SW-ADR-110]` |
 | *(any unmatched)* | Not-found screen | any | the SPA catch-all serves `index.html`; the client router shows a real 404 `[SRC: SW-ADR-075]` |
 | `/api/*` *(unmatched)* | JSON 404 | — | **never falls through to the SPA** — a typo'd API path must not return HTML with a 200 `[SRC: SW-ADR-075]` |
 
@@ -77,9 +77,9 @@ failing request by request `[SRC: SW-ADR-075]`.
 Anonymous. Input: email, password, display name. Creates the account, seeds the eight
 categories of `P-REC-05`, signs the person in, returns them to the dashboard.
 · Password: **minimum 12 characters, maximum 72 bytes UTF-8**, no composition rules
-`[SRC: SW-ADR-104]`. The 72 is a bcrypt property, documented as such, never raised.
+`[SRC: SW-ADR-103]`. The 72 is a bcrypt property, documented as such, never raised.
 · Email is stored as typed and compared case-insensitively `[SRC: SW-ADR-027]`.
-· **Duplicate email → 409, "An account with this email already exists."** `[SRC: SW-ADR-103]`
+· **Duplicate email → 409, "An account with this email already exists."** `[SRC: SW-ADR-102]`
 This deliberately reveals existence at registration; the sign-in path stays dark (`P-ACC-03`).
 · Rate limited: 5/min and 20/day per IP `[SRC: SW-ADR-128]`.
 **Exceptions:** password too short → 422 · password over 72 bytes → 422 · malformed email → 422 ·
@@ -101,7 +101,7 @@ response timing reveals nothing `[SRC: SRC-001 §10.5]`.
 · **Every failure returns the same generic 401** — wrong password, unknown email, and
 deactivated account are indistinguishable `[SRC: SW-ADR-100]`.
 · Every failed attempt emits one structured WARN line: normalized email, source IP, user agent,
-request id. **No account lockout exists** `[SRC: SW-ADR-105]`.
+request id. **No account lockout exists** `[SRC: SW-ADR-104]`.
 · Rate limited: 10/min per IP **and** 10/min per email `[SRC: SW-ADR-128]`.
 · On success the session prune of `P-OPS-04` runs.
 
@@ -123,13 +123,13 @@ record is the authority, not the token's signature alone.
 Returns id, email, display name, role, and `receipts_enabled` so the client can hide the receipt
 control when storage is unconfigured rather than letting it fail `[SRC: SRC-001 §8.4]`.
 
-**`P-ACC-07` Redeem a reset code** — BRD `R-ADM-09` · `[SRC: SW-ADR-112]`
+**`P-ACC-07` Redeem a reset code** — BRD `R-ADM-09` · `[SRC: SW-ADR-110]`
 Anonymous, third mode of `/signin`. Input: email, code, new password.
 · The code is hashed and matched; single use; one-hour expiry `[SRC: SRC-001 §10.7]`.
 · On success **every session of that person is revoked in the same transaction**
 `[SRC: SRC-001 §5.5]`, the password is replaced, and the person is returned to sign-in with
 "Password updated — sign in with your new password." **No auto-login.**
-· **Four distinct outcomes**, each with its own message `[SRC: SW-ADR-112]`:
+· **Four distinct outcomes**, each with its own message `[SRC: SW-ADR-110]`:
 invalid → "This reset code is not recognised." · already used → "This reset code has already
 been used — ask your administrator for a new one." · expired → "This reset code has expired —
 ask your administrator for a new one." · success as above.
@@ -141,13 +141,13 @@ ask your administrator for a new one." · success as above.
 Input: amount, date, optional description, optional category.
 · **Amount** is parsed as an exact decimal at the boundary and converted to integer paise in a
 validator. **More than two decimal places → 422, "Amount must have at most two decimal
-places."** — never rounded `[SRC: SW-ADR-115]`. Must be **> 0** `[SRC: SRC-001 §6.6]` and
+places."** — never rounded `[SRC: SW-ADR-112]`. Must be **> 0** `[SRC: SRC-001 §6.6]` and
 ≤ 10¹² paise `[SRC: SW-ADR-036]`.
 · **Date** must satisfy `today − 10 years ≤ spent_on ≤ today + 1 year`, evaluated in
-**Asia/Kolkata** `[SRC: SW-ADR-096, SW-ADR-114]`. Never defaulted server-side — the browser
+**Asia/Kolkata** `[SRC: SW-ADR-096, SW-ADR-111]`. Never defaulted server-side — the browser
 always sends it.
 · **Description** optional, ≤ 500 characters; empty or whitespace-only is **normalized to null**
-so "no description" has exactly one representation `[SRC: SW-ADR-116]`.
+so "no description" has exactly one representation `[SRC: SW-ADR-115]`.
 · **Category**, if given, must belong to the caller — enforced by the database, because foreign-key
 checks bypass row security entirely `[SRC: SW-ADR-072]`.
 · The currency is snapshotted onto the row at write time `[SRC: SW-ADR-013]`.
@@ -166,11 +166,11 @@ validation as `P-REC-01`. *(The endpoint exists in v1; the screen does not — `
 
 **`P-REC-04` Delete an expense** — BRD `R-REC-03` · `[SRC: SRC-001 §7.3]`
 Confirms first, naming the amount and date, and warning when a receipt will go with it
-`[SRC: SW-ADR-120]`. Its receipt object is deleted **after** the row commits, best-effort
+`[SRC: SW-ADR-119]`. Its receipt object is deleted **after** the row commits, best-effort
 `[SRC: SW-ADR-087]`.
 
 **`P-REC-05` Categories** — BRD `R-REC-04`, `R-REC-05`, `R-REC-06`, `R-REC-07` ·
-`[SRC: SRC-001 §6.5, §7.2, SW-ADR-092, SW-ADR-117]`
+`[SRC: SRC-001 §6.5, §7.2, SW-ADR-092, SW-ADR-114]`
 List, create, **rename and recolour**, delete. Names are unique per person, case-insensitively
 `[SRC: SW-ADR-033]`; a conflict returns 409.
 · **Eight seeded at account creation**, in order: Groceries · Food & Dining · Transport ·
@@ -178,9 +178,9 @@ Rent & Utilities · Health · Entertainment · Shopping · Other, with the hex v
 `05 B DesignSystem` §2.2 `[SRC: SW-ADR-092]`.
 · **Deleting a category nulls `category_id` on every expense that used it and deletes nothing
 else** `[SRC: SRC-001 §7.2]`. The confirm names the count: *"Delete Groceries? 47 expenses will
-become uncategorised."* `[SRC: SW-ADR-120]`
+become uncategorised."* `[SRC: SW-ADR-119]`
 · **Renaming never touches expenses** — the link is by id, so history follows the category
-`[SRC: SW-ADR-117]`.
+`[SRC: SW-ADR-114]`.
 
 ### E3 — Understanding spending
 
@@ -202,17 +202,17 @@ average = null  when elapsed = 0                   # rendered as "—", never as
 **average = 75,810 paise**. The application computes this from seeded rows; a fixture asserting
 on itself does not satisfy the gate `[SRC: CONSTITUTION.md Art IX.4]`.
 
-**`P-UND-03` Period presets** — BRD `R-UND-02` · `[SRC: SW-ADR-111]`
+**`P-UND-03` Period presets** — BRD `R-UND-02` · `[SRC: SW-ADR-108]`
 All boundaries in Asia/Kolkata. **This week** = Monday 00:00 of the current ISO week through
 Sunday · **This month** = the 1st through the last day of the current month · **Last month** =
 the whole previous month · **This year** = 1 Jan through 31 Dec. Plus custom dates.
 The browser resolves the preset into explicit `from`/`to`; **the server never guesses "this
 month"**.
 
-**`P-UND-04` Range validation** — BRD `R-UND-12` · `[SRC: SW-ADR-119]`
+**`P-UND-04` Range validation** — BRD `R-UND-12` · `[SRC: SW-ADR-118]`
 `from > to` → 422 · span > **400 days** → 422 naming the cap · `from < 2000-01-01` → 422.
 
-**`P-UND-05` The category breakdown** — BRD `R-UND-09` · `[SRC: SW-ADR-114]`
+**`P-UND-05` The category breakdown** — BRD `R-UND-09` · `[SRC: SW-ADR-113]`
 Returns `category_id`, name, colour, total, and percentage. Names come from the categories
 service, not a join — the expenses repository returns ids and totals, the **service** stitches
 `[SRC: SW-ADR-017]`. One request for the browser; the module seam stays intact.
@@ -233,7 +233,7 @@ Numbers use tabular figures so columns align. No component formats money itself.
 
 ### E4 — Receipts
 
-**`P-RCP-01` Upload** — BRD `R-RCP-01`, `R-RCP-04` · `[SRC: SRC-001 §8, SW-ADR-047, SW-ADR-124]`
+**`P-RCP-01` Upload** — BRD `R-RCP-01`, `R-RCP-04` · `[SRC: SRC-001 §8, SW-ADR-047, SW-ADR-123]`
 Three steps. (1) The browser requests an upload authorisation; the server returns a **presigned
 POST with a policy asserting a content-length range and an allowed content type** — a bare
 presigned PUT enforces neither. (2) The browser uploads straight to storage, targeting
@@ -266,7 +266,7 @@ With no bucket configured the feature switches off gracefully: `receipts_enabled
 Paginated and searchable by email and display name. Returns email, display name, role,
 `is_active`, `created_at`, and last-active time. **Never any spending figure.**
 
-**`P-ADM-02` Active sessions** — BRD `R-ADM-02` · `[SRC: SRC-001 §5.3, SW-ADR-107]`
+**`P-ADM-02` Active sessions** — BRD `R-ADM-02` · `[SRC: SRC-001 §5.3, SW-ADR-106]`
 "Currently active" = `last_seen_at` within **15 minutes** and not revoked.
 Returns user, `issued_at`, `last_seen_at`, status. **IP address and user agent are stored but
 never returned** — the response model physically lacks the fields.
@@ -306,7 +306,7 @@ while deactivation reached the identical dead end with no route back.
 Paginated, newest first, rendered as a formatted sentence per action — never a raw JSON blob,
 which nobody reads and in which a violation would be invisible.
 
-**`P-ADM-09` Deletion does not exist** — BRD `R-ADM-12` · `[SRC: SW-ADR-108]`
+**`P-ADM-09` Deletion does not exist** — BRD `R-ADM-12` · `[SRC: SW-ADR-107]`
 There is **no** endpoint, screen, administrative power, or seed-script path that deletes a
 person. The cascade semantics stay in the schema as correctness, so a future deliberate deletion
 behaves exactly as `SRC-001 §6.9` specifies — but nothing in v1 can trigger it. When deletion
@@ -339,7 +339,7 @@ the database policy admits only aggregate reads.
 is also what makes sequential integer ids safe `[SRC: SW-ADR-023]` — the two must be reversed
 together or not at all.
 
-**`P-PRV-04` The audit record** — BRD `R-PRV-03`, `R-PRV-05` · `[SRC: SRC-001 §10.8, SW-ADR-106]`
+**`P-PRV-04` The audit record** — BRD `R-PRV-03`, `R-PRV-05` · `[SRC: SRC-001 §10.8, SW-ADR-105]`
 Written in the **same transaction** as the change; if the record cannot be written, the change
 rolls back. **Nine action types, each with a typed detail shape**, validated before the write:
 `password_reset_issued` · `sessions_revoked` · `user_deactivated` · `user_reactivated` ·
@@ -356,7 +356,7 @@ Every capability the permission matrix denies is refused **on the server, on eve
 Hiding the administration link is presentation and never the control. Every "no" in the matrix
 is a requirement, and each has a negative test.
 
-**`P-PRV-06` No self-service profile or password change** — BRD `R-PRV-08` · `[SRC: SW-ADR-117]`
+**`P-PRV-06` No self-service profile or password change** — BRD `R-PRV-08` · `[SRC: SW-ADR-116]`
 A person cannot change their own email, display name, or password in v1. The only password-change
 route is the administrator-issued reset of `P-ADM-04` and `P-ACC-07` — **including an
 administrator issuing one against themselves**, which is why `P-ADM-04` permits the self-target.
@@ -375,7 +375,7 @@ In order: load settings → **assert against the catalog that the runtime databa
 table, is not superuser, holds no `BYPASSRLS`, and cannot disable row security** → run
 migrations under `pg_advisory_xact_lock` using the **separate migration credential** → print the
 current and target revision → **compare the stored fingerprint of the signing secret and, if it
-changed, revoke every live session** `[SRC: SW-ADR-126]` → bind the port.
+changed, revoke every live session** `[SRC: SW-ADR-125]` → bind the port.
 Migration failure: no retry, exit non-zero, one structured ERROR naming the revision reached
 versus target `[SRC: SW-ADR-061]`.
 
@@ -405,7 +405,7 @@ Binds to `docs/05 B DesignSystem`. That document is authority for colour, type, 
 component states and the accessibility floor; this section specifies **behaviour**.
 
 ### §5.1 — Sign-in page
-Three modes on one page `[SRC: SRC-001 §9.1, SW-ADR-112]`: sign in · create account · redeem a
+Three modes on one page `[SRC: SRC-001 §9.1, SW-ADR-110]`: sign in · create account · redeem a
 reset code. States: default · submitting (control disabled) · error (inline, beneath the field,
 never a toast) · rate-limited (429 shows a countdown from `Retry-After` and disables submit
 `[SRC: SW-ADR-128]`).
@@ -414,7 +414,7 @@ never a toast) · rate-limited (429 shows a countdown from `Retry-After` and dis
 Period picker as chips plus custom dates · **the category ribbon** · a small bar per day · entries
 grouped by date with a per-day subtotal · the add-expense panel `[SRC: SRC-001 §9.2]`.
 
-**The ribbon** `[SRC: SW-ADR-113, SW-ADR-118]`. Selecting a band re-scopes the total, count,
+**The ribbon** `[SRC: SW-ADR-109, SW-ADR-117]`. Selecting a band re-scopes the total, count,
 average, day bars **and** the entry list. **The ribbon itself stays whole-period** so proportions
 remain visible and other bands stay reachable; the selected band is emphasised and the rest dim.
 Clicking the active band again clears the filter. Interaction, focus and ARIA are specified in
@@ -435,7 +435,7 @@ retry that preserves the period — never zeros)** · populated.
 ### §5.3 — Administration
 A person table with last-active and status, an active-session count, per-person actions, and the
 audit view. **Every destructive action confirms, naming the blast radius** — the exact strings
-are in `SW-ADR-120`. No type-the-name friction anywhere.
+are in `SW-ADR-119`. No type-the-name friction anywhere.
 
 ### §5.4 — Session ending mid-use
 One response interceptor `[SRC: SW-ADR-057]`. On 401: clear client state, route to sign-in with
