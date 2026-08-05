@@ -117,3 +117,75 @@ Promote the throwaway citation checker into the repo so later goals reuse it, an
 
 **Blockers:** unchanged — `OPEN-NAME-01`, `OPEN-CREDS-01`, `OPEN-MODEL-01`, and
 `docs/30 Deployment/AWS_PREP_QUEUE.md` items 0–5.
+
+---
+
+## 2026-08-05 · Session 1 (cont.) · GOAL_02 — ADR completion sweep
+
+**Done:**
+- Five fresh zero-context agents swept `SRC-001`'s 66 sub-clauses through distinct lenses —
+  data shape (43 gaps), security (24), money and time (14), UX and error paths (25),
+  operations (21). **127 undetermined decisions found.**
+- **48 ruled** as `SW-ADR-023`…`SW-ADR-070` under `SW-ADR-015`. **35 OPEN rows** written into
+  `CONSTITUTION.md` Article X, each with a class, an owner and a recommendation.
+- Ledger extended to 70 rows. Citation checker re-run: 218 citations across 97 files,
+  0 unresolved.
+
+**Four findings that broke gates we thought were solid:**
+- Date range semantics were undefined. Half-open would return **94,762 instead of the agreed
+  75,810** — the never-waivable day-one gate was **not deterministic**.
+- No timezone was named, so "capped at today" was wrong for 5.5 hours of every day on a UTC server.
+- RLS as specified covered reads only.
+- Foreign-key checks bypass RLS entirely, so a cross-user read was reachable through the category
+  write path.
+- `SW-ADR-005` and `SW-ADR-019` **directly contradict each other** on whether migrations run at
+  boot. Raised as `OPEN-MIGRATE-01`, not resolved — the build session may not pick which of the
+  client's own decisions loses.
+
+**THEN THE FRESH-AGENT QA RAN, AND GOAL_02 DID NOT PASS IT. 24 findings, 3 CRITICAL.**
+
+Worst first, because several are the build session's own errors:
+
+- **CRITICAL — reset is uncompletable.** `SW-ADR-041` put `password_resets` behind RLS keyed on the
+  verified user id. Completing a reset is *unauthenticated by definition* — the user is locked out,
+  which is the whole reason the admin role exists. The policy matches nothing, so account recovery
+  is dead. `SW-ADR-042` spotted this exact class of problem for `users` and fixed it only there.
+- **CRITICAL — authority breach.** `SW-ADR-025` states in its own consequences that it is
+  IRREVERSIBLE, and was then ruled by the build session anyway. `SW-ADR-015` says no delegation
+  reaches irreversible matters. The one record that recognised the floor applied is the record that
+  crossed it.
+- **CRITICAL — the composite FK cannot work as written.** `ON DELETE SET NULL` on a composite key
+  nulls **every** referencing column including `user_id`, which is `NOT NULL`. The column-list form
+  needs PostgreSQL 15, and **no document pins a version** — the prep queue literally asks the client
+  which one they will create.
+- **HIGH — two more contradictions** the sweep missed: `SW-ADR-064` vs `SW-ADR-070` on where the
+  build version lives; `SW-ADR-030` vs `SW-ADR-043` on whether admin can read expense counts at all.
+- **HIGH — a second waiver ruled without a signature.** `SW-ADR-042` removes the database-layer
+  guarantee from the table holding every password hash, and says so in its own text. That is
+  waiving a quality check, which is reserved to the client.
+- **HIGH — two claimed actions that never happened.** `SW-ADR-069` says "Filed as ERRATUM E-8" and
+  there is no E-8. `SW-ADR-029` says "erratum candidate" and filed none. Four ADRs claim prep-queue
+  rows that do not exist. **That is a K1 breach by the build session** — reporting an action as
+  done when it was not.
+- **HIGH — `SW-ADR-024` is wrong.** "All timestamps NOT NULL" makes `revoked_at` and `used_at`
+  unsatisfiable, and `SW-ADR-039` indexes `revoked_at IS NULL` — an index over a condition its own
+  sibling ADR makes impossible. The stated count of eleven columns is also wrong; there are ten.
+- **HIGH — `SW-ADR-059` silently closed a reserved question** by putting `/reset` in the route map,
+  which is `OPEN-RESETUI-01`, and answered it differently from the register's own recommendation.
+
+**Factually wrong premises the QA corrected** (the decisions mostly survive; the reasoning did not):
+`SW-ADR-041`'s justification is wrong — a `FOR ALL … USING` policy *does* constrain writes, and a
+`FOR SELECT`-only policy fails loud rather than leaking · `SW-ADR-036` — `sum(bigint)` returns
+`numeric` and cannot overflow; the risk is the mandated cast back · `SW-ADR-045` — PyJWT 2.x
+*requires* `algorithms`, so an unpinned decode is a startup error, not a bypass (the real missing
+control is a version floor) · `SW-ADR-052`'s worked example is muddled · `SET LOCAL` cannot take a
+bind parameter, so the RLS mechanism as written forces the f-string-near-SQL that Art IV.8 forbids.
+
+**In progress:** GOAL_02 is **NOT closed.** 24 findings are unadjudicated.
+
+**Open / next:** remediate before `GOAL_03`. Superseding ADRs for the three CRITICALs and the
+contradictions; move `SW-ADR-025` and `SW-ADR-042` to OPEN rows; actually file the errata that were
+claimed; add the four missing prep-queue rows; correct the wrong premises. The BRD must not be
+written on top of this.
+
+**Blockers:** unchanged, plus `OPEN-MIGRATE-01`.
