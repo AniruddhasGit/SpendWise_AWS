@@ -1,0 +1,11 @@
+case_id	journey	title	personas	chains_stories	expected	status
+SIT-J-U-01	J-U-01	First visit: register, seeded categories, first-run dashboard	PERSON	E1-S1,E1-S2,E0-S5,E2-S5	a brand-new account reaches a first-run dashboard with 8 categories and no ribbon	NotRun
+SIT-J-U-02	J-U-02	First expense: panel to server to refetched summary	PERSON	E2-S1,E3-S5,E2-S5	the entry appears only after the server confirms; the ribbon shows one band at 100%	NotRun
+SIT-J-U-05	J-U-05	Filtering from the ribbon, by pointer and by keyboard	PERSON	E3-S3,E3-S4	every number below the ribbon re-scopes; the ribbon itself does not; arrow keys reach every band	NotRun
+SIT-J-U-08	J-U-08	Locked out: failure, rate limit, admin reset, redemption	PERSON+ADMIN	E1-S6,E4-S3,E1-S5	the person regains access; all four redemption outcomes are distinguishable	NotRun
+SIT-J-U-09	J-U-09	Signed out mid-use: one redirect, draft preserved	PERSON+ADMIN	E4-S3,E3-S7	exactly ONE redirect despite concurrent 401s; the half-typed expense survives	NotRun
+SIT-J-A-01	J-A-01	Bootstrap: claim, and refuse-to-start when unset	SYSTEM	E1-S4	the nominated address becomes admin; an unset variable with zero admins aborts startup	NotRun
+SIT-J-A-04	J-A-04	A leaver: deactivation enforced at all three points	ADMIN	E4-S3	login refused generically, sessions revoked, in-flight request refused explicitly	NotRun
+SIT-J-A-05	J-A-05	Second administrator: promote, demote, and both guards	ADMIN	E4-S4	demote revokes; the last-admin guard refuses both demote and deactivate; peer reset 403s	NotRun
+SIT-J-A-06	J-A-06	After an incident: the record, including read-audits	ADMIN	E4-S5	every mutation and every one of the three reads leaves exactly one row	NotRun
+SIT-J-A-07	J-A-07	What an administrator cannot do	ADMIN	E4-S2,E5-S2	no amount, no description, no receipt, no IP, no delete, and 404 on another's id	NotRun
