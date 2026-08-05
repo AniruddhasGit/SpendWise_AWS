@@ -4,7 +4,7 @@
 here would give a green suite and a false one — on the single guarantee this
 product is about. Tests that need a database are marked `db` and skip cleanly
 when `spendwise_test` is unreachable, so a laptop with no network still runs the
-195 pure tests.
+pure tests.
 
 Per-case reset is `TRUNCATE … RESTART IDENTITY CASCADE` on an **owner**
 connection owned by this fixture (`CV-24`). Two things make the usual
@@ -29,6 +29,33 @@ from collections.abc import AsyncIterator
 import pytest
 import pytest_asyncio
 
+
+def redact(url: str) -> str:
+    """`postgresql+asyncpg://u:secret@host/db` -> `postgresql+asyncpg://u:***@host/db`."""
+    return re.sub(r"://([^:/@]+):[^@]*@", lambda m: f"://{m.group(1)}:***@", url)
+
+
+class SecretUrl(str):
+    """A connection URL that does not print its password.
+
+    It IS a `str` — `monkeypatch.setenv`, `create_async_engine` and the seeder's
+    `TEST_DB in url` guard all keep working unchanged. Only `repr()` differs,
+    and `repr()` is what pytest calls: **every failure report lists the fixture
+    values of the failing test**, so one broken assertion put the RDS password
+    into the output. A failing test is exactly when that output gets pasted into
+    an issue, a chat or a CI log — and a secret that has reached a log has left
+    the `.env` whatever `.gitignore` says.
+
+    Redacting the value itself was the first attempt and broke the whole suite:
+    the `client` fixture connects with this string.
+    """
+
+    __slots__ = ()
+
+    def __repr__(self) -> str:
+        return f"SecretUrl({redact(self)!r})"
+
+
 # The test database is a SEPARATE database in the same instance (SW-ADR-068), so
 # RLS stays real for every test and nothing here can touch the dev data.
 TEST_DB = "spendwise_test"
@@ -42,19 +69,19 @@ def _swap_db(url: str) -> str:
 
 
 @pytest.fixture(scope="session")
-def test_urls() -> tuple[str, str] | None:
+def test_urls() -> tuple[SecretUrl, SecretUrl] | None:
     """`(runtime_url, owner_url)` pointed at `spendwise_test`, or None."""
     from app.core.settings import get_settings
     try:
         s = get_settings()
     except SystemExit:
         return None
-    return (_swap_db(s.DATABASE_URL.get_secret_value()),
-            _swap_db(s.MIGRATION_DATABASE_URL.get_secret_value()))
+    return (SecretUrl(_swap_db(s.DATABASE_URL.get_secret_value())),
+            SecretUrl(_swap_db(s.MIGRATION_DATABASE_URL.get_secret_value())))
 
 
 @pytest_asyncio.fixture
-async def clean_db(test_urls) -> AsyncIterator[str]:
+async def clean_db(test_urls) -> AsyncIterator[SecretUrl]:
     """Truncate as the OWNER, then hand back the RUNTIME url.
 
     The owner does the reset because `spendwise_app` holds no `DELETE` on

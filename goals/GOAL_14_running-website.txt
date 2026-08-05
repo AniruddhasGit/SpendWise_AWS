@@ -1,0 +1,90 @@
+GOAL_14 — A COMPLETE, RUNNING WEBSITE, CHECKED IN A REAL BROWSER
+================================================================
+
+OBJECTIVE
+  Finish the application so a person can open it in a browser, sign up, log what
+  they spend, and see a correct dashboard — and prove it with Playwright rather
+  than by asserting it.
+
+  The win condition is already written (`CLAUDE.md`): sign up, log an expense,
+  see a correct dashboard; a second person cannot see the first's money, proven
+  at the database layer; it runs from a container the client deployed by hand.
+  M0 has proved the hard half. This goal builds the half you can look at.
+
+WHERE THIS STARTS
+  M0 is 9/10 done. The day-one gate is green against real RDS: 75810 computed by
+  application code, the whole payload equal to expected_summary.json, isolation
+  proved as the runtime role in raw SQL and red-proofed by disabling the policy
+  on purpose. 233 tests pass.
+
+  What exists: register, login, logout, me, create expense, get expense, summary.
+  What does not: the rest of the API, and every line of the client.
+
+ORDER OF WORK, AND WHY THIS ORDER
+  1. M2 — FINISH THE API (8 stories)
+     categories list/create/rename/recolour/delete · expense list/update/delete.
+     The client cannot be built against endpoints that do not exist, and a
+     frontend written first would encode guesses about shapes the contract has
+     already settled.
+
+     Category delete NULLS the expenses, never deletes them (`SRC-001 §7.2`) —
+     the money is the record, the label is a convenience.
+
+  2. M3 — THE CLIENT (8 stories)
+     React 18 + Vite, plain CSS, no UI framework (`SW-ADR-016`). Tokens lifted
+     from `05 B DesignSystem` rather than re-picked; every contrast figure there
+     was computed, and re-choosing colours discards that work.
+
+     The category ribbon is a REAL CONTROL — native buttons, one tab stop with
+     roving tabindex, aria-pressed, selection signalled by TWO cues so it
+     survives colour blindness (`SW-ADR-118`).
+
+     Money is formatted en-IN at RENDER TIME ONLY. The server sends integer
+     paise and a plain decimal string; the client never divides by 100.
+
+  3. E0-S10 — /healthz and /readyz, closing M0.
+
+  4. PLAYWRIGHT — the browser-observed checks the user asked for
+     Art IX.4 requires the day-one proof watched in a REAL BROWSER. Everything
+     so far is in-process via ASGITransport, which is the same code path but not
+     the same evidence.
+
+     The runs that matter:
+       a. register -> land on the dashboard -> the cookie is httpOnly in the
+          browser's own store
+       b. add an expense through the form -> it appears without a reload
+       c. THE GATE ON SCREEN: seeded person A, APP_TODAY_OVERRIDE=2026-08-05,
+          and the text 758.10 visible in the browser
+       d. person B signs in and sees their own much smaller number
+       e. the ribbon works by keyboard alone
+       f. 375px wide, nothing overflows
+
+  5. WHAT IS DEFERRED, AND SAID SO
+     M5 receipts needs an S3 bucket that does not exist (prep-queue item 6).
+     S3_BUCKET stays unset, receipts_enabled reports false, the client hides the
+     control, and one WARN names the disabled feature. That is the designed
+     behaviour, not a gap — but it is a gap in COVERAGE and this goal records it
+     rather than letting a green suite imply otherwise.
+
+     M4 admin and M6 hardening are built after the website runs.
+
+RULES THAT DO NOT RELAX BECAUSE THIS IS THE FUN PART
+  - Failing test first (Art IX.1). The browser tests are written before the
+    screens they drive.
+  - Never fake, skip, xfail or delete a test to reach green (Art IX.2). A red
+    gate blocks: mark the story Blocked and surface it.
+  - The contract wins. `docs/03 PRD/api/contract.json` is the spec of record; if
+    a screen wants a different shape, that is a change to the contract, made
+    deliberately, not a divergence made quietly.
+  - Every claim about behaviour is OBSERVED. "The cookie is httpOnly" means read
+    out of the browser's cookie store, not out of the code that sets it.
+  - The day-one gate must still pass at the end (E6-S4). A frontend that breaks
+    75810 is a frontend that gets fixed, not a gate that gets adjusted.
+
+DEFINITION OF DONE
+  - `npm run build` produces the client, and one container serves API + files
+    with a catch-all returning index.html (`SW-ADR-020`) — no CORS.
+  - Playwright runs green against the running app, including 758.10 on screen.
+  - `py tools/consistency_check.py` PASS and `--selftest` all red-proofed.
+  - The engineering ledger reflects reality, and anything not built is marked
+    Blocked or Backlog with the reason — never quietly Done.

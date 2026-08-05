@@ -1,12 +1,15 @@
 """HTTP only. Parses, delegates, serialises. Never writes a query."""
 from __future__ import annotations
 
+from datetime import date
 from typing import Annotated
 
-from fastapi import APIRouter, Query, status
+from fastapi import APIRouter, Query, Response, status
 
 from app.core.deps import CurrentUser, CurrentUserRR, Db
-from app.modules.expenses.schemas import ExpenseCreate, ExpenseOut, Summary, SummaryQuery
+from app.modules.expenses.schemas import (
+    ExpenseCreate, ExpenseOut, ExpensePage, ExpenseUpdate, Summary, SummaryQuery,
+)
 from app.modules.expenses.service_db import ExpenseService
 
 router = APIRouter(prefix="/api/expenses", tags=["expenses"])
@@ -43,3 +46,38 @@ async def get_one(expense_id: int, principal: CurrentUser, db: Db) -> ExpenseOut
     row and a 404 on a missing one is a working oracle: walk the id space and
     learn which ids are real (`P-PRV-03`)."""
     return await ExpenseService(db).get(principal, expense_id)
+
+
+@router.get("", response_model=ExpensePage)
+async def list_expenses(
+    principal: CurrentUser, db: Db,
+    limit: Annotated[int, Query()] = 50,
+    offset: Annotated[int, Query()] = 0,
+    from_: Annotated[date | None, Query(alias="from")] = None,
+    to: Annotated[date | None, Query()] = None,
+    category_id: Annotated[int | None, Query()] = None,
+) -> ExpensePage:
+    """`P-REC-02`.
+
+    NO `ge=`/`le=` on the annotations, deliberately (`SW-ADR-145 B`). FastAPI
+    would raise `greater_than_equal`, which the handler maps to `field.type` —
+    returning "offset must be an integer, for example 0" for a value that IS an
+    integer, when the contract wrote `offset.bounds` for this exact case. The
+    annotation carries the TYPE; the service carries the VALUE rule.
+    """
+    page = await ExpenseService(db).list_page(
+        principal, limit=limit, offset=offset, from_=from_, to=to,
+        category_id=category_id)
+    return ExpensePage.model_validate(page)
+
+
+@router.patch("/{expense_id}", response_model=ExpenseOut)
+async def update(expense_id: int, body: ExpenseUpdate,
+                 principal: CurrentUser, db: Db) -> ExpenseOut:
+    return await ExpenseService(db).update(principal, expense_id, body)
+
+
+@router.delete("/{expense_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete(expense_id: int, principal: CurrentUser, db: Db) -> Response:
+    await ExpenseService(db).delete(principal, expense_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

@@ -143,3 +143,14 @@ class SummaryQuery(BaseModel):
     # `false` is treated as absent; mutually exclusive with `category_id`,
     # checked in the service so the message can name `uncategorised` (`CV-02`).
     uncategorised: bool = False
+
+
+class ExpensePage(BaseModel):
+    """`P-REC-02`. `total` here is a ROW COUNT, not a money total — the money
+    total lives on `Summary` as `total_paise`, and confusing the two is the kind
+    of mistake that reads fine in code review."""
+
+    items: list[ExpenseOut]
+    total: int
+    limit: int
+    offset: int

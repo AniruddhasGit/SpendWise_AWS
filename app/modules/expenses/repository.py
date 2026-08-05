@@ -105,3 +105,61 @@ class ExpenseRepository:
                 .order_by(day.c.day))
         rows = await self.db.execute(stmt)
         return [DayTotal(d, int(t), int(n)) for d, t, n in rows]
+
+    async def list_page(self, user_id: int, *, limit: int, offset: int,
+                        from_: date | None = None, to: date | None = None,
+                        category_id: int | None = None) -> tuple[list[Expense], int]:
+        """`P-REC-02`. Sorted `spent_on DESC, created_at DESC, id DESC`.
+
+        The tie-breakers are not decoration: two expenses on the same day with
+        the same timestamp would otherwise come back in an order the database
+        chose, and a page boundary would show a row twice or skip it entirely.
+        """
+        where = [Expense.user_id == user_id]
+        if from_ is not None:
+            where.append(Expense.spent_on >= from_)
+        if to is not None:
+            where.append(Expense.spent_on <= to)
+        if category_id is not None:
+            where.append(Expense.category_id == category_id)
+
+        total = await self.db.scalar(
+            select(func.count()).select_from(Expense).where(*where)) or 0
+        rows = await self.db.scalars(
+            select(Expense).where(*where)
+            .order_by(Expense.spent_on.desc(), Expense.created_at.desc(), Expense.id.desc())
+            .limit(limit).offset(offset))
+        return list(rows), int(total)
+
+    async def update_one(self, user_id: int, expense_id: int, values: dict) -> Expense | None:
+        from sqlalchemy import update as sa_update
+        r = await self.db.execute(
+            sa_update(Expense)
+            .where(Expense.user_id == user_id, Expense.id == expense_id)
+            .values(**values).returning(Expense))
+        return r.scalar_one_or_none()
+
+    async def delete_one(self, user_id: int, expense_id: int) -> int:
+        from sqlalchemy import delete as sa_delete
+        r = await self.db.execute(
+            sa_delete(Expense).where(Expense.user_id == user_id, Expense.id == expense_id))
+        return r.rowcount or 0
+
+    async def null_category(self, user_id: int, category_id: int) -> int:
+        """`SRC-001 §7.2`: deleting a category NULLS its expenses.
+
+        Done explicitly, inside the delete transaction, because the composite FK
+        is `ON DELETE NO ACTION` — `SET NULL` would try to null `user_id` too,
+        which is `NOT NULL` (`SW-ADR-072`).
+        """
+        from sqlalchemy import update as sa_update
+        r = await self.db.execute(
+            sa_update(Expense)
+            .where(Expense.user_id == user_id, Expense.category_id == category_id)
+            .values(category_id=None))
+        return r.rowcount or 0
+
+    async def count_in_category(self, user_id: int, category_id: int) -> int:
+        return int(await self.db.scalar(
+            select(func.count()).select_from(Expense)
+            .where(Expense.user_id == user_id, Expense.category_id == category_id)) or 0)

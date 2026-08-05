@@ -32,3 +32,24 @@ class CategoryRepository:
         r = await self.db.scalars(
             select(Category).where(Category.user_id == user_id, Category.id.in_(ids)))
         return {c.id: (c.name, c.color) for c in r}
+
+    async def by_id(self, user_id: int, category_id: int) -> Category | None:
+        return await self.db.scalar(
+            select(Category).where(Category.user_id == user_id, Category.id == category_id))
+
+    async def create_one(self, user_id: int, name: str, color: str) -> Category:
+        c = Category(user_id=user_id, name=name, color=color)
+        self.db.add(c)
+        await self.db.flush()
+        await self.db.refresh(c)
+        return c
+
+    async def delete_one(self, user_id: int, category_id: int) -> int:
+        """Delete the CATEGORY only. The caller must already have nulled the
+        expenses — the composite FK is ON DELETE NO ACTION precisely so this
+        cannot silently cascade (`SW-ADR-072`)."""
+        from sqlalchemy import delete as sa_delete
+        r = await self.db.execute(
+            sa_delete(Category).where(Category.user_id == user_id,
+                                      Category.id == category_id))
+        return r.rowcount or 0

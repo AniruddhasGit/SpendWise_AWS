@@ -21,6 +21,7 @@ from app.core.errors import (
 )
 from app.core.settings import get_settings
 from app.modules.auth.router import router as auth_router
+from app.modules.categories.router import router as categories_router
 from app.modules.expenses.router import router as expenses_router
 
 # THE CONFIG GATE. Calling this at import means a missing required key aborts
@@ -56,6 +57,7 @@ app.add_exception_handler(RequestValidationError, validation_exception_handler)
 app.add_exception_handler(Exception, unhandled_handler)
 
 app.include_router(auth_router)
+app.include_router(categories_router)
 app.include_router(expenses_router)
 
 # Still to come: E0-S6 list/patch/delete · M2 categories · M3 receipts ·
