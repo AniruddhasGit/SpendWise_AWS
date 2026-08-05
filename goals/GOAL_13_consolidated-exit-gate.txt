@@ -19,8 +19,7 @@ WRITE-SET
 
 PART 1 - MECHANICAL (cheap, first)
   py tools/consistency_check.py --selftest    then    py tools/consistency_check.py
-  Both green before spending one agent - a red script means the set does not even resolve
-  internally.
+  Both green before spending one agent.
 
 PART 2 - CROSS-ARTIFACT ASSURANCE - one FRESH zero-context agent per lens, in parallel
   X-01 CONTRADICTIONS. Every pair of documents that could disagree -> CONFLICT_MAP.tsv:
