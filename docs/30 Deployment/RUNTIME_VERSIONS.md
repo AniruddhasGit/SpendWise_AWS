@@ -55,7 +55,7 @@ Not in the runtime image — these belong to CI and the developer machine only.
 
 ## Everything else
 
-`requirements.lock` pins **46 packages** including every transitive
+`requirements.lock` pins **49 packages** including every transitive
 dependency. The image installs from that file, never from `pyproject.toml`
 ranges — ranges resolve differently on different days.
 

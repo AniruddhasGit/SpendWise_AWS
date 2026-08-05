@@ -19,11 +19,18 @@ dependencies = [
     "asyncpg>=0.30",
     "alembic>=1.14",
     "pydantic>=2.9",
+    "email-validator>=2.2",   # EmailStr; P-ACC-01 validates the address shape
     "pydantic-settings>=2.6",
     "pyjwt>=2.10",          # >=2.4 is the floor: SW-ADR-080 pins algorithms=["HS256"]
     "bcrypt>=4.2",
     "boto3>=1.35",
     "python-dateutil>=2.9", # CV-23: calendar arithmetic at the year boundary
+    # The IANA timezone database. NOT optional and NOT a Windows-only fix:
+    # zoneinfo reads the SYSTEM tzdb, Windows ships none at all, and a slim
+    # Linux image often omits it too. Without this, ZoneInfo("Asia/Kolkata")
+    # raises - and SW-ADR-096 makes that timezone the calendar every boundary
+    # in this product is computed in.
+    "tzdata>=2024.1",
 ]
 
 [project.optional-dependencies]

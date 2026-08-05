@@ -372,6 +372,21 @@
             "field": "offset",
             "expected": "an integer",
             "example": "0"
+          },
+          {
+            "field": "email",
+            "expected": "an email address",
+            "example": "\"you@example.com\""
+          },
+          {
+            "field": "password",
+            "expected": "a string of 12 to 72 characters",
+            "example": "\"correct-horse-battery-staple\""
+          },
+          {
+            "field": "display_name",
+            "expected": "a name of 1 to 100 characters",
+            "example": "\"Person A\""
           }
         ]
       },

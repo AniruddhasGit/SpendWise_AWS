@@ -78,6 +78,9 @@ One message per rule. The `field` column names which input a pairwise rule repor
 | `uncategorised` | true or false | `true` |
 | `limit` | an integer | `50` |
 | `offset` | an integer | `0` |
+| `email` | an email address | `"you@example.com"` |
+| `password` | a string of 12 to 72 characters | `"correct-horse-battery-staple"` |
+| `display_name` | a name of 1 to 100 characters | `"Person A"` |
 
 ## Precedence — when one body breaks two rules
 
