@@ -1,0 +1,52 @@
+# What never reaches the build context.
+#
+# Two jobs. The first is size and speed: the build context is uploaded to the
+# daemon before anything runs, so `node_modules/` and `.venv/` alone are most
+# of the wait for a build that will not use either.
+#
+# The second is the one that matters. `.env` holds real database credentials
+# and the session signing secret. `COPY . .` is not used in this Dockerfile —
+# it copies named directories precisely so a stray file cannot ride along — but
+# a `.dockerignore` that omits `.env` is one careless `COPY` away from baking
+# credentials into a layer, where they survive deletion in a later layer and
+# are readable by anyone who pulls the image.
+
+# ── secrets ──────────────────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ── build artefacts that must be rebuilt, never copied ───────────────────────
+# `client/dist` is produced by stage 1. Copying a local one in would ship
+# whatever was last built on somebody's laptop, from a commit nobody recorded.
+.venv/
+venv/
+client/node_modules/
+client/dist/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# ── the project's memory, not its runtime ────────────────────────────────────
+# These are why this repository is worth reading and none of them execute in a
+# container. `docs/` is ~4MB of specification; `evidence/` holds screenshots.
+.git/
+.github/
+docs/
+evidence/
+goals/
+handoffs/
+tests/
+workflows/
+*.md
+!client/public/fonts/README.md
+
+# ── local tooling ────────────────────────────────────────────────────────────
+.claude/
+.vscode/
+.idea/
+tools/
+alembic/versions/__pycache__/
