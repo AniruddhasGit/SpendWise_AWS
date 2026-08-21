@@ -7,6 +7,9 @@ import { boot } from './lib/theme.js'
 // components reference the custom properties the tokens define.
 import './styles/tokens.css'
 import './styles/app.css'
+// The redesign layer, LAST — it overrides app.css by cascade order, not by
+// specificity, so nothing here needs !important and app.css stays readable.
+import './styles/app.redesign.css'
 
 // BEFORE the first render. Applying the theme in an effect means the first
 // paint uses the media query and then flips — a white flash on every load for

@@ -1,0 +1,263 @@
+/* SpendWise — redesign layer. Loaded AFTER app.css.
+ *
+ * Everything here is presentation on top of the existing class names. No
+ * markup change, no component change, no new class invented that a JSX file
+ * would have to learn.
+ *
+ * Constraints this file respects, because `npm run lint:tokens` enforces them:
+ *   - not one raw hex; every value is a token
+ *   - no `:focus-visible` rule (it is declared exactly once, in tokens.css)
+ *   - no `outline: none`
+ *
+ * Motion is disabled wholesale by the `prefers-reduced-motion` block in
+ * tokens.css, so the two keyframes below are already covered.
+ */
+
+/* ── the brand mark ─────────────────────────────────────────────────────────
+   An olive tile before the wordmark, drawn in CSS so `Sidebar.jsx` and the
+   mobile top bar both get it without a prop. */
+.wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sw-space-2);
+  color: var(--sw-ink);
+  font-weight: var(--sw-weight-semibold);
+  letter-spacing: -0.02em;
+}
+.wordmark::before {
+  content: "";
+  width: 1.35ch;
+  height: 1.35ch;
+  flex: none;
+  border-radius: var(--sw-radius-sm);
+  background: linear-gradient(145deg, var(--sw-pine-deep), var(--sw-pine));
+  box-shadow: 0 0 0 4px var(--sw-pine-soft);
+}
+:root[data-theme="dark"] .wordmark::before {
+  background: linear-gradient(145deg, var(--sw-pine), var(--sw-pine-deep));
+}
+
+/* ── page titles ────────────────────────────────────────────────────────────
+   Bigger, tighter, and with a short accent rule under it. The rule is the one
+   piece of the accent that appears on every screen, which is what makes the
+   product feel like one product. */
+.page-title,
+.gate-title {
+  letter-spacing: -0.03em;
+  font-weight: var(--sw-weight-semibold);
+}
+.page-title::after {
+  content: "";
+  display: block;
+  width: 2.9rem;
+  height: 3px;
+  margin-top: var(--sw-space-2);
+  border-radius: var(--sw-radius-sm);
+  background: var(--sw-pine);
+  transform-origin: left;
+  animation: sw-grow var(--sw-motion-base) var(--sw-motion-ease) both;
+}
+.section-title { letter-spacing: -0.02em; font-family: var(--sw-font-display); }
+
+/* ── the hero total ─────────────────────────────────────────────────────────
+   The one card allowed to carry the accent as a field: a 4px spine down the
+   left edge and a soft radial behind the number. Both are decoration on a
+   `::before`/`::after`, so nothing overlaps the text and nothing steals a
+   click from the card. */
+.card-hero {
+  position: relative;
+  overflow: hidden;
+  padding: var(--sw-space-6) var(--sw-space-6) var(--sw-space-8);
+  border-radius: var(--sw-radius-lg);
+  box-shadow: var(--sw-shadow-md);
+}
+.card-hero::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, var(--sw-pine-deep), var(--sw-pine));
+}
+.card-hero::after {
+  content: "";
+  position: absolute;
+  right: -5.5rem;
+  top: -7.5rem;
+  width: 21rem;
+  height: 21rem;
+  border-radius: var(--sw-radius-full);
+  background: radial-gradient(circle, var(--sw-wash-1), transparent 68%);
+  pointer-events: none;
+}
+.card-hero-value { letter-spacing: -0.03em; }
+.card-hero .card-label { letter-spacing: 0.12em; }
+
+/* ── cards ──────────────────────────────────────────────────────────────────
+   The shared glass rule in app.css already sets a radius from
+   `--sw-radius-lg`, which this file has widened. What is added is the hover
+   lift on the rows that are interactive and a slightly denser card label. */
+.card { border-radius: var(--sw-radius-lg); }
+.card-label { font-weight: var(--sw-weight-semibold); }
+.card-heading { letter-spacing: -0.01em; }
+
+/* ── controls: labels never wrap ────────────────────────────────────────────
+   A pill-shaped control with a two-line label reads as broken, and every one
+   of these has a `min-height` rather than a height so a second line has no
+   room to sit in. */
+.btn,
+.btn-link,
+.chip,
+.segment,
+.tab,
+.icon-btn,
+.pill,
+.bar-label,
+.cat-usage,
+.entry-amount {
+  white-space: nowrap;
+}
+
+.btn {
+  border-radius: var(--sw-radius-md);
+  font-weight: var(--sw-weight-semibold);
+  box-shadow: var(--sw-shadow-sm);
+  transition: background var(--sw-motion-fast) var(--sw-motion-ease),
+              transform var(--sw-motion-fast) var(--sw-motion-ease);
+}
+.btn:active:not([aria-disabled='true']) { transform: translateY(1px); }
+.btn-quiet { box-shadow: none; font-weight: var(--sw-weight-medium); }
+
+.icon-btn { border-radius: var(--sw-radius-md); }
+.icon-btn:hover { color: var(--sw-pine); }
+
+/* ── the rail ───────────────────────────────────────────────────────────────
+   Its own ground rather than the page's, so the content column reads as the
+   subject and the rail as chrome. */
+.rail {
+  gap: var(--sw-space-6);
+  background: var(--sw-paper-sunken);
+  border-right: 1px solid var(--sw-border);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.rail-item { border-radius: var(--sw-radius-md); font-size: var(--sw-text-base); }
+.rail-item[aria-current='page'] {
+  border-color: var(--sw-border);
+  font-weight: var(--sw-weight-semibold);
+}
+.rail-heading { letter-spacing: 0.1em; }
+.rail-who { font-weight: var(--sw-weight-semibold); }
+
+/* ── period chips and the admin filter ──────────────────────────────────── */
+.chip { transition: background var(--sw-motion-fast) var(--sw-motion-ease),
+                    border-color var(--sw-motion-fast) var(--sw-motion-ease); }
+.chip[aria-pressed='true'] { box-shadow: var(--sw-shadow-sm); }
+
+/* ── the appearance segmented control ───────────────────────────────────── */
+.segmented { padding: 3px; background: var(--sw-paper-sunken); }
+.segment { min-height: 38px; }
+@media (max-width: 640px) {
+  /* The 44px floor is a PHONE-WIDTH requirement (`SW-ADR-117` (5)), so the
+     38px above only applies where it is not the rule. */
+  .segment { min-height: var(--sw-target-min); }
+}
+
+/* ── admin tabs: an underline, not a folder tab ─────────────────────────── */
+.tabs { gap: var(--sw-space-1); border-bottom: 1px solid var(--sw-border); }
+.tab {
+  border-radius: 0;
+  border-width: 0 0 2px 0;
+  border-style: solid;
+  border-color: transparent;
+  margin-bottom: -1px;
+  font-size: var(--sw-text-base);
+}
+.tab:hover { color: var(--sw-ink); }
+.tab[aria-selected='true'] {
+  background: none;
+  border-bottom-color: var(--sw-pine);
+  font-weight: var(--sw-weight-semibold);
+}
+
+/* ── bars: an accent gradient that grows in ─────────────────────────────── */
+.bar-track { height: 0.55rem; }
+.bar-fill {
+  border-radius: var(--sw-radius-full);
+  background: linear-gradient(90deg, var(--sw-pine), var(--sw-plot-line));
+  transform-origin: left;
+  animation: sw-grow var(--sw-motion-base) var(--sw-motion-ease) both;
+}
+
+/* ── the ribbon ─────────────────────────────────────────────────────────── */
+.ribbon { height: 2.1rem; border-radius: var(--sw-radius-md); }
+.ribbon-title {
+  font-weight: var(--sw-weight-semibold);
+  color: var(--sw-ink);
+  font-size: var(--sw-text-sm);
+}
+
+/* ── entries ────────────────────────────────────────────────────────────── */
+.entries { border-radius: var(--sw-radius-lg); }
+.entry { transition: background var(--sw-motion-fast) var(--sw-motion-ease); }
+.entry:hover:not(.day-head) { background: var(--sw-pine-soft); }
+.entry-desc { font-weight: var(--sw-weight-medium); }
+.day-head { letter-spacing: 0.01em; }
+
+/* ── categories ─────────────────────────────────────────────────────────── */
+.cat-row {
+  border-radius: var(--sw-radius-md);
+  border-color: var(--sw-border);
+  transition: border-color var(--sw-motion-fast) var(--sw-motion-ease);
+}
+.cat-row:hover { border-color: var(--sw-border-strong); }
+.cat-name { font-size: var(--sw-text-lg); font-weight: var(--sw-weight-medium); }
+.swatch { height: 2.4rem; border-radius: var(--sw-radius-md); box-shadow: var(--sw-shadow-sm); }
+
+/* ── the add-expense panel ──────────────────────────────────────────────── */
+/* A right-hand sheet at desktop width. `app.css` already puts it bottom-in at
+   phone width and that stays — `SRC-001 §7` calls the phone experience the
+   whole mobile product, and a sheet from the side is not it. */
+.scrim { backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+.panel { border-radius: var(--sw-radius-lg); animation: sw-rise var(--sw-motion-base) var(--sw-motion-ease) both; }
+.panel-title { font-family: var(--sw-font-display); letter-spacing: -0.02em; }
+.panel input[name='amount'] {
+  min-height: 3.25rem;
+  font-size: var(--sw-text-xl);
+}
+
+/* ── the gate ───────────────────────────────────────────────────────────── */
+.gate-card {
+  position: relative;
+  overflow: hidden;
+  padding: var(--sw-space-8) var(--sw-space-6) var(--sw-space-6);
+  border-radius: var(--sw-radius-lg);
+  box-shadow: var(--sw-shadow-md);
+  animation: sw-rise var(--sw-motion-base) var(--sw-motion-ease) both;
+}
+.gate-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--sw-pine), var(--sw-pine-deep), transparent);
+}
+
+/* ── inputs ─────────────────────────────────────────────────────────────── */
+.input,
+.field input,
+.field select,
+.field textarea {
+  border-radius: var(--sw-radius-md);
+  background: var(--sw-paper);
+  transition: border-color var(--sw-motion-fast) var(--sw-motion-ease);
+}
+.field input:hover,
+.field select:hover { border-color: var(--sw-border-strong); }
+
+@keyframes sw-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes sw-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}

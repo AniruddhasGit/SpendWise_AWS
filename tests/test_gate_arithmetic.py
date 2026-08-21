@@ -127,7 +127,7 @@ def test_uncategorised_is_last_even_though_it_is_the_smallest() -> None:
     s = _compute()
     assert s["by_category"][-1]["category_id"] is None
     assert s["by_category"][-1]["category_name"] == "Uncategorised"
-    assert s["by_category"][-1]["color"] == "#948c87"
+    assert s["by_category"][-1]["color"] == "#928a85"
 
 
 def test_uncategorised_stays_last_when_it_is_the_LARGEST() -> None:

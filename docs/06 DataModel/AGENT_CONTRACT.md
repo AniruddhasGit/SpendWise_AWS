@@ -14,7 +14,7 @@ document set exists to prevent.**
 
 **2. Authority order on conflict.** raw `SRC-001` wording → an explicit client ruling → an
 `APPROVED` ADR → `03 PRD` → `02 BRD` → `05 Bible` → everything else. **Stricter always wins.**
-22 of the 151 ADRs are superseded or withdrawn — **check the ledger's `decision_status` before
+22 of the 152 ADRs are superseded or withdrawn — **check the ledger's `decision_status` before
 citing one.** A superseded record is not authority, and citing one has already caused a defect on
 this project once.
 

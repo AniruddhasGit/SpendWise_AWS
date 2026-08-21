@@ -20,7 +20,7 @@ Every `P-` row carries **two** references: a `[SRC:]` tag (where the requirement
 a **BRD row** (which business requirement it satisfies). A row missing either is a defect:
 no `[SRC:]` means invented, no BRD row means scope creep.
 
-Citations resolve against **currently APPROVED** records only. 22 of the 151 ADRs are
+Citations resolve against **currently APPROVED** records only. 22 of the 152 ADRs are
 superseded or withdrawn and are not authority.
 
 **Status:** `RULED` (decided, cited) · `PROVISIONAL` (buildable, a dependency outstanding) ·
@@ -641,7 +641,7 @@ from `contract.json` — none is typed.
     {
       "category_id": null,
       "category_name": "Uncategorised",
-      "color": "#948c87",
+      "color": "#928a85",
       "total_paise": 9999,
       "count": 1,
       "percent": 3
@@ -675,7 +675,7 @@ Every field, spelled out, because each was guessed at least once by a cold reade
   read as "spent nothing". `P-UND-02` renders it `—`; that dash is the client's.
 - `by_category` is ordered `total_paise` **descending**, then name ascending
   `[SRC: SW-ADR-055]`, with the synthetic `null` bucket **always last regardless of size**
-  `[SRC: SW-ADR-131]`, labelled `Uncategorised` and rendered `#948c87`. It is a bucket, not a
+  `[SRC: SW-ADR-131]`, labelled `Uncategorised` and rendered `#928a85`. It is a bucket, not a
   row in `categories`; nothing joins to it. `percent` is largest-remainder, so the printed
   percentages sum to exactly 100.
 - `by_day` carries **one row per calendar day, including days with no spending**

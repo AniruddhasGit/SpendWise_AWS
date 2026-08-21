@@ -25,64 +25,64 @@ text only, where WCAG exempts the requirement, and it must never carry content.
 
 | Foreground | Background | Measured | Floor | | Use |
 |---|---|---:|---:|---|---|
-| `--sw-ink` | `--sw-paper` | **16.37:1** | 4.5 | PASS | body text on the page |
-| `--sw-ink` | `--sw-paper-raised` | **17.49:1** | 4.5 | PASS | body text on a card |
-| `--sw-ink` | `--sw-paper-sunken` | **14.84:1** | 4.5 | PASS | body text in a well |
-| `--sw-ink` | `--sw-glass` | **17.24:1** | 4.5 | PASS | body text on glass |
-| `--sw-ink-muted` | `--sw-paper` | **7.14:1** | 4.5 | PASS | labels and timestamps |
-| `--sw-ink-muted` | `--sw-paper-raised` | **7.63:1** | 4.5 | PASS | labels on a card |
-| `--sw-ink-muted` | `--sw-glass` | **7.52:1** | 4.5 | PASS | labels on glass |
-| `--sw-pine` | `--sw-paper` | **7.44:1** | 4.5 | PASS | links and accent text |
-| `--sw-pine` | `--sw-paper-raised` | **7.95:1** | 4.5 | PASS | accent text on a card |
-| `--sw-pine` | `--sw-glass` | **7.84:1** | 4.5 | PASS | accent text on glass |
-| `--sw-danger` | `--sw-paper` | **6.89:1** | 4.5 | PASS | validation errors |
-| `--sw-warning` | `--sw-paper` | **5.52:1** | 4.5 | PASS | approaching a limit |
-| `--sw-on-pine` | `--sw-pine` | **7.44:1** | 4.5 | PASS | text on a primary button |
-| `--sw-on-pine` | `--sw-danger` | **6.89:1** | 4.5 | PASS | text on a destructive button |
-| `--sw-focus-color` | `--sw-paper` | **7.44:1** | 3.0 | PASS | the focus ring on the page |
-| `--sw-focus-color` | `--sw-glass` | **7.84:1** | 3.0 | PASS | the focus ring on glass |
-| `--sw-border-strong` | `--sw-paper` | **3.50:1** | 3.0 | PASS | table rules and strong hairlines |
-| `--sw-cat-1` | `--sw-paper` | **4.55:1** | 3.0 | PASS | category band |
-| `--sw-cat-2` | `--sw-paper` | **4.57:1** | 3.0 | PASS | category band |
-| `--sw-cat-3` | `--sw-paper` | **5.30:1** | 3.0 | PASS | category band |
-| `--sw-cat-4` | `--sw-paper` | **3.75:1** | 3.0 | PASS | category band |
-| `--sw-cat-5` | `--sw-paper` | **4.45:1** | 3.0 | PASS | category band |
-| `--sw-cat-6` | `--sw-paper` | **6.00:1** | 3.0 | PASS | category band |
-| `--sw-cat-7` | `--sw-paper` | **5.21:1** | 3.0 | PASS | category band |
-| `--sw-cat-8` | `--sw-paper` | **3.63:1** | 3.0 | PASS | category band |
-| `--sw-cat-uncat` | `--sw-paper` | **3.09:1** | 3.0 | PASS | category band |
+| `--sw-ink` | `--sw-paper` | **16.41:1** | 4.5 | PASS | body text on the page |
+| `--sw-ink` | `--sw-paper-raised` | **17.57:1** | 4.5 | PASS | body text on a card |
+| `--sw-ink` | `--sw-paper-sunken` | **15.43:1** | 4.5 | PASS | body text in a well |
+| `--sw-ink` | `--sw-glass` | **17.33:1** | 4.5 | PASS | body text on glass |
+| `--sw-ink-muted` | `--sw-paper` | **6.93:1** | 4.5 | PASS | labels and timestamps |
+| `--sw-ink-muted` | `--sw-paper-raised` | **7.42:1** | 4.5 | PASS | labels on a card |
+| `--sw-ink-muted` | `--sw-glass` | **7.32:1** | 4.5 | PASS | labels on glass |
+| `--sw-pine` | `--sw-paper` | **6.37:1** | 4.5 | PASS | links and accent text |
+| `--sw-pine` | `--sw-paper-raised` | **6.82:1** | 4.5 | PASS | accent text on a card |
+| `--sw-pine` | `--sw-glass` | **6.73:1** | 4.5 | PASS | accent text on glass |
+| `--sw-danger` | `--sw-paper` | **6.67:1** | 4.5 | PASS | validation errors |
+| `--sw-warning` | `--sw-paper` | **5.34:1** | 4.5 | PASS | approaching a limit |
+| `--sw-on-pine` | `--sw-pine` | **6.66:1** | 4.5 | PASS | text on a primary button |
+| `--sw-on-pine` | `--sw-danger` | **6.97:1** | 4.5 | PASS | text on a destructive button |
+| `--sw-focus-color` | `--sw-paper` | **6.37:1** | 3.0 | PASS | the focus ring on the page |
+| `--sw-focus-color` | `--sw-glass` | **6.73:1** | 3.0 | PASS | the focus ring on glass |
+| `--sw-border-strong` | `--sw-paper` | **3.33:1** | 3.0 | PASS | table rules and strong hairlines |
+| `--sw-cat-1` | `--sw-paper` | **4.40:1** | 3.0 | PASS | category band |
+| `--sw-cat-2` | `--sw-paper` | **4.43:1** | 3.0 | PASS | category band |
+| `--sw-cat-3` | `--sw-paper` | **5.13:1** | 3.0 | PASS | category band |
+| `--sw-cat-4` | `--sw-paper` | **3.63:1** | 3.0 | PASS | category band |
+| `--sw-cat-5` | `--sw-paper` | **4.30:1** | 3.0 | PASS | category band |
+| `--sw-cat-6` | `--sw-paper` | **5.80:1** | 3.0 | PASS | category band |
+| `--sw-cat-7` | `--sw-paper` | **5.04:1** | 3.0 | PASS | category band |
+| `--sw-cat-8` | `--sw-paper` | **3.51:1** | 3.0 | PASS | category band |
+| `--sw-cat-uncat` | `--sw-paper` | **3.07:1** | 3.0 | PASS | category band |
 
-**26 of 26 pass.** Tightest margin: 3.09:1.
+**26 of 26 pass.** Tightest margin: 3.07:1.
 
 ## Dark theme
 
 | Foreground | Background | Measured | Floor | | Use |
 |---|---|---:|---:|---|---|
-| `--sw-ink` | `--sw-paper` | **16.30:1** | 4.5 | PASS | body text on the page |
-| `--sw-ink` | `--sw-paper-raised` | **14.51:1** | 4.5 | PASS | body text on a card |
-| `--sw-ink` | `--sw-paper-sunken` | **17.04:1** | 4.5 | PASS | body text in a well |
-| `--sw-ink` | `--sw-glass` | **14.10:1** | 4.5 | PASS | body text on glass |
-| `--sw-ink-muted` | `--sw-paper` | **9.54:1** | 4.5 | PASS | labels and timestamps |
-| `--sw-ink-muted` | `--sw-paper-raised` | **8.49:1** | 4.5 | PASS | labels on a card |
-| `--sw-ink-muted` | `--sw-glass` | **8.25:1** | 4.5 | PASS | labels on glass |
-| `--sw-pine` | `--sw-paper` | **9.28:1** | 4.5 | PASS | links and accent text |
-| `--sw-pine` | `--sw-paper-raised` | **8.26:1** | 4.5 | PASS | accent text on a card |
-| `--sw-pine` | `--sw-glass` | **8.02:1** | 4.5 | PASS | accent text on glass |
-| `--sw-danger` | `--sw-paper` | **7.62:1** | 4.5 | PASS | validation errors |
-| `--sw-warning` | `--sw-paper` | **8.22:1** | 4.5 | PASS | approaching a limit |
-| `--sw-on-pine` | `--sw-pine` | **9.53:1** | 4.5 | PASS | text on a primary button |
-| `--sw-on-pine` | `--sw-danger` | **7.82:1** | 4.5 | PASS | text on a destructive button |
-| `--sw-focus-color` | `--sw-paper` | **9.28:1** | 3.0 | PASS | the focus ring on the page |
-| `--sw-focus-color` | `--sw-glass` | **8.02:1** | 3.0 | PASS | the focus ring on glass |
-| `--sw-border-strong` | `--sw-paper` | **4.19:1** | 3.0 | PASS | table rules and strong hairlines |
-| `--sw-cat-1` | `--sw-paper` | **7.09:1** | 3.0 | PASS | category band |
-| `--sw-cat-2` | `--sw-paper` | **7.07:1** | 3.0 | PASS | category band |
-| `--sw-cat-3` | `--sw-paper` | **7.10:1** | 3.0 | PASS | category band |
-| `--sw-cat-4` | `--sw-paper` | **8.81:1** | 3.0 | PASS | category band |
-| `--sw-cat-5` | `--sw-paper` | **8.07:1** | 3.0 | PASS | category band |
-| `--sw-cat-6` | `--sw-paper` | **6.75:1** | 3.0 | PASS | category band |
-| `--sw-cat-7` | `--sw-paper` | **6.79:1** | 3.0 | PASS | category band |
-| `--sw-cat-8` | `--sw-paper` | **8.23:1** | 3.0 | PASS | category band |
-| `--sw-cat-uncat` | `--sw-paper` | **6.90:1** | 3.0 | PASS | category band |
+| `--sw-ink` | `--sw-paper` | **16.92:1** | 4.5 | PASS | body text on the page |
+| `--sw-ink` | `--sw-paper-raised` | **15.20:1** | 4.5 | PASS | body text on a card |
+| `--sw-ink` | `--sw-paper-sunken` | **17.26:1** | 4.5 | PASS | body text in a well |
+| `--sw-ink` | `--sw-glass` | **15.59:1** | 4.5 | PASS | body text on glass |
+| `--sw-ink-muted` | `--sw-paper` | **8.55:1** | 4.5 | PASS | labels and timestamps |
+| `--sw-ink-muted` | `--sw-paper-raised` | **7.68:1** | 4.5 | PASS | labels on a card |
+| `--sw-ink-muted` | `--sw-glass` | **7.88:1** | 4.5 | PASS | labels on glass |
+| `--sw-pine` | `--sw-paper` | **11.36:1** | 4.5 | PASS | links and accent text |
+| `--sw-pine` | `--sw-paper-raised` | **10.20:1** | 4.5 | PASS | accent text on a card |
+| `--sw-pine` | `--sw-glass` | **10.46:1** | 4.5 | PASS | accent text on glass |
+| `--sw-danger` | `--sw-paper` | **7.94:1** | 4.5 | PASS | validation errors |
+| `--sw-warning` | `--sw-paper` | **8.57:1** | 4.5 | PASS | approaching a limit |
+| `--sw-on-pine` | `--sw-pine` | **10.99:1** | 4.5 | PASS | text on a primary button |
+| `--sw-on-pine` | `--sw-danger` | **7.68:1** | 4.5 | PASS | text on a destructive button |
+| `--sw-focus-color` | `--sw-paper` | **11.36:1** | 3.0 | PASS | the focus ring on the page |
+| `--sw-focus-color` | `--sw-glass` | **10.46:1** | 3.0 | PASS | the focus ring on glass |
+| `--sw-border-strong` | `--sw-paper` | **4.02:1** | 3.0 | PASS | table rules and strong hairlines |
+| `--sw-cat-1` | `--sw-paper` | **7.39:1** | 3.0 | PASS | category band |
+| `--sw-cat-2` | `--sw-paper` | **7.38:1** | 3.0 | PASS | category band |
+| `--sw-cat-3` | `--sw-paper` | **7.41:1** | 3.0 | PASS | category band |
+| `--sw-cat-4` | `--sw-paper` | **9.19:1** | 3.0 | PASS | category band |
+| `--sw-cat-5` | `--sw-paper` | **8.42:1** | 3.0 | PASS | category band |
+| `--sw-cat-6` | `--sw-paper` | **7.04:1** | 3.0 | PASS | category band |
+| `--sw-cat-7` | `--sw-paper` | **7.08:1** | 3.0 | PASS | category band |
+| `--sw-cat-8` | `--sw-paper` | **8.59:1** | 3.0 | PASS | category band |
+| `--sw-cat-uncat` | `--sw-paper` | **7.20:1** | 3.0 | PASS | category band |
 
-**26 of 26 pass.** Tightest margin: 4.19:1.
+**26 of 26 pass.** Tightest margin: 4.02:1.

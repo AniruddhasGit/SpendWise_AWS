@@ -1,28 +1,30 @@
 :root {
-  /* surface + ink ------------------------------------------------ */
-  --sw-paper: #faf7f2;            /* the page. Warm off-white, never pure white. */
-  --sw-paper-raised: #ffffff;     /* cards and the add-expense panel, lifted off the page. */
-  --sw-paper-sunken: #f0ece4;     /* table header rows, inset wells. */
-  --sw-ink: #1c1917;              /* primary text. Warm near-black, never #000. */
-  --sw-ink-muted: #57534e;        /* secondary text, labels, timestamps. */
-  --sw-ink-faint: #78716c;        /* placeholder and disabled text ONLY. Fails AA on body copy — never use it for content. */
-  --sw-pine: #2d5a3d;             /* the accent. Primary buttons, active states, links. */
-  --sw-pine-deep: #1b3826;        /* pressed and hover on pine. */
-  --sw-pine-soft: #e6ede8;        /* tinted backgrounds behind pine content. */
-  --sw-border: #ddd6cb;           /* hairlines, input borders, band separators. */
-  --sw-border-strong: #8a837b;    /* focus-adjacent borders, table rules. */
-  /* Was #a8a29e until 2026-08-06, which measures 2.36:1 against paper — below
-     the 3:1 a UI component needs. SW-ADR-131 measured exactly that value,
-     found it failing, and darkened it for the Uncategorised band; the IDENTICAL
-     hex sat here doing a job with the identical floor and was never re-checked,
-     because the measurement was done per-token by hand. Darkened within the
-     same hue to 3.50:1. Found the moment tools/contrast.py measured every pair
-     instead of the ones someone remembered to list (SW-ADR-147). */
-  --sw-positive: #2d5a3d;         /* same as pine — under-budget, success. */
-  --sw-warning: #8a5a1f;          /* approaching a limit. */
-  --sw-danger: #9c2f28;           /* destructive actions, validation errors. */
+  /* surface + ink ------------------------------------------------
+     REDESIGN 2026-08-21. The palette moved from paper-and-pine to
+     greenish-white / olive / near-black at the client's request. The token
+     NAMES are unchanged on purpose — `--sw-pine` still means "the accent", so
+     no component, test or ADR reference had to move. Re-run
+     `py tools/contrast.py` before merging: every figure in DESIGN-SYSTEM.md
+     §2.1 was computed from the OLD hexes and none of them describe these. */
+  --sw-paper: #f2f5e9;            /* the page. Greenish white, never pure white. */
+  --sw-paper-raised: #fbfcf6;     /* cards and the add-expense panel, lifted off the page. */
+  --sw-paper-sunken: #eaefdc;     /* table header rows, inset wells. */
+  --sw-ink: #14170e;              /* primary text. Near-black with an olive cast, never #000. */
+  --sw-ink-muted: #4f5643;        /* secondary text, labels, timestamps. */
+  --sw-ink-faint: #7c8468;        /* placeholder and disabled text ONLY. Fails AA on body copy — never use it for content. */
+  --sw-pine: #4e5f22;             /* the accent — olive. Primary buttons, active states, links. */
+  --sw-pine-deep: #354115;        /* pressed and hover on olive. */
+  --sw-pine-soft: #e2eaca;        /* tinted backgrounds behind accent content. */
+  --sw-border: #d8e0c2;           /* hairlines, input borders, band separators. */
+  --sw-border-strong: #7f8a63;    /* focus-adjacent borders, table rules. Kept at >=3:1 against paper. */
+  --sw-positive: #4e5f22;         /* same as the accent — under-budget, success. */
+  --sw-warning: #8a5a1f;          /* approaching a limit. Unchanged: it must not read as the accent. */
+  --sw-danger: #9c2f28;           /* destructive actions, validation errors. Unchanged. */
 
-  /* category bands — seeded set, SW-ADR-092 ----------------------- */
+  /* category bands — seeded set, SW-ADR-092 -----------------------
+     UNCHANGED. Nine bands need nine distinguishable hues; a three-colour
+     brand palette cannot supply them, and `SW-ADR-092` fixes these values
+     with measured figures behind each one. */
   --sw-cat-1: #4a7c59;            /* Groceries */
   --sw-cat-2: #b5543b;            /* Food & Dining */
   --sw-cat-3: #3e6b8f;            /* Transport */
@@ -31,34 +33,48 @@
   --sw-cat-6: #7b4b94;            /* Entertainment */
   --sw-cat-7: #a04c72;            /* Shopping */
   --sw-cat-8: #7d8471;            /* Other */
-  --sw-cat-uncat: #948c87;        /* Uncategorised — always last */
+  --sw-cat-uncat: #928a85;        /* Uncategorised — always last */
+  /* Was #948c87 until the 2026-08-21 redesign. The BAND did not change; the
+     ground under it did. #948c87 measured 3.51:1 against the old paper
+     #faf7f2 and 2.99:1 against the new greenish-white #f2f5e9 — a fail by
+     0.01, produced by a palette change that deliberately left every band
+     alone. Darkened 0.8pp within the hue (drift 0.00°) to 3.07:1, per the
+     instruction SW-ADR-092 gives for bands and the precedent SW-ADR-131 set
+     for this exact token. A contrast pair is a pair: changing either side
+     re-opens every figure that rests on it. */
 
-  /* type ---------------------------------------------------------- */
-  --sw-font-display: "Instrument Serif", Georgia, "Times New Roman", serif;
-  --sw-font-body:    "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --sw-font-mono:    "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  /* type ----------------------------------------------------------
+     Display is now a grotesque rather than a serif, so the headline total and
+     the page titles read as interface rather than as editorial. Numbers keep
+     a tabular mono, which `SRC-001 §9.4` asks for by name.
+     SELF-HOST THESE (`SW-ADR-020` rejects a font CDN) — see handoff/README.md. */
+  --sw-font-display: "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --sw-font-body:    "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --sw-font-mono:    "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
 
   --sw-text-xs: 0.75rem;   --sw-text-sm: 0.875rem;  --sw-text-base: 1rem;
-  --sw-text-lg: 1.125rem;  --sw-text-xl: 1.5rem;    --sw-text-2xl: 2rem;
-  --sw-text-3xl: 2.75rem;
+  --sw-text-lg: 1.125rem;  --sw-text-xl: 1.5rem;    --sw-text-2xl: 2.5rem;
+  --sw-text-3xl: 3.75rem;
 
   --sw-weight-regular: 400; --sw-weight-medium: 500; --sw-weight-semibold: 600;
-  --sw-leading-tight: 1.2;  --sw-leading-normal: 1.5;
+  --sw-leading-tight: 1.08;  --sw-leading-normal: 1.5;
 
   /* space, radius, shadow, motion ---------------------------------- */
   --sw-space-1: 0.25rem; --sw-space-2: 0.5rem;  --sw-space-3: 0.75rem;
   --sw-space-4: 1rem;    --sw-space-6: 1.5rem;  --sw-space-8: 2rem;
   --sw-space-12: 3rem;
 
-  --sw-radius-sm: 3px; --sw-radius-md: 6px; --sw-radius-lg: 10px;
+  /* Softer corners throughout. The old 6px read as a form control on a card
+     the size of the hero; 10/14 reads as a surface. */
+  --sw-radius-sm: 5px; --sw-radius-md: 10px; --sw-radius-lg: 14px;
   --sw-radius-full: 999px;
 
-  --sw-shadow-sm: 0 1px 2px rgb(28 25 23 / 0.06);
-  --sw-shadow-md: 0 2px 8px rgb(28 25 23 / 0.08);
-  --sw-shadow-panel: 0 0 0 1px rgb(28 25 23 / 0.06), 0 8px 32px rgb(28 25 23 / 0.12);
+  --sw-shadow-sm: 0 1px 2px rgb(20 23 14 / 0.05);
+  --sw-shadow-md: 0 3px 14px rgb(20 23 14 / 0.07);
+  --sw-shadow-panel: 0 0 0 1px rgb(20 23 14 / 0.06), 0 24px 60px rgb(20 23 14 / 0.18);
 
   --sw-motion-fast: 120ms; --sw-motion-base: 200ms;
-  --sw-motion-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --sw-motion-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 
   /* focus — SW-ADR-117. One rule, never overridden without a replacement. */
   --sw-focus-width: 2px;
@@ -68,71 +84,58 @@
   /* the smallest a control may be at phone width — SW-ADR-117 (5) */
   --sw-target-min: 44px;
 
-  /* the dimming behind the add-expense panel. Added 2026-08-05: §5 specifies
-     the panel as a real dialog with an inert background and never said what
-     colour the background dims to, so the first component to need it would
-     have written a raw literal — the one thing §2 forbids. Warm ink at 35%,
-     the same ink the shadows already use. Not in the contrast table: a scrim
-     carries no content and no control sits on it. */
-  --sw-scrim: rgb(28 25 23 / 0.35);
+  --sw-scrim: rgb(20 23 14 / 0.38);
 
-  /* glass — SW-ADR-147 ------------------------------------------------- */
-  /* Translucent surfaces over a pine wash. The alpha is 0.78 and not lower:
-     glass composites over whatever is behind it, so the contrast a person
-     actually gets depends on the backdrop. tools/contrast.py computes the
-     composited figure and fails below 4.5:1, which is what fixes the alpha —
-     it is a measured floor, not a taste. */
-  --sw-glass: rgb(255 255 255 / 0.78);
-  --sw-glass-strong: rgb(255 255 255 / 0.92);
-  --sw-glass-sunken: rgb(240 236 228 / 0.66);
-  --sw-glass-border: rgb(255 255 255 / 0.60);
+  /* glass — SW-ADR-147 -------------------------------------------------
+     The alphas are unchanged from the values tools/contrast.py fixed. The
+     SURFACE hex behind each one moved, so the composited figures moved with
+     it — re-run the tool; do not assume 0.78 still clears the floor. */
+  --sw-glass: rgb(251 252 246 / 0.80);
+  --sw-glass-strong: rgb(251 252 246 / 0.93);
+  --sw-glass-sunken: rgb(234 239 220 / 0.70);
+  --sw-glass-border: rgb(255 255 255 / 0.62);
   --sw-glass-blur: 16px;
 
-  /* The page wash the glass sits on. Two soft pine radials over paper —
-     the thing that makes a translucent surface read as glass rather than as
-     a slightly wrong white. */
-  --sw-wash-1: rgb(45 90 61 / 0.10);
-  --sw-wash-2: rgb(46 125 138 / 0.07);
+  /* The page wash the glass sits on. Two soft olive radials over paper. */
+  --sw-wash-1: rgb(78 95 34 / 0.13);
+  --sw-wash-2: rgb(20 23 14 / 0.05);
 
-  /* Text on a pine or danger fill. Was `--sw-paper` used positionally in three
-     components; named here so the contrast table can measure it. */
-  --sw-on-pine: #faf7f2;
+  /* Text on an accent or danger fill. */
+  --sw-on-pine: #f7faee;
 
-  /* charts — SW-ADR-147. A line plot needs a stroke and a fill that are the
-     same hue and different weights, and neither is a category colour. */
-  --sw-plot-line: #2d5a3d;
-  --sw-plot-fill: rgb(45 90 61 / 0.14);
-  --sw-plot-grid: rgb(28 25 23 / 0.08);
+  /* charts — SW-ADR-147. Same hue as the accent, different weights, and
+     never a category colour. */
+  --sw-plot-line: #4e5f22;
+  --sw-plot-fill: rgb(78 95 34 / 0.15);
+  --sw-plot-grid: rgb(20 23 14 / 0.07);
 }
 
 /* ── dark ─────────────────────────────────────────────────────────────────
-   `SW-ADR-147`. Two selectors, deliberately: the media query is the DEFAULT
-   (a person whose system is dark gets dark before any script runs, so there is
-   no white flash), and `[data-theme]` is the OVERRIDE the appearance control
-   writes. `[data-theme="light"]` has to restate the light values or a dark
-   system would win over an explicit light choice.
+   `SW-ADR-147` unchanged in structure: the media query is the DEFAULT and
+   `[data-theme]` is the OVERRIDE, so an explicit light choice still beats a
+   dark system.
 
-   Not an inversion. Pine stays the accent, but at #2d5a3d it measures 1.6:1 on
-   a dark surface — so the dark theme uses a lighter tint of the same hue, and
-   the same is true of five of the nine category bands. Every replacement below
-   was chosen by running tools/contrast.py until it passed, not by eye. */
+   Not an inversion. Olive #4e5f22 measures far under 3:1 on a near-black
+   ground, so dark uses a light tint of the same hue (#b8d16b) and the ground
+   drops to a near-black with an olive cast rather than to grey. The nine
+   category bands keep the dark re-tints `SW-ADR-147` already measured. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --sw-paper: #10150f;
-    --sw-paper-raised: #1a211a;
-    --sw-paper-sunken: #0b0f0b;
-    --sw-ink: #eef2ea;
-    --sw-ink-muted: #b3bdb2;
-    --sw-ink-faint: #7d8a7e;
-    --sw-pine: #7fc79a;
-    --sw-pine-deep: #a5dcb8;
-    --sw-pine-soft: #1c2b21;
-    --sw-border: #2b352b;
-    --sw-border-strong: #6d7c6e;
-    --sw-positive: #7fc79a;
+    --sw-paper: #0d0f09;
+    --sw-paper-raised: #181c10;
+    --sw-paper-sunken: #0a0c06;
+    --sw-ink: #eef2e2;
+    --sw-ink-muted: #a8b096;
+    --sw-ink-faint: #79806a;
+    --sw-pine: #b8d16b;
+    --sw-pine-deep: #d0e28a;
+    --sw-pine-soft: #1f2612;
+    --sw-border: #2a3019;
+    --sw-border-strong: #6d7658;
+    --sw-positive: #b8d16b;
     --sw-warning: #d9a441;
     --sw-danger: #f08a80;
-    --sw-on-pine: #0b120c;
+    --sw-on-pine: #101409;
 
     --sw-cat-1: #6fae82;
     --sw-cat-2: #e08a6f;
@@ -144,40 +147,40 @@
     --sw-cat-8: #a8b09c;
     --sw-cat-uncat: #9aa096;
 
-    --sw-glass: rgb(30 40 32 / 0.78);
-    --sw-glass-strong: rgb(30 40 32 / 0.94);
-    --sw-glass-sunken: rgb(11 15 11 / 0.66);
-    --sw-glass-border: rgb(255 255 255 / 0.10);
-    --sw-wash-1: rgb(127 199 154 / 0.10);
-    --sw-wash-2: rgb(98 184 196 / 0.07);
-    --sw-scrim: rgb(0 0 0 / 0.60);
+    --sw-glass: rgb(24 28 16 / 0.80);
+    --sw-glass-strong: rgb(24 28 16 / 0.94);
+    --sw-glass-sunken: rgb(10 12 6 / 0.70);
+    --sw-glass-border: rgb(255 255 255 / 0.09);
+    --sw-wash-1: rgb(184 209 107 / 0.10);
+    --sw-wash-2: rgb(184 209 107 / 0.04);
+    --sw-scrim: rgb(0 0 0 / 0.62);
 
-    --sw-plot-line: #7fc79a;
-    --sw-plot-fill: rgb(127 199 154 / 0.16);
-    --sw-plot-grid: rgb(255 255 255 / 0.09);
+    --sw-plot-line: #b8d16b;
+    --sw-plot-fill: rgb(184 209 107 / 0.16);
+    --sw-plot-grid: rgb(255 255 255 / 0.07);
 
-    --sw-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.35);
-    --sw-shadow-md: 0 2px 8px rgb(0 0 0 / 0.40);
-    --sw-shadow-panel: 0 0 0 1px rgb(255 255 255 / 0.08), 0 8px 32px rgb(0 0 0 / 0.55);
+    --sw-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.40);
+    --sw-shadow-md: 0 3px 14px rgb(0 0 0 / 0.45);
+    --sw-shadow-panel: 0 0 0 1px rgb(255 255 255 / 0.08), 0 24px 60px rgb(0 0 0 / 0.60);
   }
 }
 
 :root[data-theme="dark"] {
-  --sw-paper: #10150f;
-  --sw-paper-raised: #1a211a;
-  --sw-paper-sunken: #0b0f0b;
-  --sw-ink: #eef2ea;
-  --sw-ink-muted: #b3bdb2;
-  --sw-ink-faint: #7d8a7e;
-  --sw-pine: #7fc79a;
-  --sw-pine-deep: #a5dcb8;
-  --sw-pine-soft: #1c2b21;
-  --sw-border: #2b352b;
-  --sw-border-strong: #6d7c6e;
-  --sw-positive: #7fc79a;
+  --sw-paper: #0d0f09;
+  --sw-paper-raised: #181c10;
+  --sw-paper-sunken: #0a0c06;
+  --sw-ink: #eef2e2;
+  --sw-ink-muted: #a8b096;
+  --sw-ink-faint: #79806a;
+  --sw-pine: #b8d16b;
+  --sw-pine-deep: #d0e28a;
+  --sw-pine-soft: #1f2612;
+  --sw-border: #2a3019;
+  --sw-border-strong: #6d7658;
+  --sw-positive: #b8d16b;
   --sw-warning: #d9a441;
   --sw-danger: #f08a80;
-  --sw-on-pine: #0b120c;
+  --sw-on-pine: #101409;
 
   --sw-cat-1: #6fae82;
   --sw-cat-2: #e08a6f;
@@ -189,21 +192,21 @@
   --sw-cat-8: #a8b09c;
   --sw-cat-uncat: #9aa096;
 
-  --sw-glass: rgb(30 40 32 / 0.78);
-  --sw-glass-strong: rgb(30 40 32 / 0.94);
-  --sw-glass-sunken: rgb(11 15 11 / 0.66);
-  --sw-glass-border: rgb(255 255 255 / 0.10);
-  --sw-wash-1: rgb(127 199 154 / 0.10);
-  --sw-wash-2: rgb(98 184 196 / 0.07);
-  --sw-scrim: rgb(0 0 0 / 0.60);
+  --sw-glass: rgb(24 28 16 / 0.80);
+  --sw-glass-strong: rgb(24 28 16 / 0.94);
+  --sw-glass-sunken: rgb(10 12 6 / 0.70);
+  --sw-glass-border: rgb(255 255 255 / 0.09);
+  --sw-wash-1: rgb(184 209 107 / 0.10);
+  --sw-wash-2: rgb(184 209 107 / 0.04);
+  --sw-scrim: rgb(0 0 0 / 0.62);
 
-  --sw-plot-line: #7fc79a;
-  --sw-plot-fill: rgb(127 199 154 / 0.16);
-  --sw-plot-grid: rgb(255 255 255 / 0.09);
+  --sw-plot-line: #b8d16b;
+  --sw-plot-fill: rgb(184 209 107 / 0.16);
+  --sw-plot-grid: rgb(255 255 255 / 0.07);
 
-  --sw-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.35);
-  --sw-shadow-md: 0 2px 8px rgb(0 0 0 / 0.40);
-  --sw-shadow-panel: 0 0 0 1px rgb(255 255 255 / 0.08), 0 8px 32px rgb(0 0 0 / 0.55);
+  --sw-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.40);
+  --sw-shadow-md: 0 3px 14px rgb(0 0 0 / 0.45);
+  --sw-shadow-panel: 0 0 0 1px rgb(255 255 255 / 0.08), 0 24px 60px rgb(0 0 0 / 0.60);
 }
 
 /* Numbers ALWAYS use tabular figures so columns of money line up.

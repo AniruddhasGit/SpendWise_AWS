@@ -637,6 +637,53 @@ def check_all(root: str) -> Report:
         r.note(f"spec-of-record blocks reaching their page: {reached} entries across "
                f"{len(REACHES)} blocks")
 
+    # ── the Uncategorised band is THREE artifacts, not one ────────────────
+    # `CR-002` moved the palette and `--sw-cat-uncat` had to be darkened, because
+    # the band's GROUND changed even though the band did not. Moving the token was
+    # not enough and nothing said so: the ribbon and the donut paint `b.color`
+    # straight from the summary response, so the colour a person actually sees is
+    # a PYTHON constant, and `tools/contrast.py` — which reads the stylesheet —
+    # reported PASS on a hex the browser never drew. A gate measuring the wrong
+    # artifact is worse than no gate: it produces evidence.
+    #
+    # Three places hold this one colour. They must be one hex.
+    uncat = {}
+    tok = os.path.join(root, "docs", "05 B DesignSystem", "tokens.css")
+    if os.path.isfile(tok):
+        m = re.search(r"--sw-cat-uncat:\s*(#[0-9a-fA-F]{6})",
+                      open(tok, encoding="utf-8").read())
+        if m:
+            uncat["the design-system token `--sw-cat-uncat`"] = m.group(1).lower()
+    srv = os.path.join(root, "app", "modules", "expenses", "summary.py")
+    if os.path.isfile(srv):
+        m = re.search(r'UNCATEGORISED_COLOR\s*=\s*"(#[0-9a-fA-F]{6})"',
+                      open(srv, encoding="utf-8").read())
+        if m:
+            uncat["the server constant `UNCATEGORISED_COLOR`"] = m.group(1).lower()
+    con = os.path.join(root, "docs", "03 PRD", "api", "contract.json")
+    if os.path.isfile(con):
+        try:
+            syn = json.load(open(con, encoding="utf-8"))
+            for block in syn.values():
+                if isinstance(block, dict) and isinstance(block.get("synthetic"), dict)                         and block["synthetic"].get("name") == "Uncategorised":
+                    uncat["the API contract `synthetic.color`"] =                         str(block["synthetic"]["color"]).lower()
+        except Exception:                                   # noqa: BLE001
+            pass
+    if len(uncat) < 3:
+        r.fail("band-colour-agreement",
+               f"only {len(uncat)} of the 3 Uncategorised colour sources could be read "
+               f"({', '.join(uncat) or 'none'}) — a source this check cannot see is a "
+               f"source it cannot hold to the floor")
+    elif len(set(uncat.values())) != 1:
+        detail = "; ".join(f"{k} = {v}" for k, v in sorted(uncat.items()))
+        r.fail("band-colour-agreement",
+               f"the Uncategorised band is {len(set(uncat.values()))} different colours: {detail}. "
+               f"The ribbon and donut render the SERVER value, so the stylesheet can measure "
+               f"3.07:1 while the browser draws something else — contrast.py would pass and the "
+               f"product would fail (`CR-002`, `SW-ADR-152`)")
+    else:
+        r.note(f"Uncategorised band agrees across 3 artifacts: {next(iter(uncat.values()))}")
+
     ok = 0
     for gen in (os.path.join(root, "docs", "06 DataModel", "generate.py"),
                 os.path.join(root, "docs", "03 PRD", "api", "generate_api.py"),
@@ -721,6 +768,11 @@ PLANTS = [
     ("spec-completeness", "docs/03 PRD/api/contract.json",
      lambda t: t.replace('"range_required":',
                          '"planted_third_key": "this text reaches no page", "range_required":', 1)),
+    # Divergence between the stylesheet and the SERVER value — the exact shape
+    # CR-002 shipped for a few minutes: contrast.py green, browser drawing 2.99:1.
+    ("band-colour-agreement", "app/modules/expenses/summary.py",
+     lambda t: t.replace('UNCATEGORISED_COLOR = "#928a85"',
+                         'UNCATEGORISED_COLOR = "#948c87"', 1)),
     ("contract-refs", "docs/03 PRD/api/contract.json",
      lambda t: t.replace('"response_model": "Summary"',
                          '"response_model": "SummaryThatDoesNotExist"', 1)),

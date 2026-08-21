@@ -20,7 +20,14 @@ from app.core.money import daily_average, largest_remainder, to_display
 # The synthetic bucket. It is a BUCKET, not a row in `categories` — nothing
 # joins to it, and `SW-ADR-131` puts it last regardless of size.
 UNCATEGORISED_NAME = "Uncategorised"
-UNCATEGORISED_COLOR = "#948c87"
+UNCATEGORISED_COLOR = "#928a85"
+# Changed 2026-08-21 by `CR-002`/`SW-ADR-152` — and this line is the reason
+# that change request has a defect section. The band is a SERVER value: the
+# ribbon and donut paint `b.color` straight from this response, so the CSS
+# token `--sw-cat-uncat` is NOT what renders it. Moving the token alone left
+# `tools/contrast.py` reporting PASS on a colour the app did not use, while
+# the browser drew the failing one. `consistency_check.py` now asserts this
+# constant, the design-system token and the API contract are the same hex.
 
 
 @dataclass(frozen=True, slots=True)

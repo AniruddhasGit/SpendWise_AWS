@@ -33,6 +33,18 @@
 
 That is the whole brief. Everything below is that sentence made testable.
 
+> **`CR-002`, 2026-08-21 — the visual half of that sentence has been reversed by the client.**
+> The palette is no longer paper-and-pine and the three named families are no longer the ones in
+> use. The quote above is **left standing verbatim** because `SRC-001` is fingerprinted and
+> because the record of what was originally asked for is worth more than a tidy document.
+> What it asked for now: greenish-white `#f2f5e9`, olive `#4e5f22`, near-black `#14170e`;
+> Bricolage Grotesque, DM Sans, JetBrains Mono. See `docs/15 ChangeRequest/CR-002_visual-identity.md`
+> and `SW-ADR-152`.
+>
+> **Its accessibility clauses were not reversed and are still binding** — tabular figures, phone
+> width, visible keyboard focus, reduced motion respected. Those are `SW-ADR-117`, and a palette
+> change does not reach them.
+
 ---
 
 ## §2 — Colour
@@ -42,86 +54,134 @@ the hex. This is enforceable by grep and is checked in this goal's Definition of
 
 | Token | Value | Use |
 |---|---|---|
-| `--sw-paper` | `#faf7f2` | the page. Warm off-white, never pure white. |
-| `--sw-paper-raised` | `#ffffff` | cards and the add-expense panel, lifted off the page. |
-| `--sw-paper-sunken` | `#f0ece4` | table header rows, inset wells. |
-| `--sw-ink` | `#1c1917` | primary text. Warm near-black, never #000. |
-| `--sw-ink-muted` | `#57534e` | secondary text, labels, timestamps. |
-| `--sw-ink-faint` | `#78716c` | placeholder and disabled text ONLY. Fails AA on body copy — never use it for content. |
-| `--sw-pine` | `#2d5a3d` | the accent. Primary buttons, active states, links. |
-| `--sw-pine-deep` | `#1b3826` | pressed and hover on pine. |
-| `--sw-pine-soft` | `#e6ede8` | tinted backgrounds behind pine content. |
-| `--sw-border` | `#ddd6cb` | hairlines, input borders, band separators. |
-| `--sw-border-strong` | `#a8a29e` | focus-adjacent borders, table rules. |
-| `--sw-positive` | `#2d5a3d` | same as pine — under-budget, success. |
-| `--sw-warning` | `#8a5a1f` | approaching a limit. |
-| `--sw-danger` | `#9c2f28` | destructive actions, validation errors. |
+| `--sw-paper` | `#f2f5e9` | the page. Greenish white, never pure white. |
+| `--sw-paper-raised` | `#fbfcf6` | cards and the add-expense panel, lifted off the page. |
+| `--sw-paper-sunken` | `#eaefdc` | table header rows, inset wells. |
+| `--sw-ink` | `#14170e` | primary text. Near-black with an olive cast, never #000. |
+| `--sw-ink-muted` | `#4f5643` | secondary text, labels, timestamps. |
+| `--sw-ink-faint` | `#7c8468` | placeholder and disabled text ONLY. Fails AA on body copy — never use it for content. |
+| `--sw-pine` | `#4e5f22` | **the accent — olive.** Primary buttons, active states, links. |
+| `--sw-pine-deep` | `#354115` | pressed and hover on the accent. |
+| `--sw-pine-soft` | `#e2eaca` | tinted backgrounds behind accent content. |
+| `--sw-border` | `#d8e0c2` | hairlines, input borders, band separators. |
+| `--sw-border-strong` | `#7f8a63` | focus-adjacent borders, table rules. |
+| `--sw-positive` | `#4e5f22` | same as the accent — under-budget, success. |
+| `--sw-warning` | `#8a5a1f` | approaching a limit. **Unchanged by `CR-002`.** |
+| `--sw-danger` | `#9c2f28` | destructive actions, validation errors. **Unchanged by `CR-002`.** |
 
 **Fonts are self-hosted**, not fetched from Google Fonts. `SW-ADR-020` rejected a CDN for the
 frontend on single-origin grounds; the same reasoning applies to the fonts.
 
+> Until 2026-08-21 that sentence was **aspirational, not true**. There was no `@font-face` rule and
+> no font file anywhere under `client/`: the families were named in `tokens.css` and never loaded,
+> so the app rendered system fallbacks — including in every screenshot under `evidence/` from
+> before that date. Six woff2 files now ship under `client/public/fonts/` (`SW-ADR-152`).
+
 ### §2.1 — Measured text contrast
+
+**Computed, not asserted.** Every figure below is pasted from `py tools/contrast.py`, which
+measures all 26 pairs in each theme, composites translucent surfaces before measuring, and exits
+non-zero on any pair below its floor. `CONTRAST.md` is its generated output. Re-run it after
+touching any colour — including a colour that is not in this table, because a pair has two sides.
+
+Text, floor 4.5:1 (SC 1.4.3):
 
 | Foreground | Background | Measured | Needs | |
 |---|---|---|---|---|
-| `ink` #1c1917 | `paper` #faf7f2 | **16.37:1** | 4.5 | PASS |
-| `ink` #1c1917 | `paper-raised` #ffffff | **17.49:1** | 4.5 | PASS |
-| `ink` #1c1917 | `paper-sunken` #f0ece4 | **14.84:1** | 4.5 | PASS |
-| `ink-muted` #57534e | `paper` #faf7f2 | **7.14:1** | 4.5 | PASS |
-| `ink-muted` #57534e | `paper-raised` #ffffff | **7.63:1** | 4.5 | PASS |
-| `pine` #2d5a3d | `paper` #faf7f2 | **7.44:1** | 4.5 | PASS |
-| `pine` #2d5a3d | `paper-raised` #ffffff | **7.95:1** | 4.5 | PASS |
-| `danger` #9c2f28 | `paper` #faf7f2 | **6.89:1** | 4.5 | PASS |
-| `warning` #8a5a1f | `paper` #faf7f2 | **5.52:1** | 4.5 | PASS |
-| `paper` #faf7f2 | `pine` #2d5a3d | **7.44:1** | 4.5 | PASS |
-| `paper` #faf7f2 | `danger` #9c2f28 | **6.89:1** | 4.5 | PASS |
+| `ink` #14170e | `paper` #f2f5e9 | **16.41:1** | 4.5 | PASS |
+| `ink` #14170e | `paper-raised` #fbfcf6 | **17.57:1** | 4.5 | PASS |
+| `ink` #14170e | `paper-sunken` #eaefdc | **15.43:1** | 4.5 | PASS |
+| `ink` #14170e | `glass` rgb(251 252 246 / 0.80) | **17.33:1** | 4.5 | PASS |
+| `ink-muted` #4f5643 | `paper` #f2f5e9 | **6.93:1** | 4.5 | PASS |
+| `ink-muted` #4f5643 | `paper-raised` #fbfcf6 | **7.42:1** | 4.5 | PASS |
+| `ink-muted` #4f5643 | `glass` rgb(251 252 246 / 0.80) | **7.32:1** | 4.5 | PASS |
+| `pine` #4e5f22 | `paper` #f2f5e9 | **6.37:1** | 4.5 | PASS |
+| `pine` #4e5f22 | `paper-raised` #fbfcf6 | **6.82:1** | 4.5 | PASS |
+| `pine` #4e5f22 | `glass` rgb(251 252 246 / 0.80) | **6.73:1** | 4.5 | PASS |
+| `danger` #9c2f28 | `paper` #f2f5e9 | **6.67:1** | 4.5 | PASS |
+| `warning` #8a5a1f | `paper` #f2f5e9 | **5.34:1** | 4.5 | PASS |
+| `on-pine` #f7faee | `pine` #4e5f22 | **6.66:1** | 4.5 | PASS |
+| `on-pine` #f7faee | `danger` #9c2f28 | **6.97:1** | 4.5 | PASS |
 
-**All pairs pass.**
+UI components, floor 3:1 (SC 1.4.11):
+
+| Foreground | Background | Measured | Needs | |
+|---|---|---|---|---|
+| `focus-color` var(--sw-pine) | `paper` #f2f5e9 | **6.37:1** | 3.0 | PASS |
+| `focus-color` var(--sw-pine) | `glass` rgb(251 252 246 / 0.80) | **6.73:1** | 3.0 | PASS |
+| `border-strong` #7f8a63 | `paper` #f2f5e9 | **3.33:1** | 3.0 | PASS |
+
+**All pairs pass, in both themes — light 26/26, dark 26/26.**
 
 `--sw-ink-faint` is deliberately absent from that table. It is for placeholder and disabled
 text only, where WCAG exempts the requirement. **It must never carry content.**
 
 ### §2.2 — The eight seeded categories
 
-Ruled by `SW-ADR-092`. Measured against `--sw-paper` `#faf7f2`; the floor is 3:1 because a
+Ruled by `SW-ADR-092`. Measured against `--sw-paper` `#f2f5e9`; the floor is 3:1 because a
 band is a UI component, not text.
 
 | Category | Token value | Measured vs paper | |
 |---|---|---|---|
-| Groceries | `#4a7c59` | **4.55:1** | PASS |
-| Food & Dining | `#b5543b` | **4.57:1** | PASS |
-| Transport | `#3e6b8f` | **5.30:1** | PASS |
-| Rent & Utilities | `#9c7a2f` | **3.75:1** | PASS |
-| Health | `#2e7d8a` | **4.45:1** | PASS |
-| Entertainment | `#7b4b94` | **6.00:1** | PASS |
-| Shopping | `#a04c72` | **5.21:1** | PASS |
-| Other | `#7d8471` | **3.63:1** | PASS |
-| Uncategorised | `#948c87` | **3.09:1** | PASS |
+| Groceries | `#4a7c59` | **4.40:1** | PASS |
+| Food & Dining | `#b5543b` | **4.43:1** | PASS |
+| Transport | `#3e6b8f` | **5.13:1** | PASS |
+| Rent & Utilities | `#9c7a2f` | **3.63:1** | PASS |
+| Health | `#2e7d8a` | **4.30:1** | PASS |
+| Entertainment | `#7b4b94` | **5.80:1** | PASS |
+| Shopping | `#a04c72` | **5.04:1** | PASS |
+| Other | `#7d8471` | **3.51:1** | PASS |
+| Uncategorised | `#928a85` | **3.07:1** | PASS |
 
 **All bands pass.**
 
-"Uncategorised" is `#948c87` — a warm stone grey, deliberately distinct from the seeded
+"Uncategorised" is `#928a85` — a warm stone grey, deliberately distinct from the seeded
 "Other" `#7d8471`, and it always sorts last regardless of size (`SW-ADR-131`).
 
-> **Adjusted here, and why that is the process working.** the **superseded** `SW-ADR-113` specified `#a8a29e`; `SW-ADR-131` replaced it and records why.
-> Measured against paper it is **2.36:1** — below the 3:1 floor a UI component needs. It was
-> darkened within the same hue to the value above. `SW-ADR-092` anticipated this exact case:
-> *"the design system adopts these as tokens and MUST verify each at >=3:1 against the paper
-> surface, adjusting tone within hue if any fails."* The instruction was followed rather than
-> the number being taken on trust — one of nine bands failed, and a document that asserted
-> compliance instead of computing it would have shipped it.
+> **Adjusted twice, and the second time is the more interesting one.**
+>
+> **2026-08-06 (`SW-ADR-131`, `SW-ADR-147`).** The superseded `SW-ADR-113` specified `#a8a29e`,
+> which measured **2.36:1** against the then-current paper — below the 3:1 floor a UI component
+> needs. Darkened within the same hue to `#948c87`.
+>
+> **2026-08-21 (`CR-002`, `SW-ADR-152`).** `#948c87` then failed at **2.99:1** — by 0.01 — without
+> anyone touching it. **The band did not change; the ground under it did.** The palette moved from
+> `#faf7f2` to `#f2f5e9`, and a change request that explicitly listed the nine bands as *unchanged*
+> silently re-opened all nine. Darkened within the hue again to `#928a85`, **3.07:1**, hue drift
+> `0.00°`. `#938b86` also cleared the floor at 3.029:1 and was rejected — 0.029 of headroom is how
+> the first adjustment came to be needed.
+>
+> `SW-ADR-092` anticipated the mechanism: *"the design system adopts these as tokens and MUST
+> verify each at >=3:1 against the paper surface, adjusting tone within hue if any fails."* Three
+> times now that instruction has been the thing standing between this project and a shipped
+> accessibility failure, and all three were caught by measuring rather than by reasoning.
+>
+> **`--sw-cat-uncat` currently has the least headroom of any pair in the system, at +0.07. Any
+> future change to `--sw-paper` breaks it first.**
 
 ---
 
 ## §3 — Type
 
+Changed by `CR-002` / `SW-ADR-152`. Display is now a grotesque rather than a serif, so the
+headline total and the page titles read as interface rather than as editorial.
+
 | Role | Family | Size | Weight |
 |---|---|---|---|
-| Display — the headline total | Instrument Serif | `--sw-text-3xl` | regular |
-| Section heading | Instrument Sans | `--sw-text-xl` | semibold |
-| Body | Instrument Sans | `--sw-text-base` | regular |
-| Label, timestamp | Instrument Sans | `--sw-text-sm` | medium |
-| **Every number** | **IBM Plex Mono** | inherits | regular |
+| Display — the headline total | Bricolage Grotesque | `--sw-text-3xl` (3.75rem) | semibold |
+| Page / section heading | Bricolage Grotesque | `--sw-text-xl` | semibold |
+| Body | DM Sans | `--sw-text-base` | regular |
+| Label, timestamp | DM Sans | `--sw-text-sm` | medium |
+| **Every number** | **JetBrains Mono** | inherits | regular |
+
+Headings never go past weight 600. `--sw-text-2xl` is 2.5rem and `--sw-leading-tight` is 1.08.
+
+**All three are self-hosted**, six woff2 files under `client/public/fonts/`, declared in
+`app.redesign.css` — `SW-ADR-020` rejects a CDN. **Two subsets per family, not one:** `U+20B9`,
+the rupee sign, is in `latin-ext`, not `latin` (which carries `U+20AC`, the euro). A latin-only
+build renders every ₹ from a fallback font beside digits from JetBrains Mono. Verified in a
+browser, not assumed: with the faces loaded, `document.fonts.check('500 16px "JetBrains Mono"',
+'₹')` is `true` and ₹ measures 20.00px against 21.99px for the fallback.
 
 **Every number uses `.sw-num`**, which sets `font-variant-numeric: tabular-nums`. This is not
 decoration — `SRC-001 §9.4` asks for it by name so columns of money align, and a proportional
@@ -134,8 +194,13 @@ formatter; no component invents its own.
 
 ## §4 — Space, radius, shadow, motion
 
-One scale each, in `tokens.css`. Motion is `--sw-motion-fast` for state changes and
-`--sw-motion-base` for the panel.
+One scale each, in `tokens.css`. Motion is `--sw-motion-fast` (120ms) for state changes and
+`--sw-motion-base` (200ms) for the panel.
+
+Changed by `CR-002` / `SW-ADR-152`: radii `3 / 6 / 10px` → **`5 / 10 / 14px`** — the old 6px read
+as a form control on a card the size of the hero, where 10/14 reads as a surface. Easing
+`cubic-bezier(0.4, 0, 0.2, 1)` → **`cubic-bezier(0.2, 0.8, 0.2, 1)`**. Shadows re-tinted to the new
+ink. The spacing scale and `--sw-target-min` (44px) are unchanged.
 
 **Under `prefers-reduced-motion: reduce`, every transition and animation is disabled** — the
 add-expense panel *appears instantly* rather than sliding. "Appears instantly" is the
@@ -221,13 +286,16 @@ dark never sees a white flash before the script runs; `:root[data-theme="dark"]`
 **override** the appearance control writes, and the media query is scoped
 `:root:not([data-theme="light"])` so an explicit light choice beats a dark system.
 
-**Dark is not an inversion.** Pine `#2d5a3d` measures 1.6:1 on a dark surface, so dark uses a
-lighter tint of the same hue (`#7fc79a`); five of the nine category bands are re-tinted the same
-way. Every replacement was chosen by running the tool until it passed.
+**Dark is not an inversion.** The light accent `#4e5f22` measures **2.74:1** on the dark
+surface `#0d0f09` — far under the 3:1 a component needs — so dark uses a lighter tint of the
+same hue, `#b8d16b`, at **11.36:1**; five of the nine category bands are re-tinted the
+same way. Every replacement was chosen by running the tool until it passed. (Updated by
+`SW-ADR-152`: the figures above were `#2d5a3d` / 1.6:1 / `#7fc79a` before `CR-002` moved the
+palette. The *reasoning* is `SW-ADR-147`'s and did not change; only the hexes it applies to did.)
 
 **Glass composites, so its alpha is a measured floor.** `--sw-glass` is
-`rgb(255 255 255 / 0.78)` because that is where `--sw-ink-muted` on glass still clears 4.5:1 over
-the pine wash. Lowering it for a prettier blur is a change the gate refuses — the colour a person
+`rgb(251 252 246 / 0.80)` because that is where `--sw-ink-muted` on glass still clears 4.5:1 over
+the accent wash — it currently measures **7.32:1**. Lowering it for a prettier blur is a change the gate refuses — the colour a person
 reads through glass is `surface × α + backdrop × (1−α)`, which is written down nowhere and has to
 be calculated.
 
@@ -238,8 +306,8 @@ be calculated.
 | `--sw-glass-sunken` | wells and table headers |
 | `--sw-glass-border` | the 1px highlight that makes an edge read as glass |
 | `--sw-glass-blur` | `backdrop-filter` radius |
-| `--sw-wash-1`, `--sw-wash-2` | the two pine/teal radials the glass sits on |
-| `--sw-on-pine` | text on a pine or danger fill |
+| `--sw-wash-1`, `--sw-wash-2` | the two olive radials the glass sits on |
+| `--sw-on-pine` | text on an accent or danger fill |
 | `--sw-plot-line`, `--sw-plot-fill`, `--sw-plot-grid` | the line chart. Not category colours |
 
 `backdrop-filter` is **progressive enhancement**: where it is unsupported the surface is still
