@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_db, set_request_identity
 from app.core.deps import CurrentUser, Db
 from app.core.settings import get_settings
+from app.core.ratelimit import limit_login, limit_register, limit_reset
 from app.modules.auth.schemas import (
     LoginRequest, PasswordChange, Principal, ProfileUpdate, RegisterRequest, ResetComplete,
 )
@@ -31,7 +32,8 @@ def _set_cookie(response: Response, token: str) -> None:
     )
 
 
-@router.post("/register", status_code=status.HTTP_201_CREATED, response_model=Principal)
+@router.post("/register", status_code=status.HTTP_201_CREATED, response_model=Principal,
+             dependencies=[Depends(limit_register)])
 async def register(body: RegisterRequest, request: Request, response: Response,
                    db: Annotated[AsyncSession, Depends(get_db)]) -> Principal:
     svc = AuthService(db)
@@ -46,7 +48,8 @@ async def register(body: RegisterRequest, request: Request, response: Response,
     return svc._principal(user)
 
 
-@router.post("/login", response_model=Principal)
+@router.post("/login", response_model=Principal,
+             dependencies=[Depends(limit_login)])
 async def login(body: LoginRequest, request: Request, response: Response,
                 db: Annotated[AsyncSession, Depends(get_db)]) -> Principal:
     svc = AuthService(db)
@@ -89,7 +92,8 @@ async def change_password(body: PasswordChange, request: Request,
     return {"signed_out_elsewhere": revoked}
 
 
-@router.post("/reset/complete", status_code=status.HTTP_204_NO_CONTENT)
+@router.post("/reset/complete", status_code=status.HTTP_204_NO_CONTENT,
+             dependencies=[Depends(limit_reset)])
 async def complete_reset(body: ResetComplete,
                          db: Annotated[AsyncSession, Depends(get_db)]) -> Response:
     """UNAUTHENTICATED by definition — the point of a reset is that the person

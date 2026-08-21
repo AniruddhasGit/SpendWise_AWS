@@ -31,6 +31,13 @@ dependencies = [
     # raises - and SW-ADR-096 makes that timezone the calendar every boundary
     # in this product is computed in.
     "tzdata>=2024.1",
+    # E1-S6 / SW-ADR-128. `SRC-001 §10.9` names `slowapi`; this is the engine
+    # slowapi is a thin decorator layer over, used directly because login needs
+    # TWO keys (IP and normalised email) and the 429 has to carry both the
+    # closed error envelope (`SW-ADR-051`) and a `Retry-After` computed from the
+    # window's reset time. Same in-process MemoryStorage, so SW-ADR-128's
+    # knowingly-accepted weakness is unchanged. One [JUDGMENT CALL].
+    "limits>=3.13",
 ]
 
 [project.optional-dependencies]

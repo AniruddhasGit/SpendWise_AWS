@@ -119,6 +119,12 @@ async def client(clean_db, monkeypatch) -> AsyncIterator:
 
     monkeypatch.setenv("DATABASE_URL", clean_db)
     monkeypatch.setenv("SPENDWISE_DOTENV", "0")
+    # E1-S6: the limiter is ON in production and OFF here. A suite that signs in
+    # more than ten times a minute would otherwise start failing at its eleventh
+    # request, and the failure would read as a product bug rather than as the
+    # throttle doing its job. `tests/test_rate_limits.py` turns it back on and is
+    # the only place that asserts its behaviour.
+    monkeypatch.setenv("RATE_LIMIT_ENABLED", "false")
 
     from app.core.settings import get_settings
     import app.core.db as db_mod

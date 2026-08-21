@@ -88,6 +88,31 @@ class Settings(BaseSettings):
         description="Build identifier returned by /readyz. Unset reports the "
                     "literal 'unset' and logs a WARN (SW-ADR-064).")
 
+    # ── rate limits: SW-ADR-128's numbers, stated as EFFECTIVE ────────────
+    # Every value here is the limit a PERSON experiences. The number handed to
+    # the limiter is this divided by UVICORN_WORKERS, because the store is
+    # per-process — see app/core/ratelimit.py. Keeping the ruled figure in the
+    # setting and deriving the configured one means `.env` reads the way the
+    # ADR reads, and nobody has to remember to halve anything by hand.
+    RATE_LIMIT_ENABLED: bool = Field(
+        default=True,
+        description="Master switch. TRUE in production. The test suite turns it "
+                    "off for everything except the rate-limit tests, so a case "
+                    "that signs in eleven times does not fail for a reason "
+                    "unrelated to what it asserts.")
+    UVICORN_WORKERS: int = Field(
+        default=2, ge=1,
+        description="The divisor. SW-ADR-014 deploys two workers in one task; "
+                    "each holds its own counters, so a limit configured at 5 "
+                    "admits 10 in aggregate.")
+    RATE_LIMIT_LOGIN_PER_MIN: int = Field(default=10, ge=1)
+    RATE_LIMIT_LOGIN_EMAIL_PER_MIN: int = Field(default=10, ge=1)
+    RATE_LIMIT_REGISTER_PER_MIN: int = Field(default=5, ge=1)
+    RATE_LIMIT_REGISTER_PER_DAY: int = Field(default=20, ge=1)
+    RATE_LIMIT_RESET_PER_MIN: int = Field(default=6, ge=1)
+    RATE_LIMIT_API_USER_PER_MIN: int = Field(default=120, ge=1)
+    RATE_LIMIT_API_IP_PER_MIN: int = Field(default=60, ge=1)
+
     # ── optional AND degrading: the one variable that disables a feature ──
     S3_BUCKET: str | None = Field(
         default=None,

@@ -111,7 +111,8 @@ class ApiError(Exception):
     generic message — which never carries detail, an id, or a stack.
     """
 
-    def __init__(self, code: str, *, field: str | None = None, message: str | None = None):
+    def __init__(self, code: str, *, field: str | None = None, message: str | None = None,
+                 headers: dict[str, str] | None = None):
         if code not in codes():
             # A closed list is only closed if the closure is enforced.
             raise ValueError(
@@ -123,6 +124,11 @@ class ApiError(Exception):
         self.code = code
         self.field = field
         self.message = message or code_messages().get(code, "Request failed.")
+        # Some codes are only complete WITH a header. `RATE_LIMITED` carries
+        # `Retry-After` (`SW-ADR-128`, and the contract's own note says so): a
+        # 429 without it tells a client to back off and not for how long, so
+        # every client guesses, and the ones that guess short make it worse.
+        self.headers = headers or {}
 
     @property
     def status(self) -> int:
@@ -150,8 +156,10 @@ def envelope(err: ApiError) -> dict:
 
 
 async def api_error_handler(_: Request, exc: ApiError) -> JSONResponse:
+    # `no-store` first, so a per-code header can never be silently dropped by a
+    # dict literal that happened to be written after it.
     return JSONResponse(status_code=exc.status, content=envelope(exc),
-                        headers={"Cache-Control": "no-store"})
+                        headers={"Cache-Control": "no-store", **exc.headers})
 
 
 async def validation_exception_handler(_: Request, exc: RequestValidationError) -> JSONResponse:

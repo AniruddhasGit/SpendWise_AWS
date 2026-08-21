@@ -1,0 +1,99 @@
+GOAL_15 — RATE LIMITS, WITH NUMBERS  (E1-S6, the last M1 story)
+================================================================
+
+OBJECTIVE
+  Close the largest live security hole in this application: every authentication
+  endpoint is currently unthrottled. Register, login and reset-redeem are all
+  brute-forceable at whatever rate a network link allows.
+
+  `SW-ADR-128` ruled the numbers on 2026-08-05 and nothing implemented them. This
+  goal is the implementation, not a re-litigation — the numbers are settled.
+
+WHERE THIS STARTS
+  M1 is 7/8. `E1-S6` is the one Backlog row, P0, `DependsOn: E1-S1` (Done).
+  Verified in the code rather than taken from the ledger: the only matches for
+  "throttle" in `app/` are `last_seen_at` heartbeat bumping (`SW-ADR-022`), and
+  the only match for RATE_LIMITED is a constant in the error registry. There is
+  no limiter, no middleware, no dependency.
+
+  `slowapi` is named by `SRC-001 §10.9` ("slowapi is fine for this") and reasoned
+  about by `SW-ADR-128`, so using it honours the stack lock rather than bending
+  it. Smoke-tested against fastapi 0.141.1 / starlette 1.4.0 before designing
+  around it: 3/minute returned [200,200,200,429,429]. It works.
+
+THE ACCEPTANCE CRITERIA — the whole scope, five binary lines
+  1. the 11th sign-in attempt in a minute from one IP returns 429 with a
+     Retry-After header
+  2. the 11th sign-in attempt in a minute against one email from DIFFERENT IPs
+     returns 429
+  3. the 6th registration in a minute from one IP returns 429
+  4. the 7th reset redemption in a minute from one IP returns 429
+  5. each configured value is half its stated effective value, and a test
+     asserts the arithmetic against the worker count
+
+THE ARITHMETIC, AND WHY AC1 AND AC5 LOOK LIKE THEY CONTRADICT
+  They do not, and the resolution is the whole point of AC5.
+
+  `slowapi` stores counters IN PROCESS. Two uvicorn workers means two counters,
+  so a limit configured at 5/min admits 10/min in aggregate. `SW-ADR-128` states
+  the numbers as EFFECTIVE and configures each at half.
+
+  Therefore settings hold the EFFECTIVE number and the WORKER COUNT, and the
+  per-process value is derived:
+
+      per_process = effective // workers
+
+  With workers=2 (production) the configured value is half the effective one,
+  which is AC5. With workers=1 (a test, one process) configured == effective, so
+  the 11th sign-in attempt is the one that fails, which is AC1. A hardcoded 5
+  would satisfy AC5 and fail AC1, and a hardcoded 10 would do the reverse.
+
+  This is why the divisor is a setting and not a literal.
+
+THE NUMBERS  (`SW-ADR-128`, stated as EFFECTIVE)
+  login              10/min per IP  AND  10/min per normalised email
+  registration        5/min per IP  AND  20/day per IP
+  reset completion    6/min per IP
+  everything else   120/min per authenticated user id
+                     60/min per IP for unauthenticated API paths
+  static assets     unlimited
+
+ORDER OF WORK
+  1. Settings + `.env.example`. `test_e0_s1_skeleton.py` AC4 diffs the class
+     against the manifest in BOTH directions, so a setting without a manifest
+     line fails immediately. Let it.
+  2. The failing tests first, from the five criteria above. Red before green.
+  3. `app/core/ratelimit.py` — the limiter, the key functions, the envelope.
+  4. Apply to the four endpoints + the global default.
+  5. `requirements.lock` and `pyproject.toml`.
+
+DECISIONS THIS GOAL MAKES  (each a [JUDGMENT CALL] under `SW-ADR-015`)
+  * X-Forwarded-For is NOT trusted. `SW-ADR-014` left this deployment with no
+    load balancer, so there is no proxy in front of the app and no header any
+    proxy sets. Trusting XFF where no proxy exists means any client can set it
+    and every per-IP limit here becomes decorative — a limiter that reports it
+    is working while protecting nothing. Socket address only. If an ALB is ever
+    added this becomes wrong in the other direction and must be revisited; that
+    is recorded rather than guessed at now.
+  * The limiter is disabled in the shared test client fixture and enabled
+    explicitly by the rate-limit tests. Otherwise a suite that signs in more
+    than ten times per minute starts failing for a reason unrelated to what it
+    tests — and the failure would look like a product bug.
+  * The email key is the NORMALISED email (lower-cased, trimmed), because
+    `E1-S2` already ruled identity is case-insensitive. Keying on the raw string
+    would let `A@b.com` and `a@b.com` carry separate buckets, which is the
+    bypass AC2 exists to close.
+
+DEFINITION OF DONE
+  * five criteria pass as tests
+  * `py -m pytest` green, no test faked, skipped, xfailed or deleted
+  * the day-one gate still returns 75810
+  * `py tools/consistency_check.py` PASS and `--selftest` still fully red-proofed
+  * `.env.example` carries every new key with a comment saying what it does
+  * ledger row `E1-S6` flipped to Done with its evidence path
+
+WHAT THIS GOAL DOES NOT DO
+  * a shared limiter store. `SW-ADR-128` accepted the in-process store KNOWINGLY
+    — a shared one needs Redis, which needs a billable service, which
+    `SW-ADR-014` forbids. Recorded, not fixed. Do not "improve" this.
+  * per-route tuning beyond the ruled numbers.

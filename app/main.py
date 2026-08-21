@@ -20,6 +20,7 @@ from app.core.errors import (
     ApiError, api_error_handler, unhandled_handler, validation_exception_handler,
 )
 from app.core.health import router as ops_router
+from app.core.ratelimit import general_limit_middleware
 from app.core.settings import get_settings
 from app.core.spa import mount as mount_client
 from app.modules.admin.router import router as admin_router
@@ -46,6 +47,11 @@ app = FastAPI(
 app.add_exception_handler(ApiError, api_error_handler)
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
 app.add_exception_handler(Exception, unhandled_handler)
+
+# SW-ADR-128's "everything else" limits. Registered as middleware rather than a
+# dependency because it governs every API route including ones not written yet —
+# a per-router dependency is a list someone has to remember to extend.
+app.middleware("http")(general_limit_middleware)
 
 app.include_router(ops_router)
 app.include_router(auth_router)
