@@ -167,9 +167,21 @@ One item deliberately left untracked: **`workflows/ci.yml`** — an empty 0-byte
 that predates this session. `COORDINATION.md` puts `.github/workflows/**` in the **OPS** lane, so
 the build session did not commit it. Delete it or claim it; it is not ours.
 
-**`origin` (`AniruddhaDynpro/SpendWise`) is 6 commits behind** and was left that way on purpose —
-the client named `AniruddhasGit/SpendWise` as the main repo, and pushing work to a second account
-is not the build session's call.
+**Both remotes are in sync at `b22c093`.** This was corrected after the handoff was first
+written: it originally recorded `origin` as 6 commits behind and deliberately left alone, and the
+client then asked for everything pushed. Amended rather than left standing, because a handoff that
+describes a state the repo is no longer in is worse than no handoff.
+
+**Two GitHub accounts, and only one works at a time.** `AniruddhasGit/SpendWise` is the main repo
+(`personal`); `AniruddhaDynpro/SpendWise` is `origin` and is **private to the other account**. Git
+authenticates as whichever `gh` account is active, so a push to the one you are not signed in as
+fails with a bare *"Repository not found"* — which reads like a deleted repo, not an auth problem.
+That cost a confusing minute today.
+
+    gh auth switch --user AniruddhaDynpro && git push origin main
+    gh auth switch --user AniruddhasGit   && git push personal main
+
+`gh auth status` shows which is active. Left active as **`AniruddhasGit`**, the main repo.
 
 ---
 

@@ -490,3 +490,4 @@ superuser and RLS passes for the wrong reason.
 `E5-S3` (needs no bucket) · Bible stories for the six undocumented capabilities.
 
 - **Session closed 2026-08-21_1605 by Aniruddha Jathar** → handoff: handoffs/HANDOFF_2026-08-21_1605_aniruddha-jathar.md
+- Amended after close: pushed to **both** remotes at the client's request — `AniruddhasGit/SpendWise` (main) and `AniruddhaDynpro/SpendWise`, both at `b22c093`. The handoff originally recorded origin as deliberately behind; corrected in place.
