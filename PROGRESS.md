@@ -440,3 +440,53 @@ against this database again without a per-worker database or a lock.
 (`E6-S1`) and the capabilities that must not exist (`E6-S5`).
 
 - **Session closed 2026-08-06_0442 by ani87** → handoff: handoffs/HANDOFF_2026-08-06_0442_ani87.md
+
+---
+
+## Session 2026-08-21 — the re-skin, the throttle, the container, and three stale documents
+
+First session on a new machine (`D:/SpendWise`, not `D:/Project/SpendWise`) and a new user. The
+environment did not exist: Python 3.12 installed, `.venv` built, deps and Playwright's Chromium
+installed. Six commits.
+
+**Built:** `CR-002`/`SW-ADR-152` the olive re-skin (zero screen or component files edited) ·
+`E1-S6` rate limits, **M1 8/8** · the `range.required` fix · the **Dockerfile**, built and run ·
+`E6-S5` after a client ruling, **M6 1/5**.
+
+**`CR-002` shipped with three defects, all caught by gates rather than by reading.** A band failed
+its contrast floor by 0.01 because the *paper under it* moved, not the band. ₹ is in `latin-ext`
+not `latin`, so the bundle's `@font-face` would have rendered every rupee sign from a fallback —
+and there was no `@font-face` in this repo at all before now, meaning every screenshot in
+`evidence/` predating today shows OS fallbacks. And the band colour turned out to live in **three**
+artifacts, so `contrast.py` certified 3.07:1 for a hex the browser never draws.
+
+**`E1-S6` had two bugs the tests caught:** the arithmetic used floor where `SW-ADR-128`'s own table
+requires ceiling (`5 // 2 == 2`, the ADR says 3), and the limiter resolved *after* `get_db`, so
+every throttled request opened a connection before being refused.
+
+**`E6-S5` was escalated, not decided.** Two of its criteria contradicted APPROVED `SW-ADR-148`.
+The session marked it `Blocked` and asked rather than editing the definition of done to match what
+had been built; the client ruled option A and `SW-ADR-153` records it as a client decision.
+
+**That ruling uncovered seven shipped routes absent from `contract.json`** — the spec of record the
+PRD's route table is generated from. Added, with the four models they reference; the §6 count moved
+28 → 35 by itself and the day-one gate still asserts `75810`.
+
+**Four new traps in `GOTCHAS.md`, three of them the same shape:** `app.routes` is not the route
+table · `from __future__ import annotations` makes annotations strings · a check that extracts zero
+items passes for the wrong reason · `generate_ledger.py` would wipe every hand-edited Status.
+**A test that proves an absence must also prove it looked.**
+
+**Not done, recorded as such:** 209 tests skipped and 2 failed for want of a database; nothing
+deployed; `E0-S10` still waits on a named human's signature; six shipped capabilities still have no
+Bible story, so seven contract entries carry `spec: []` and `GET /api/admin/overview` has no
+authorising ADR — both `OPEN`, neither invented.
+
+**A hazard worth carrying:** a real PostgreSQL runs on this machine at 5432. The placeholder `.env`
+now points at `db.invalid` so the suite cannot silently test local Postgres, where the owner is
+superuser and RLS passes for the wrong reason.
+
+**Open / next:** `E6-S1` (log deny-list, needs a database) · `E0-S10`'s signature ·
+`E5-S3` (needs no bucket) · Bible stories for the six undocumented capabilities.
+
+- **Session closed 2026-08-21_1605 by Aniruddha Jathar** → handoff: handoffs/HANDOFF_2026-08-21_1605_aniruddha-jathar.md
