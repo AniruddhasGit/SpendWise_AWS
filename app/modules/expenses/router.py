@@ -9,6 +9,7 @@ from fastapi import APIRouter, Query, Response, status
 from app.core.deps import CurrentUser, CurrentUserRR, Db
 from app.modules.expenses.schemas import (
     ExpenseCreate, ExpenseOut, ExpensePage, ExpenseUpdate, Summary, SummaryQuery,
+    require_range,
 )
 from app.modules.expenses.service_db import ExpenseService
 
@@ -21,11 +22,17 @@ router = APIRouter(prefix="/api/expenses", tags=["expenses"])
 @router.get("/summary", response_model=Summary)
 async def summary(
     principal: CurrentUserRR, db: Db,
-    from_: Annotated[str, Query(alias="from")],
-    to: Annotated[str, Query()],
+    # OPTIONAL at this layer, deliberately. Annotated as required, FastAPI
+    # refuses the request before any rule in this system runs and the caller
+    # gets `field.required` — the G2 condition that made `range.required`
+    # unreachable. `require_range` reports the missing key with the rule the
+    # contract specifies.
+    from_: Annotated[str | None, Query(alias="from")] = None,
+    to: Annotated[str | None, Query()] = None,
     category_id: Annotated[int | None, Query()] = None,
     uncategorised: Annotated[bool, Query()] = False,
 ) -> Summary:
+    require_range(from_, to)
     q = SummaryQuery.model_validate(
         {"from": from_, "to": to, "category_id": category_id,
          "uncategorised": uncategorised})

@@ -22,6 +22,7 @@ from app.modules.admin.schemas import (
     AdminUserSpending, AuditPage, ResetToken, RoleRequest,
 )
 from app.modules.admin.service import AdminService
+from app.modules.expenses.schemas import require_range
 
 router = APIRouter(
     prefix="/api/admin",
@@ -67,8 +68,11 @@ async def list_users(
 @router.get("/users/{user_id}/spending", response_model=AdminUserSpending)
 async def user_spending(
     user_id: int, principal: CurrentUser, db: Db,
-    from_: Annotated[str, Query(alias="from")],
-    to: Annotated[str, Query()],
+    # Optional here for the same reason as `GET /api/expenses/summary`, and via
+    # the SAME helper — `CR-001 §2` requires these to be one set of rules, not
+    # two that agree today.
+    from_: Annotated[str | None, Query(alias="from")] = None,
+    to: Annotated[str | None, Query()] = None,
 ) -> AdminUserSpending:
     """`CR-001`, `SW-ADR-151`. One person's total and daily series over a range.
 
@@ -87,6 +91,7 @@ async def user_spending(
     `require_admin` is NOT declared here. It is on the router, once, and `E4-S1`
     walks the route table to prove it — this handler is protected by existing.
     """
+    require_range(from_, to)
     return await AdminService(db).spending(principal, user_id, from_, to)
 
 

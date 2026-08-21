@@ -20,6 +20,8 @@ from typing import Annotated, Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.core.errors import Violation, validation_error
+
 # The ONE permitted coercion, applied per field (`request_models.parsing`).
 # `strict=True` on the model blocks ISO-8601 text -> date as well as everything
 # else, and JSON has no date type - so a strict `date` field can never be
@@ -143,6 +145,46 @@ class SummaryQuery(BaseModel):
     # `false` is treated as absent; mutually exclusive with `category_id`,
     # checked in the service so the message can name `uncategorised` (`CV-02`).
     uncategorised: bool = False
+
+
+def require_range(from_: str | None, to: str | None) -> None:
+    """`range.required`. Raises unless BOTH ends of the range were supplied.
+
+    The contract puts this rule ahead of every other range rule and names the
+    failure mode it exists to prevent (`error_codes.precedence.scope`):
+
+        A missing `from` or `to` is `range.required`, with `field` set to the
+        key that is actually missing — **not** `field.required`, which would
+        otherwise make `range.required` unreachable (G2).
+
+    That is precisely what happened. Both routes annotated `from` and `to` as
+    REQUIRED query parameters, so FastAPI refused the request before any rule in
+    this system ran and every caller received `field.required`. The rule was
+    written, generated into the error tables, given a message and a tie-break —
+    and could not fire. **A rule that cannot fire is the same defect as a
+    missing one**, which is why the contract calls the condition out by name
+    rather than leaving it to be noticed.
+
+    An EMPTY value counts as missing. `?from=&to=…` is a supplied key with
+    nothing in it; treated as present it reaches the date parser and reports
+    `field.type`, telling the caller their date is malformed when what they
+    actually did was omit it — two different problems with two different fixes.
+
+    `from` wins when BOTH are absent, because `§6.1`'s worked request writes
+    `?from=…&to=…` in that order. A request with no parameters at all is the
+    most likely malformed one there is, and leaving it to a 50/50 choice is the
+    thing the precedence block exists to end.
+
+    ONE helper, called by both routes. `CR-001 §2` requires the administrator's
+    range rules and the person's own to be the same rules through the same
+    helper — and the pre-existing test asserted only that the two endpoints
+    AGREE, which they did while both were wrong. Two copies of this check would
+    pass that test forever.
+    """
+    missing = not (from_ or "").strip(), not (to or "").strip()
+    if not any(missing):
+        return
+    raise validation_error([Violation("range.required", "from" if missing[0] else "to")])
 
 
 class ExpensePage(BaseModel):
