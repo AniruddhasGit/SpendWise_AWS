@@ -146,3 +146,40 @@ is harmless — the transaction that won already performed it.
 first statement and PostgreSQL then raises `25001`. It is selected on the connection at checkout,
 before `BEGIN`, from a route table — never from dependency-resolution order, which would open a
 second transaction and silently return zero rows everywhere (`SW-ADR-143`, `SW-ADR-144`).
+
+## `generate_ledger.py` takes Status from the BIBLE and will wipe the ledger
+
+- **Re-running `docs/10 EngineeringLedger/generate_ledger.py` destroys every hand-edited `Status`
+  and every `EvidencePath` in `engineering_ledger.tsv`.** The header says the ledger is derived and
+  that "exactly one column is hand-edited: **Status**" — which reads as "Status is preserved". It
+  is not. `main()` copies `Status` straight from the Bible row and rewrites `EvidencePath` to the
+  literal `evidence/{ID}/`, so a regeneration silently reverts the entire build frontier to
+  whatever the Bible says and deletes every note recording *why* a story is where it is.
+  *Root cause:* two files hold the same column and the generator treats the Bible as the source.
+  *Fix:* **edit the ledger by hand.** If the Bible's criteria change, sync the one row rather than
+  regenerating. The ledger is NOT in `consistency_check.py`'s regenerate-and-compare list, so
+  nothing catches this — it is the one derived artifact that is not verified by regeneration, and
+  that is what makes running the generator so tempting and so expensive.
+
+## Two ways a route-table test passes while examining nothing
+
+Both were hit on 2026-08-21 writing `E6-S5`, in the same file, minutes apart.
+
+- **`app.routes` is not the route table.** This FastAPI keeps each included router as an
+  `_IncludedRouter` wrapper with no `.path` and no `.routes` — only `.original_router`. So
+  `[r for r in app.routes if r.path.startswith("/api/...")]` returns **nothing** on an app with
+  40 endpoints, and the test passes with an empty list. *Fix:* descend via `.original_router` —
+  `tests/test_admin.py::flatten` already does it — **and assert the result is non-empty.** The
+  descent alone is not the fix; without the non-empty assertion the next refactor silently
+  re-empties it.
+
+- **`from __future__ import annotations` makes every annotation a STRING.** Every module under
+  `app/` has it. So `isinstance(param.annotation, type)` is `False` for every parameter of every
+  handler, and a test that walks signatures looking for Pydantic models finds none — reporting
+  success having inspected zero models. *Fix:* `inspect.signature(fn, eval_str=True)`, or
+  `typing.get_type_hints(fn)`. **And count what you examined**: the only reason this was caught is
+  that the test asserted `examined` was non-empty before asserting `offenders` was empty.
+
+**The general rule both share:** a test that proves an ABSENCE must also prove it *looked*. Assert
+the size of the population you searched, not just that the search came back clean — otherwise
+"found no violations" and "found nothing at all" are the same green.

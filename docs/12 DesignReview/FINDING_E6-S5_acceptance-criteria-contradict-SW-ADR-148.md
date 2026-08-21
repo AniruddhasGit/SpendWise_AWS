@@ -3,8 +3,8 @@
 | | |
 |---|---|
 | Found | 2026-08-21, while preparing to build `E6-S5` |
-| Status | **OPEN — needs a ruling. Not resolvable by the build session.** |
-| Blocks | `E6-S5` (ledger Status set to `Blocked`) |
+| Status | **RESOLVED 2026-08-21 — the client ruled option A. See `SW-ADR-153`.** |
+| Blocks | nothing. `E6-S5` was `Blocked`; unblocked by the ruling. |
 | Class | `CONSTITUTION.md` Art II.6 — an unmarked contradiction between two live documents |
 
 ## The contradiction

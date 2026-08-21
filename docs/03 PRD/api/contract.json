@@ -823,6 +823,108 @@
           "type": "integer"
         }
       ]
+    },
+    "AdminOverview": {
+      "source": "M4 admin console. No P-xxx id - see the route note.",
+      "fields": [
+        {
+          "name": "accounts_total",
+          "type": "integer"
+        },
+        {
+          "name": "accounts_active",
+          "type": "integer"
+        },
+        {
+          "name": "accounts_deactivated",
+          "type": "integer"
+        },
+        {
+          "name": "accounts_deleted",
+          "type": "integer"
+        },
+        {
+          "name": "admins",
+          "type": "integer"
+        },
+        {
+          "name": "sessions_live",
+          "type": "integer"
+        },
+        {
+          "name": "expenses_recorded",
+          "type": "integer"
+        },
+        {
+          "name": "accounts_active_last_7_days",
+          "type": "integer"
+        },
+        {
+          "name": "accounts_dormant_30_days",
+          "type": "integer"
+        },
+        {
+          "name": "accounts_never_used",
+          "type": "integer"
+        },
+        {
+          "name": "signups",
+          "type": "array"
+        },
+        {
+          "name": "audit_last_7_days",
+          "type": "integer"
+        }
+      ]
+    },
+    "AdminUserSpending": {
+      "source": "CR-001 / SW-ADR-151",
+      "fields": [
+        {
+          "name": "user",
+          "type": "AdminUser"
+        },
+        {
+          "name": "from",
+          "type": "date",
+          "note": "serialised from `from_`; `from` is a Python keyword"
+        },
+        {
+          "name": "to",
+          "type": "date"
+        },
+        {
+          "name": "total_paise",
+          "type": "integer"
+        },
+        {
+          "name": "total",
+          "type": "string",
+          "note": "en-IN display string, rendered once at the boundary"
+        },
+        {
+          "name": "count",
+          "type": "integer"
+        },
+        {
+          "name": "days_elapsed",
+          "type": "integer"
+        },
+        {
+          "name": "daily_average_paise",
+          "type": "integer|null"
+        },
+        {
+          "name": "daily_average",
+          "type": "string|null",
+          "note": "null, never 0.00 - SW-ADR-053"
+        },
+        {
+          "name": "by_day",
+          "type": "array",
+          "note": "THREE columns per day and no fourth. No category_id, no description, no expense id: the return type is what enforces CR-001's boundary"
+        }
+      ]
     }
   },
   "conventions": {
@@ -1474,6 +1576,103 @@
           "P-OPS-03"
         ],
         "error_codes": []
+      },
+      {
+        "method": "PATCH",
+        "path": "/api/auth/me",
+        "who": "any",
+        "spec": [],
+        "request_model": "ProfileUpdate",
+        "response_model": "Principal",
+        "error_codes": [
+          "UNAUTHENTICATED",
+          "SESSION_INVALID",
+          "ACCOUNT_DEACTIVATED",
+          "VALIDATION_ERROR"
+        ],
+        "note": "SW-ADR-148 C: changes the display name and NOTHING else. Email is absent from ProfileUpdate deliberately - it is the identity the unique index is built on and SW-ADR-012 records there is no email in this stack to verify a new address with. no P-xxx id exists for this route. It was approved by ADR after the PRD's spec ids were assigned, and no Bible story cites it either. Recorded as a gap rather than filled with an invented id (CLAUDE.md status law)."
+      },
+      {
+        "method": "POST",
+        "path": "/api/auth/password",
+        "who": "any",
+        "spec": [],
+        "request_model": "PasswordChange",
+        "error_codes": [
+          "UNAUTHENTICATED",
+          "SESSION_INVALID",
+          "ACCOUNT_DEACTIVATED",
+          "VALIDATION_ERROR"
+        ],
+        "note": "SW-ADR-148 D: self-service password change, current password required. Signs out every OTHER session and not this one. Returns an unnamed dict {signed_out_elsewhere: int}, so response_model is omitted the way the 204 routes omit it - there is no convention here for a named-but-anonymous body. no P-xxx id exists for this route. It was approved by ADR after the PRD's spec ids were assigned, and no Bible story cites it either. Recorded as a gap rather than filled with an invented id (CLAUDE.md status law)."
+      },
+      {
+        "method": "POST",
+        "path": "/api/auth/deactivate",
+        "who": "any",
+        "spec": [],
+        "error_codes": [
+          "UNAUTHENTICATED",
+          "SESSION_INVALID",
+          "ACCOUNT_DEACTIVATED",
+          "CONFLICT"
+        ],
+        "note": "SW-ADR-148 A. 204. Reversible - 'pause me', distinct from DELETE /api/auth/me. CONFLICT (field is_active) when the caller is the last active administrator. no P-xxx id exists for this route. It was approved by ADR after the PRD's spec ids were assigned, and no Bible story cites it either. Recorded as a gap rather than filled with an invented id (CLAUDE.md status law)."
+      },
+      {
+        "method": "DELETE",
+        "path": "/api/auth/me",
+        "who": "any",
+        "spec": [],
+        "error_codes": [
+          "UNAUTHENTICATED",
+          "SESSION_INVALID",
+          "ACCOUNT_DEACTIVATED",
+          "CONFLICT"
+        ],
+        "note": "CR-001 / SW-ADR-150. 204. Deletion is SOFT: sets deleted_at and is_active=false and revokes every session in one transaction. Every expense, category, audit row and the person record survive. spendwise_app holds no DELETE grant on users, so hard deletion is impossible for the runtime role rather than merely unimplemented. no P-xxx id exists for this route. It was approved by ADR after the PRD's spec ids were assigned, and no Bible story cites it either. Recorded as a gap rather than filled with an invented id (CLAUDE.md status law)."
+      },
+      {
+        "method": "GET",
+        "path": "/api/auth/export",
+        "who": "any",
+        "spec": [],
+        "error_codes": [
+          "UNAUTHENTICATED",
+          "SESSION_INVALID",
+          "ACCOUNT_DEACTIVATED"
+        ],
+        "note": "SW-ADR-148 B. Returns an unnamed dict of the caller's own rows, so response_model is omitted - see POST /api/auth/password. no P-xxx id exists for this route. It was approved by ADR after the PRD's spec ids were assigned, and no Bible story cites it either. Recorded as a gap rather than filled with an invented id (CLAUDE.md status law)."
+      },
+      {
+        "method": "GET",
+        "path": "/api/admin/overview",
+        "who": "admin",
+        "spec": [],
+        "response_model": "AdminOverview",
+        "error_codes": [
+          "UNAUTHENTICATED",
+          "SESSION_INVALID",
+          "ACCOUNT_DEACTIVATED",
+          "FORBIDDEN"
+        ],
+        "note": "Counts and dates only, never an amount or a description (CONSTITUTION Art VI.1). Audited read: writes one admin_audit_log row per request in the same transaction (SW-ADR-135). NO SINGLE ADR AUTHORISES THIS ROUTE - it arrived with M4 in commit 8e75a4c and no record names it; CR-001_CONTRACT.md 5.2 only amended its deactivated/deleted split. Recorded as not-determinable rather than attributed to a record that does not say it. no P-xxx id exists for this route. It was approved by ADR after the PRD's spec ids were assigned, and no Bible story cites it either. Recorded as a gap rather than filled with an invented id (CLAUDE.md status law)."
+      },
+      {
+        "method": "GET",
+        "path": "/api/admin/users/{user_id}/spending",
+        "who": "admin",
+        "spec": [],
+        "response_model": "AdminUserSpending",
+        "error_codes": [
+          "UNAUTHENTICATED",
+          "SESSION_INVALID",
+          "ACCOUNT_DEACTIVATED",
+          "FORBIDDEN",
+          "NOT_FOUND",
+          "VALIDATION_ERROR"
+        ],
+        "note": "CR-001 / SW-ADR-151. The ONE admin route that carries money. A total and a daily series, and deliberately NO category_id parameter and no by_category in the response - the same sentence that granted this withheld the categories. Same range rules as GET /api/expenses/summary through the same require_range helper. no P-xxx id exists for this route. It was approved by ADR after the PRD's spec ids were assigned, and no Bible story cites it either. Recorded as a gap rather than filled with an invented id (CLAUDE.md status law)."
       }
     ],
     "error_code_scope": "`error_codes` on a route lists its **route-specific** codes. Three are reachable on every route and are not repeated: `BAD_REQUEST` (any body-taking route), `RATE_LIMITED` (PRD §7 makes the global limiter reachable on every authenticated path) and `INTERNAL`. Bible E1-S7 AC1 walks the route table asserting the envelope SHAPE, not the code set - asserting the set would fail on correct behaviour."
@@ -1813,6 +2012,33 @@
             "required": false,
             "default": 0,
             "note": "NEG-X-12 requires '422 naming offset' for offset=-1; the rule is `offset.bounds`"
+          }
+        ]
+      },
+      "ProfileUpdate": {
+        "source": "SW-ADR-148 C",
+        "fields": [
+          {
+            "name": "display_name",
+            "type": "string|null",
+            "required": false,
+            "note": "the only field. Email is absent deliberately (SW-ADR-012)"
+          }
+        ]
+      },
+      "PasswordChange": {
+        "source": "SW-ADR-148 D",
+        "fields": [
+          {
+            "name": "current_password",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "new_password",
+            "type": "string",
+            "required": true,
+            "note": "12-72 bytes; bcrypt IGNORES bytes past 72 (SW-ADR-103)"
           }
         ]
       }

@@ -20,7 +20,7 @@ Every `P-` row carries **two** references: a `[SRC:]` tag (where the requirement
 a **BRD row** (which business requirement it satisfies). A row missing either is a defect:
 no `[SRC:]` means invented, no BRD row means scope creep.
 
-Citations resolve against **currently APPROVED** records only. 22 of the 152 ADRs are
+Citations resolve against **currently APPROVED** records only. 22 of the 153 ADRs are
 superseded or withdrawn and are not authority.
 
 **Status:** `RULED` (decided, cited) · `PROVISIONAL` (buildable, a dependency outstanding) ·
@@ -516,8 +516,15 @@ memory.
 | GET | `/api/admin/audit` | admin | `P-ADM-08` | `UNAUTHENTICATED`, `SESSION_INVALID`, `ACCOUNT_DEACTIVATED`, `FORBIDDEN` |
 | GET | `/healthz` | anon | `P-OPS-03` | — |
 | GET | `/readyz` | anon | `P-OPS-03` | — |
+| PATCH | `/api/auth/me` | any |  | `UNAUTHENTICATED`, `SESSION_INVALID`, `ACCOUNT_DEACTIVATED`, `VALIDATION_ERROR` |
+| POST | `/api/auth/password` | any |  | `UNAUTHENTICATED`, `SESSION_INVALID`, `ACCOUNT_DEACTIVATED`, `VALIDATION_ERROR` |
+| POST | `/api/auth/deactivate` | any |  | `UNAUTHENTICATED`, `SESSION_INVALID`, `ACCOUNT_DEACTIVATED`, `CONFLICT` |
+| DELETE | `/api/auth/me` | any |  | `UNAUTHENTICATED`, `SESSION_INVALID`, `ACCOUNT_DEACTIVATED`, `CONFLICT` |
+| GET | `/api/auth/export` | any |  | `UNAUTHENTICATED`, `SESSION_INVALID`, `ACCOUNT_DEACTIVATED` |
+| GET | `/api/admin/overview` | admin |  | `UNAUTHENTICATED`, `SESSION_INVALID`, `ACCOUNT_DEACTIVATED`, `FORBIDDEN` |
+| GET | `/api/admin/users/{user_id}/spending` | admin |  | `UNAUTHENTICATED`, `SESSION_INVALID`, `ACCOUNT_DEACTIVATED`, `FORBIDDEN`, `NOT_FOUND`, `VALIDATION_ERROR` |
 
-**28 routes** (26 under `/api/`, plus `/healthz` and `/readyz`). Generated from
+**35 routes** (33 under `/api/`, plus `/healthz` and `/readyz`). Generated from
 `contract.json`; `consistency_check.py` fails if any path named by a Bible criterion,
 a SIT case or a negative case does not resolve to a row here.
 
@@ -529,6 +536,13 @@ a SIT case or a negative case does not resolve to a row here.
 - `GET /api/admin/users` — Audited read: writes one admin_audit_log row per request, in the same transaction, response serialised only after COMMIT (SW-ADR-135). Primary-only, never a replica or a cache.
 - `GET /api/admin/sessions` — Audited read (SW-ADR-135). No ip, no user_agent (SW-ADR-106).
 - `GET /api/admin/audit` — Audited read (SW-ADR-135).
+- `PATCH /api/auth/me` — SW-ADR-148 C: changes the display name and NOTHING else. Email is absent from ProfileUpdate deliberately - it is the identity the unique index is built on and SW-ADR-012 records there is no email in this stack to verify a new address with. no P-xxx id exists for this route. It was approved by ADR after the PRD's spec ids were assigned, and no Bible story cites it either. Recorded as a gap rather than filled with an invented id (CLAUDE.md status law).
+- `POST /api/auth/password` — SW-ADR-148 D: self-service password change, current password required. Signs out every OTHER session and not this one. Returns an unnamed dict {signed_out_elsewhere: int}, so response_model is omitted the way the 204 routes omit it - there is no convention here for a named-but-anonymous body. no P-xxx id exists for this route. It was approved by ADR after the PRD's spec ids were assigned, and no Bible story cites it either. Recorded as a gap rather than filled with an invented id (CLAUDE.md status law).
+- `POST /api/auth/deactivate` — SW-ADR-148 A. 204. Reversible - 'pause me', distinct from DELETE /api/auth/me. CONFLICT (field is_active) when the caller is the last active administrator. no P-xxx id exists for this route. It was approved by ADR after the PRD's spec ids were assigned, and no Bible story cites it either. Recorded as a gap rather than filled with an invented id (CLAUDE.md status law).
+- `DELETE /api/auth/me` — CR-001 / SW-ADR-150. 204. Deletion is SOFT: sets deleted_at and is_active=false and revokes every session in one transaction. Every expense, category, audit row and the person record survive. spendwise_app holds no DELETE grant on users, so hard deletion is impossible for the runtime role rather than merely unimplemented. no P-xxx id exists for this route. It was approved by ADR after the PRD's spec ids were assigned, and no Bible story cites it either. Recorded as a gap rather than filled with an invented id (CLAUDE.md status law).
+- `GET /api/auth/export` — SW-ADR-148 B. Returns an unnamed dict of the caller's own rows, so response_model is omitted - see POST /api/auth/password. no P-xxx id exists for this route. It was approved by ADR after the PRD's spec ids were assigned, and no Bible story cites it either. Recorded as a gap rather than filled with an invented id (CLAUDE.md status law).
+- `GET /api/admin/overview` — Counts and dates only, never an amount or a description (CONSTITUTION Art VI.1). Audited read: writes one admin_audit_log row per request in the same transaction (SW-ADR-135). NO SINGLE ADR AUTHORISES THIS ROUTE - it arrived with M4 in commit 8e75a4c and no record names it; CR-001_CONTRACT.md 5.2 only amended its deactivated/deleted split. Recorded as not-determinable rather than attributed to a record that does not say it. no P-xxx id exists for this route. It was approved by ADR after the PRD's spec ids were assigned, and no Bible story cites it either. Recorded as a gap rather than filled with an invented id (CLAUDE.md status law).
+- `GET /api/admin/users/{user_id}/spending` — CR-001 / SW-ADR-151. The ONE admin route that carries money. A total and a daily series, and deliberately NO category_id parameter and no by_category in the response - the same sentence that granted this withheld the categories. Same range rules as GET /api/expenses/summary through the same require_range helper. no P-xxx id exists for this route. It was approved by ADR after the PRD's spec ids were assigned, and no Bible story cites it either. Recorded as a gap rather than filled with an invented id (CLAUDE.md status law).
 
 <!-- END GENERATED ROUTES -->
 
@@ -894,6 +908,19 @@ Five of the thirteen validation rules - range.required, range.order, range.span,
 | `category_id` | `integer|null` | no |  |
 | `limit` | `integer` | no | maximum 200 |
 | `offset` | `integer` | no | NEG-X-12 requires '422 naming offset' for offset=-1; the rule is `offset.bounds` |
+
+**`ProfileUpdate`** — SW-ADR-148 C
+
+| Field | Type | Required | |
+|---|---|---|---|
+| `display_name` | `string|null` | no | the only field. Email is absent deliberately (SW-ADR-012) |
+
+**`PasswordChange`** — SW-ADR-148 D
+
+| Field | Type | Required | |
+|---|---|---|---|
+| `current_password` | `string` | **yes** |  |
+| `new_password` | `string` | **yes** | 12-72 bytes; bcrypt IGNORES bytes past 72 (SW-ADR-103) |
 
 <!-- END GENERATED §6.1 -->
 

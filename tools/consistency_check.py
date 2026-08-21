@@ -28,6 +28,7 @@ import collections
 import csv
 import hashlib
 import io
+import glob
 import json
 import os
 import re
@@ -637,6 +638,76 @@ def check_all(root: str) -> Report:
         r.note(f"spec-of-record blocks reaching their page: {reached} entries across "
                f"{len(REACHES)} blocks")
 
+    # ── every route the app SERVES must be in the spec of record ──────────
+    # The existing `route-contract` check runs one way: a document naming a
+    # route the contract does not have. Nothing ran the other way, and that is
+    # the direction that rots — a route gets built, ships, and the contract
+    # that generates the PRD never learns about it. On 2026-08-21 that gap was
+    # SEVEN routes wide: PATCH /api/auth/me, POST /api/auth/password,
+    # POST /api/auth/deactivate, DELETE /api/auth/me, GET /api/auth/export,
+    # GET /api/admin/overview and GET /api/admin/users/{user_id}/spending —
+    # every one of them approved, shipped, and absent from the document the
+    # PRD's §6 route table is generated from.
+    #
+    # Read STATICALLY, from the routers' decorators. Importing the app would
+    # need a valid configuration, and a check that cannot run on a bare clone
+    # is a check that quietly stops running.
+    import ast as _ast
+    served: set[tuple[str, str]] = set()
+    router_files = sorted(glob.glob(os.path.join(root, "app", "modules", "*", "router.py")))         + [os.path.join(root, "app", "core", "health.py")]
+    for rf in router_files:
+        if not os.path.isfile(rf):
+            continue
+        try:
+            tree = _ast.parse(open(rf, encoding="utf-8").read())
+        except SyntaxError:
+            r.fail("route-coverage", f"{os.path.relpath(rf, root)} does not parse")
+            continue
+        prefix = ""
+        for node in _ast.walk(tree):
+            if isinstance(node, _ast.Call) and getattr(node.func, "id", "") == "APIRouter":
+                for kw in node.keywords:
+                    if kw.arg == "prefix" and isinstance(kw.value, _ast.Constant):
+                        prefix = kw.value.value
+        for node in _ast.walk(tree):
+            if not isinstance(node, (_ast.FunctionDef, _ast.AsyncFunctionDef)):
+                continue
+            for dec in node.decorator_list:
+                if not isinstance(dec, _ast.Call):
+                    continue
+                fn = dec.func
+                if not isinstance(fn, _ast.Attribute) or getattr(fn.value, "id", "") != "router":
+                    continue
+                verb = fn.attr.upper()
+                if verb not in ("GET", "POST", "PUT", "PATCH", "DELETE"):
+                    continue
+                if dec.args and isinstance(dec.args[0], _ast.Constant):
+                    served.add((verb, prefix + dec.args[0].value))
+    if not served:
+        r.fail("route-coverage",
+               "no routes were extracted from any router — the extractor is "
+               "broken, and an empty comparison would pass for the wrong reason")
+    else:
+        con = os.path.join(root, "docs", "03 PRD", "api", "contract.json")
+        documented = set()
+        if os.path.isfile(con):
+            try:
+                blob = json.load(open(con, encoding="utf-8"))
+                documented = {(x["method"], x["path"])
+                              for x in blob.get("routes", {}).get("routes", [])}
+            except Exception:                               # noqa: BLE001
+                pass
+        undocumented = sorted(served - documented)
+        if undocumented:
+            listed = ", ".join(f"{m} {p}" for m, p in undocumented[:8])
+            r.fail("route-coverage",
+                   f"{len(undocumented)} route(s) are served but absent from the API "
+                   f"spec of record: {listed}. contract.json generates the PRD's §6 "
+                   f"route table and error_codes.md, so a route missing here is a "
+                   f"shipped capability the specification does not describe")
+        else:
+            r.note(f"routes served and documented: {len(served)}")
+
     # ── the Uncategorised band is THREE artifacts, not one ────────────────
     # `CR-002` moved the palette and `--sw-cat-uncat` had to be darkened, because
     # the band's GROUND changed even though the band did not. Moving the token was
@@ -773,6 +844,11 @@ PLANTS = [
     ("band-colour-agreement", "app/modules/expenses/summary.py",
      lambda t: t.replace('UNCATEGORISED_COLOR = "#928a85"',
                          'UNCATEGORISED_COLOR = "#948c87"', 1)),
+    # A served route quietly dropped from the spec of record. This is the
+    # direction nothing watched until 2026-08-21, when it was seven routes wide.
+    ("route-coverage", "docs/03 PRD/api/contract.json",
+     lambda t: t.replace('"path": "/api/auth/login"',
+                         '"path": "/api/auth/login-RENAMED"', 1)),
     ("contract-refs", "docs/03 PRD/api/contract.json",
      lambda t: t.replace('"response_model": "Summary"',
                          '"response_model": "SummaryThatDoesNotExist"', 1)),
