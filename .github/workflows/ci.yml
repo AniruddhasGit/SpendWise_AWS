@@ -1,23 +1,73 @@
+# =============================================================================
+# SpendWise — Continuous Integration
+# =============================================================================
+#
+# Every job below answers ONE question, and its header says exactly what a green
+# result proves — and what it does NOT. These map to the catalogue in
+# CI_DESIGN_PLAYBOOK.md §7.
+#
+# CATALOGUE COVERAGE
+#   Family A  does it even assemble?        DONE      assemble + image
+#   Family B  is the code well-formed?      NOT BUILT lint / format / types
+#   Family C  does it do what it should?    PARTIAL   no-database subset only
+#   Family D  is it safe?                   PARTIAL   secret scan only
+#   Family E  is it deployable?             DONE      image + migration head
+#   Family F  is the repo self-consistent?  NOT BUILT consistency_check.py
+#   Family G  hygiene                       NOT BUILT
+#
+# EXECUTION GRAPH — what runs in parallel
+#
+#   t=0   assemble ─────┬─────────────┐       secrets   (no `needs:` — starts
+#                       │             │                  immediately, alone)
+#   t=1                 ▼             ▼
+#                     image         tests     (these two run side by side)
+#
+#   `needs: assemble` is deliberate: assemble fails in ~40s, image takes ~4min.
+#   The cheap check gates the expensive one. Playbook §6, fail fast, cheap first.
+#
+# =============================================================================
+
 name: CI
 
+# -----------------------------------------------------------------------------
+# TRIGGERS — when CI runs
+# -----------------------------------------------------------------------------
+# `push` is limited to main; `pull_request` covers everything else. A PR branch
+# is never main, so any given change runs the suite exactly ONCE. Listing main
+# under both would double every run.
 on:
   push:
     branches: [main]
   pull_request:
 
+# Push three times in a minute and you get three runs, two already obsolete.
+# This cancels superseded runs on the same ref.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# Least privilege. These jobs only need to clone; the default token can do more.
 permissions:
   contents: read
 
-#-----------------------------------------------------------------
-##ASSEMBLE AND TEST THE APPLICATION IN A CONTAINERIZED ENVIRONMENT
-#-----------------------------------------------------------------
 jobs:
+
+  # ===========================================================================
+  # JOB 1 — ASSEMBLE                                    [Family A + Family E]
+  # ===========================================================================
+  # Catalogue rows covered:
+  #   A. Dependency install   — the lockfile installs on a clean machine
+  #   A. Import / compile     — every file parses, the app loads
+  #   E. Migration head check — alembic history is linear
+  #
+  # GREEN MEANS  every pin in requirements.lock resolves and installs on a
+  #              machine that has never seen this project; every Python file
+  #              compiles; app.main imports; there is exactly one migration head.
+  #
+  # GREEN MISSES whether ANY of it works. Nothing has been called yet.
+  # ===========================================================================
   assemble:
-    name: Assemble — dependencies install
+    name: Assemble — dependencies, imports, migration head
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -25,41 +75,92 @@ jobs:
       - name: Check out the repository
         uses: actions/checkout@v4
 
+      # The cache key is the HASH of requirements.lock. Change the lockfile ->
+      # cache miss -> a genuine cold resolve from PyPI. Leave it alone -> cache
+      # hit, but the previous run already proved that exact lockfile installs.
+      # Speed where the answer cannot have changed; honesty where it can.
       - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.12"        # quoted: unquoted 3.10 is the float 3.1
           cache: pip
           cache-dependency-path: requirements.lock
 
+      # NOTE: this does NOT install the spendwise package itself — the lockfile
+      # has no `-e .`. The imports below work because the repo root is the cwd.
       - name: Install locked dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.lock
 
-#---------------------------------------------------------
-##COMPILE AND IMPORT THE APPLICATION TO ENSURE IT IS VALID
-#---------------------------------------------------------
+      # compileall only PARSES. No configuration, no database, no execution.
       - name: Compile every source file
         run: python -m compileall -q app/ tests/ tools/
 
+      # Importing actually RUNS module-level code — catches circular imports and
+      # missing packages that compileall cannot see.
+      #
+      # The env block exists because app/core/settings.py fails fast by design:
+      # with no config it exits 78 before doing anything. These are throwaway
+      # values chosen only to satisfy the validators (asyncpg prefix, 32-byte
+      # secret, two distinct roles per SW-ADR-081). Nothing connects.
       - name: Import the application
         env:
-          SPENDWISE_DOTENV: "0"
-          DATABASE_URL: postgresql+asyncpg://ci:ci@localhost:5432/ci
-          MIGRATION_DATABASE_URL: postgresql+asyncpg://ci:ci@localhost:5432/ci
+          SPENDWISE_DOTENV: "0"         # refuse to read a .env — no accidental pass
+          DATABASE_URL: postgresql+asyncpg://ci_app:ci@localhost:5432/ci
+          MIGRATION_DATABASE_URL: postgresql+asyncpg://ci_owner:ci@localhost:5432/ci
           JWT_SECRET: ci_only_not_a_real_secret_padded_to_32_bytes
         run: python -c "import app.main; print('app imports')"
 
-#-----------------------------------------------------------------------       
-## BUILD AN IMAGE TO TEST THE APPLICATION IN A CONTAINERIZED ENVIRONMENT
-#----------------------------------------------------------------------- 
+      # Two branches each adding a migration merge cleanly in git — no text
+      # conflict — and leave Alembic with TWO heads. `upgrade head` then fails
+      # at deploy time. Git cannot see this: it is a graph conflict, not a text
+      # one. Runs offline; `alembic heads` opens no connection.
+      - name: Exactly one migration head
+        env:
+          SPENDWISE_DOTENV: "0"
+          DATABASE_URL: postgresql+asyncpg://ci_app:ci@localhost:5432/ci
+          MIGRATION_DATABASE_URL: postgresql+asyncpg://ci_owner:ci@localhost:5432/ci
+          JWT_SECRET: ci_only_not_a_real_secret_padded_to_32_bytes
+        run: |
+          count=$(alembic heads | grep -c "(head)")
+          if [ "$count" -ne 1 ]; then
+            echo "Expected exactly 1 migration head, found $count:"
+            alembic heads
+            exit 1
+          fi
+          echo "one head — migration history is linear"
+
+  # ===========================================================================
+  # JOB 2 — IMAGE                            [Family A + Family C + Family E]
+  # ===========================================================================
+  # Catalogue rows covered:
+  #   A. Frontend build        — the Dockerfile's node stage runs `npm run build`
+  #   A. Container image build — every Dockerfile stage succeeds
+  #   C. Migrate from empty    — the entrypoint migrates a fresh database
+  #   E. Container smoke test  — the image starts and answers /healthz
+  #
+  # The deployment path, rehearsed on a clean machine:
+  #     build  ->  boot  ->  migrate  ->  serve
+  #
+  # GREEN MEANS  the image assembles, starts, brings an empty schema to current,
+  #              and serves traffic.
+  #
+  # GREEN MISSES ISOLATION. Nobody logs in, reads data, or is denied anything.
+  #
+  # WHY ONE JOB, not two: a Docker image does NOT survive a job boundary — each
+  # job is a fresh VM. Splitting build from smoke test would force a rebuild:
+  # four wasted minutes to prove nothing new.
+  # ===========================================================================
   image:
     name: Build the container image
     runs-on: ubuntu-latest
     needs: assemble
     timeout-minutes: 20
 
+    # GitHub starts this container alongside the job and — because of the
+    # --health-* options — waits for pg_isready before ANY step runs. Without
+    # that wait the app races the database and loses.
     services:
       postgres:
         image: postgres:16
@@ -79,19 +180,58 @@ jobs:
       - name: Check out the repository
         uses: actions/checkout@v4
 
+      # SW-ADR-081: the owner migrates, the runtime role serves. alembic/env.py
+      # REFUSES to run when both URLs are the same connection, because one role
+      # for both means the runtime connection owns the tables — and an owner can
+      # turn off FORCE ROW LEVEL SECURITY on itself. That guard caught the first
+      # version of this job, which is why these roles exist.
+      #
+      # The postgres service ships one superuser (`ci`). The two roles below are
+      # the ones 0001_baseline.py grants to BY NAME.
+      #
+      # This gives CI the same role SEPARATION as production. It does NOT make
+      # this a substitute for the isolation gate — SW-ADR-008 rules that against
+      # real RDS, and GOTCHAS.md calls a stand-in Postgres a false-green hazard
+      # for exactly that test.
+      - name: Create the owner and runtime roles
+        env:
+          PGPASSWORD: ci
+        run: |
+          psql -h localhost -U ci -d spendwise -v ON_ERROR_STOP=1 \
+            -c "CREATE ROLE spendwise_owner LOGIN PASSWORD 'owner_ci'" \
+            -c "CREATE ROLE spendwise_app   LOGIN PASSWORD 'app_ci'" \
+            -c "ALTER DATABASE spendwise OWNER TO spendwise_owner" \
+            -c "ALTER SCHEMA public OWNER TO spendwise_owner" \
+            -c "GRANT CONNECT ON DATABASE spendwise TO spendwise_app"
+
+      # This one command runs the whole Dockerfile: the node stage builds the
+      # React bundle, the python stage installs from requirements.lock, and the
+      # built client/dist is copied across. That is why there is no separate
+      # frontend-build job — it would be a third place doing the same work.
       - name: Build the image
         run: docker build -t spendwise:ci .
 
+      # --network host lets the container reach localhost:5432 and lets the
+      # runner reach port 8000. Linux-only, which is fine on ubuntu-latest.
+      #
+      # Behind this single command the entrypoint connects, runs Alembic against
+      # an empty schema, and only then starts uvicorn.
       - name: Start the container
         run: |
           docker run -d --name spendwise --network host \
             -e SPENDWISE_DOTENV=0 \
-            -e DATABASE_URL=postgresql+asyncpg://ci:ci@localhost:5432/spendwise \
-            -e MIGRATION_DATABASE_URL=postgresql+asyncpg://ci:ci@localhost:5432/spendwise \
+            -e DATABASE_URL=postgresql+asyncpg://spendwise_app:app_ci@localhost:5432/spendwise \
+            -e MIGRATION_DATABASE_URL=postgresql+asyncpg://spendwise_owner:owner_ci@localhost:5432/spendwise \
             -e JWT_SECRET=ci_only_not_a_real_secret_padded_to_32_bytes \
             -e BOOTSTRAP_ADMIN_EMAIL=ci@example.com \
             spendwise:ci
 
+      # Poll, never `sleep 30`. Boot time varies because migrations run first,
+      # so a fixed sleep is either flaky (too short) or wasteful (too long).
+      #
+      # `docker logs` on failure is not optional: without it a timeout tells you
+      # "it didn't start" and nothing else. With it you get the traceback — the
+      # difference between a two-minute fix and an hour of guessing.
       - name: Wait for the health endpoint
         run: |
           for i in $(seq 1 60); do
@@ -102,9 +242,27 @@ jobs:
           docker logs spendwise
           exit 1
 
-#----------------------------------------
-##TESTS THAT DO NOT REQUIRE A DATABASE
-#----------------------------------------
+  # ===========================================================================
+  # JOB 3 — TESTS                                                 [Family C]
+  # ===========================================================================
+  # Catalogue rows covered:
+  #   C. Unit tests — PARTIAL. The no-database subset only.
+  #
+  # GREEN MEANS  every test needing neither PostgreSQL nor a browser passes.
+  #
+  # GREEN MISSES isolation, RLS, the day-one gate, every cross-person case —
+  #              which is the majority of what this product is ABOUT.
+  #
+  # THE `-m` FLAG IS THE POINT OF THIS JOB.
+  # tests/conftest.py makes database tests SKIP when Postgres is unreachable. A
+  # bare `pytest` here would skip ~209 tests and go green having tested almost
+  # nothing. A skipped test and a passing test look IDENTICAL on a status badge.
+  # So they are excluded EXPLICITLY and the job name says what it covers.
+  # Playbook §12, the honesty floor.
+  #
+  # When RDS credentials arrive, a second job runs the `db` markers — and that
+  # job matters more than everything else in this file.
+  # ===========================================================================
   tests:
     name: Tests — no database required
     runs-on: ubuntu-latest
@@ -112,15 +270,17 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out the repository
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
           cache-dependency-path: requirements.lock
 
-      - name: Install dependencies
+      - name: Install locked dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.lock
@@ -128,20 +288,38 @@ jobs:
       - name: Run the tests that need no database
         env:
           SPENDWISE_DOTENV: "0"
-          DATABASE_URL: postgresql+asyncpg://ci:ci@localhost:5432/ci
-          MIGRATION_DATABASE_URL: postgresql+asyncpg://ci:ci@localhost:5432/ci
+          DATABASE_URL: postgresql+asyncpg://ci_app:ci@localhost:5432/ci
+          MIGRATION_DATABASE_URL: postgresql+asyncpg://ci_owner:ci@localhost:5432/ci
           JWT_SECRET: ci_only_not_a_real_secret_padded_to_32_bytes
         run: pytest -m "not db and not browser"
 
-#---------------------------
-##SECRETS SCANNING 
-#---------------------------
+  # ===========================================================================
+  # JOB 4 — SECRETS                                               [Family D]
+  # ===========================================================================
+  # Catalogue rows covered:
+  #   D. Secret scanning — no credential in any file or any commit
+  #
+  # WHY THIS EXISTS: CLAUDE.md says "Never commit a credential; /tt scans the
+  # staged diff before every push." That is a HUMAN remembering to do something.
+  # Playbook factor 2 — automate what people are bad at.
+  #
+  # NO `needs:` — deliberate. This is cheap, shares nothing, and is the one
+  # result you still want when the build is broken. It runs in parallel with
+  # `assemble` from t=0.
+  #
+  # GREEN MEANS  no recognisable credential pattern anywhere in history.
+  # GREEN MISSES a secret that does not LOOK like one — a password in a config
+  #              field, a token in a doc. Pattern matching, not comprehension.
+  # ===========================================================================
   secrets:
     name: Secret scan
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
     steps:
+      # fetch-depth: 0 is the line people miss. By default checkout grabs only
+      # the latest commit. A secret committed three months ago and "removed"
+      # last week is still in history, still clonable, still live.
       - name: Check out full history
         uses: actions/checkout@v4
         with:
@@ -151,3 +329,30 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+# =============================================================================
+# NOT BUILT YET — the gaps, named honestly
+# =============================================================================
+# Playbook §8: each family covers what the one above it is blind to.
+#   builds -> well-formed -> correct -> safe -> deployable -> self-consistent
+#
+#   [Family F] tools/consistency_check.py
+#              Already written, has --selftest, free to run. Next up.
+#
+#   [Family E] actionlint — nothing currently checks THIS file. PyYAML happily
+#              parsed the version with two `image:` jobs; GitHub rejected it
+#              outright. That gap is why level-1 parsing is not level-2 linting.
+#
+#   [Family D] Dependency vulnerability scan — Tier 3, SCHEDULED, never
+#              blocking. It is non-hermetic: a new CVE turns it red with no code
+#              change, and blocking a CSS fix on that is how CI dies.
+#
+#   [Family B] Lint / format / type check — all three need their rules chosen
+#              deliberately first. Pointed at a mature codebase with defaults
+#              they produce hundreds of unactionable findings, then an
+#              ignore-list, then a dead check. A task, not a snippet.
+#
+#   [Family C] THE BIG ONE — isolation. This product exists to guarantee that
+#              one person cannot see another's money, and NOTHING in this file
+#              proves it. Blocked on real RDS credentials (SW-ADR-008).
+# =============================================================================
