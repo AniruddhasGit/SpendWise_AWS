@@ -60,12 +60,47 @@ jobs:
     needs: assemble
     timeout-minutes: 20
 
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: spendwise
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci -d spendwise"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
     steps:
       - name: Check out the repository
         uses: actions/checkout@v4
 
       - name: Build the image
         run: docker build -t spendwise:ci .
+
+      - name: Start the container
+        run: |
+          docker run -d --name spendwise --network host \
+            -e SPENDWISE_DOTENV=0 \
+            -e DATABASE_URL=postgresql+asyncpg://ci:ci@localhost:5432/spendwise \
+            -e MIGRATION_DATABASE_URL=postgresql+asyncpg://ci:ci@localhost:5432/spendwise \
+            -e JWT_SECRET=ci_only_not_a_real_secret_padded_to_32_bytes \
+            -e BOOTSTRAP_ADMIN_EMAIL=ci@example.com \
+            spendwise:ci
+
+      - name: Wait for the health endpoint
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:8000/healthz; then echo; echo "healthy"; exit 0; fi
+            sleep 2
+          done
+          echo "never became healthy"
+          docker logs spendwise
+          exit 1
 
 #----------------------------------------
 ##TESTS THAT DO NOT REQUIRE A DATABASE
@@ -116,52 +151,3 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-##
-    image:
-    name: Build the container image
-    runs-on: ubuntu-latest
-    needs: assemble
-    timeout-minutes: 20
-
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: ci
-          POSTGRES_PASSWORD: ci
-          POSTGRES_DB: spendwise
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U ci -d spendwise"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-
-    steps:
-      - name: Check out the repository
-        uses: actions/checkout@v4
-
-      - name: Build the image
-        run: docker build -t spendwise:ci .
-
-      - name: Start the container
-        run: |
-          docker run -d --name spendwise --network host \
-            -e SPENDWISE_DOTENV=0 \
-            -e DATABASE_URL=postgresql+asyncpg://ci:ci@localhost:5432/spendwise \
-            -e MIGRATION_DATABASE_URL=postgresql+asyncpg://ci:ci@localhost:5432/spendwise \
-            -e JWT_SECRET=ci_only_not_a_real_secret_padded_to_32_bytes \
-            -e BOOTSTRAP_ADMIN_EMAIL=ci@example.com \
-            spendwise:ci
-
-      - name: Wait for the health endpoint
-        run: |
-          for i in $(seq 1 60); do
-            if curl -fsS http://localhost:8000/healthz; then echo; echo "healthy"; exit 0; fi
-            sleep 2
-          done
-          echo "never became healthy"
-          docker logs spendwise
-          exit 1
