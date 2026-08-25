@@ -226,3 +226,42 @@ The prep queue said "both parameters", which quietly assumed one.
 - When you finish an item, **say what you actually created.** Under `CONSTITUTION.md` Art VII.1 the
   build session cannot write "the RDS instance exists" because it is on this list — only because
   you said it does.
+
+---
+
+## AS BUILT — recorded by OPS, 2026-08-25
+
+`COORDINATION.md`'s handshake: OPS records **what actually exists**, observed, not what this queue
+says should exist. Everything below was verified by querying it.
+
+| Item | Status | What exists |
+|---|---|---|
+| 1. Billing alarm | ✅ | `spendwise-monthly-cap` — $20/mo, alerts at 50% / 80% actual and 100% forecasted |
+| 2. RDS instance | ✅ | `spendwise-db.c9y6yemgc4pn.ap-south-1.rds.amazonaws.com:5432` · **PostgreSQL 17.9** · `db.t4g.micro` · 20 GB gp2, autoscaling **off** · `ap-south-1c` · master `swadmin` |
+| 3. Two roles | ✅ | `spendwise_owner`, `spendwise_app` — both `NOSUPERUSER NOBYPASSRLS NOCREATEROLE NOCREATEDB`, verified against `pg_roles` |
+| 4. Network access | ✅ | `sg-09febaad6c66d18cd` — TCP 5432, source `27.107.64.142/32` only |
+| 6. S3 bucket | ☐ | not created — blocks `E5-S1`, `E5-S2` only |
+| 7. SSM parameters | ☐ | not created — deploy-time, not needed for local work |
+| 8. Second database | ✅ | `spendwise` and `spendwise_test`, both owned by `spendwise_owner` |
+
+Account `944483082287`, region `ap-south-1`. Console credits remaining at time of build: **$139.80**.
+
+**Version pinned for the record:** PostgreSQL **17.9**, not the newest RDS offered (18.6). Chosen
+deliberately — nothing in this project needs an 18-only feature, and a first build wants the version
+with the most production mileage behind it. `--no-auto-minor-version-upgrade` is set, so AWS will
+not move it.
+
+### Three defects in `rds_bootstrap.sql` — the script cannot run as generated
+
+Found by running it. All three are `generate.py` fixes and belong to the BUILD lane.
+
+1. **psql does not interpolate `:'vars'` inside `DO $$ … $$`.** Dollar-quoted strings are opaque to
+   psql's variable substitution, so `PASSWORD :'spendwise_owner_password'` reaches the server
+   literally: `ERROR: syntax error at or near ":"`. `CREATE ROLE` must be emitted outside the block.
+2. **PostgreSQL 16+ requires `GRANT <owner> TO <creator>`** before `CREATE DATABASE … WITH OWNER`,
+   else `ERROR: must be able to SET ROLE "spendwise_owner"`. No such grant is emitted.
+3. **This file's item 8 names the dev database `spendwise_dev`; `rds_bootstrap.sql` names it
+   `spendwise`.** `spendwise` is correct — `.env.example` and `conftest.py`'s `_swap_db` both key
+   off that exact name. **Item 8 above is the error**, corrected here rather than left standing.
+
+Worked around by hand this session so the build could proceed; the generator is still wrong.

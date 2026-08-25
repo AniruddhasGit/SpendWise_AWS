@@ -548,3 +548,57 @@ day-one gate, all of M6) · `consistency_check.py` and `actionlint` as CI jobs (
 external) · `E5-S3` (needs no bucket) · `E0-S10`'s signature.
 
 - **Session closed 2026-08-25_1556 by Aniruddha Jathar** → handoff: handoffs/HANDOFF_2026-08-25_1556_aniruddha-jathar.md
+
+---
+
+## 2026-08-25 (evening) — RDS exists, and the day-one gate is green
+
+**The blocker every handoff has carried since 2026-08-05 is cleared.** One RDS PostgreSQL 17.9
+instance in `ap-south-1`, two databases, two roles, a firewall admitting exactly one IP, and a $20
+budget with a forecast alarm that went in **before** anything billable.
+
+**418 tests passed. Zero skipped, zero failed.** The 209 that had been skipping for want of a
+database now execute, and the `75810` day-one proof passes against real RDS.
+
+**Green is not the same as red-proofed, and this session did not blur that.** The Playwright half
+(`CV-16`) has not run, and the deliberate red-proof — disable the RLS policy, watch the denial go
+red, revert, verify the revert, with a named human watching — has not been done. `E0-S10` is still
+open and M0 is still 9/10.
+
+**Role attributes were read out of `pg_roles`, not assumed** — `rolsuper`, `rolbypassrls`,
+`rolcreaterole` all false for both roles. That is the precondition for "user B is denied" being a
+real assertion rather than a comforting one, and Art IV.3 requires it be checked rather than trusted.
+
+**`rds_bootstrap.sql` cannot run as generated — three defects, all found by running it.** psql does
+not interpolate `:'vars'` inside a `DO $$ … $$` block, so every `CREATE ROLE` fails to parse.
+PostgreSQL 16+ needs `GRANT <owner> TO <creator>` before `CREATE DATABASE … WITH OWNER`. And the
+script and the prep queue disagree on the dev database's name — `spendwise` is right, item 8 was
+wrong. Worked around by hand; the generator is still wrong and the fix is BUILD-lane. Recorded in
+`AWS_PREP_QUEUE.md` under AS BUILT rather than left in a chat log.
+
+**A third `.env` was asked for and not created.** `.env` and `.env.example` are both load-bearing —
+`settings.py` diffs them against the `Settings` class in both directions and a test enforces it. A
+third file would be a second source of truth for the same secrets.
+
+**CI shipped earlier today: four jobs, each stating what green proves and what green misses.** Three
+failures taught more than the passes did. A duplicate `image:` key that **PyYAML parsed happily**
+and GitHub rejected outright — duplicate keys are legal YAML, last one wins, and a local parse is
+not a schema check. A container that **refused to boot because `alembic/env.py` caught the workflow
+handing one superuser to both database URLs** — the application enforcing `SW-ADR-081` against the
+pipeline configuring it. And a Docker Hub 500, which was never ours.
+
+**`cancel-in-progress: true` cancelled the very re-run being waited on, twice.** Working as designed;
+worth scoping to non-main branches so `main` always gets a verdict.
+
+**`docs/aws/rds.html`** — an ELI18 explainer of what was built and why, written for understanding.
+**`C:\Ideal\CI_DESIGN_PLAYBOOK.md`** — project-agnostic, deliberately outside this repo.
+
+**Outstanding and not deferred: the AWS access key used this session was pasted into a chat window,
+and the IAM user holding it has `AdministratorAccess`.** Rotating it is the first task of the next
+session, ahead of everything else.
+
+**Open / next:** rotate the key · red-proof the gate + Playwright half (closes `E0-S10`, makes M0
+10/10) · `E6-S1` and the rest of M6, now unblocked · fix `generate.py` · `consistency_check.py` and
+`actionlint` as CI jobs · `E5-S3`.
+
+- **Session closed 2026-08-25_1715 by Aniruddha Jathar** → handoff: handoffs/HANDOFF_2026-08-25_1715_aniruddha-jathar.md

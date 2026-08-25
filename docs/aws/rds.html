@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RDS — how the database got built and wired in</title>
+<style>
+  :root{
+    --bg:#fbfaf7; --card:#ffffff; --ink:#1c1b18; --muted:#6b6862;
+    --line:#e3e0d8; --accent:#5b6f3f; --accent-soft:#eef1e6;
+    --warn:#8a5a2b; --warn-soft:#fdf3e7; --code:#f4f2ec;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#16171a; --card:#1e2024; --ink:#e8e6e1; --muted:#9a978f;
+      --line:#2e3238; --accent:#a3bd77; --accent-soft:#242a1e;
+      --warn:#d9a066; --warn-soft:#2a2118; --code:#24262b;
+    }
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; padding:2.5rem 1.25rem 5rem;
+    background:var(--bg); color:var(--ink);
+    font:16px/1.65 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  .wrap{max-width:46rem;margin:0 auto}
+  h1{font-size:1.9rem;line-height:1.2;margin:0 0 .4rem;letter-spacing:-.02em}
+  .sub{color:var(--muted);margin:0 0 2.5rem;font-size:1.02rem}
+  h2{
+    font-size:1.15rem;margin:2.75rem 0 .85rem;letter-spacing:-.01em;
+    padding-bottom:.4rem;border-bottom:1px solid var(--line);
+  }
+  h2 .n{color:var(--accent);font-variant-numeric:tabular-nums;margin-right:.5rem}
+  p{margin:0 0 1rem}
+  code{
+    background:var(--code);padding:.12em .38em;border-radius:4px;
+    font:0.87em ui-monospace,SFMono-Regular,Consolas,monospace;
+  }
+  pre{
+    background:var(--code);border:1px solid var(--line);border-radius:8px;
+    padding:.9rem 1rem;overflow-x:auto;margin:0 0 1rem;
+    font:0.84rem/1.55 ui-monospace,SFMono-Regular,Consolas,monospace;
+  }
+  pre code{background:none;padding:0;font-size:1em}
+  table{width:100%;border-collapse:collapse;margin:0 0 1.25rem;font-size:.94rem}
+  th,td{text-align:left;padding:.55rem .7rem;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:600;font-size:.82rem;text-transform:uppercase;letter-spacing:.04em}
+  .scroll{overflow-x:auto}
+  .note{
+    background:var(--accent-soft);border-left:3px solid var(--accent);
+    padding:.85rem 1rem;border-radius:0 8px 8px 0;margin:0 0 1.25rem;
+  }
+  .warn{
+    background:var(--warn-soft);border-left:3px solid var(--warn);
+    padding:.85rem 1rem;border-radius:0 8px 8px 0;margin:0 0 1.25rem;
+  }
+  .note p:last-child,.warn p:last-child{margin-bottom:0}
+  .lead{font-size:1.05rem}
+  strong{font-weight:650}
+  .flow{
+    background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:1.1rem;margin:0 0 1.25rem;overflow-x:auto;
+  }
+  .flow pre{background:none;border:none;padding:0;margin:0;font-size:.8rem}
+  footer{
+    margin-top:3.5rem;padding-top:1.25rem;border-top:1px solid var(--line);
+    color:var(--muted);font-size:.87rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>The database, and how it got wired in</h1>
+<p class="sub">What was built on AWS on 25 August 2026, why each choice was made, and how a database sitting in Mumbai ends up serving a page in your browser.</p>
+
+<h2><span class="n">1</span>Why a database at all</h2>
+
+<p class="lead">SpendWise has to remember things. Expenses, users, categories — none of that survives a restart if it only lives in the app's memory.</p>
+
+<p>It could have run on the PostgreSQL already installed on this laptop. It doesn't, and that's deliberate: the whole product rests on one promise — <strong>you cannot see another person's money</strong> — and that promise is enforced by a PostgreSQL feature called Row-Level Security. A laptop database where you're the superuser will happily let you read everything, so a test written to prove "user B is denied" would pass without ever testing anything. Green, meaningless.</p>
+
+<p>So: a real database, on a real server, with real permissions. That's what RDS is — Amazon runs the PostgreSQL server, you just say what you want.</p>
+
+<h2><span class="n">2</span>What was created</h2>
+
+<div class="scroll">
+<table>
+<tr><th>Thing</th><th>Value</th><th>Why that</th></tr>
+<tr><td>Instance</td><td><code>spendwise-db</code></td><td>one server, running PostgreSQL</td></tr>
+<tr><td>Engine</td><td>PostgreSQL 17.9</td><td>not the newest (18.6) — on a first build you want the version with the most mileage, so when something breaks you're debugging one thing, not three</td></tr>
+<tr><td>Size</td><td><code>db.t4g.micro</code></td><td>smallest, free-tier eligible</td></tr>
+<tr><td>Storage</td><td>20 GB, autoscaling <strong>off</strong></td><td>20 GB is exactly the free-tier line. Autoscaling defaults to <em>on</em> and would silently cross it</td></tr>
+<tr><td>Region</td><td><code>ap-south-1</code> (Mumbai)</td><td>~20 ms from here instead of ~200 ms from Virginia. The test suite makes hundreds of round trips per run</td></tr>
+<tr><td>Public access</td><td>yes</td><td>so this laptop can reach it — locked down in the next row</td></tr>
+<tr><td>Firewall</td><td>port 5432, <strong>one IP</strong></td><td>an open Postgres port on the public internet is found by scanners within hours</td></tr>
+</table>
+</div>
+
+<div class="warn">
+<p><strong>Two guardrails went in before the database, not after.</strong> A $20/month budget with alerts at 50%, 80%, and 100%-forecasted. An alarm set up afterwards only tells you about a bill you already ran up.</p>
+</div>
+
+<h2><span class="n">3</span>The decision that actually mattered</h2>
+
+<p>Inside the server there are <strong>two databases</strong> and <strong>two logins</strong>. The two logins are the important part.</p>
+
+<div class="scroll">
+<table>
+<tr><th>Login</th><th>Job</th><th>Can it own tables?</th></tr>
+<tr><td><code>spendwise_owner</code></td><td>creates the tables, runs migrations</td><td>yes — it owns them</td></tr>
+<tr><td><code>spendwise_app</code></td><td>what the running app connects as</td><td><strong>no</strong></td></tr>
+</table>
+</div>
+
+<p>Here's the trap that makes this necessary. In PostgreSQL, <strong>the owner of a table can switch off that table's own security rules.</strong> One line, and the protection is gone. So if the app connected as the owner, the guarantee would be one command away from being deleted — by a bug, a bad migration, or anyone who got hold of the connection string.</p>
+
+<p>Splitting them means the login that serves your web requests <em>cannot</em> turn off its own restrictions. It doesn't own the tables, isn't a superuser, and holds no bypass privilege. That was checked against the database's own catalogue rather than assumed:</p>
+
+<pre><code>     rolname     | rolsuper | rolbypassrls | rolcreaterole
+-----------------+----------+--------------+---------------
+ spendwise_app   |    f     |      f       |       f
+ spendwise_owner |    f     |      f       |       f</code></pre>
+
+<p>All false. That's the precondition for "user B is denied" being a real test instead of a comforting one.</p>
+
+<div class="note">
+<p><strong>The second database</strong> is <code>spendwise_test</code>. Tests wipe their database clean between runs — pointed at the real one, they'd delete whatever you were working on.</p>
+</div>
+
+<h2><span class="n">4</span>How it connects to the rest of the app</h2>
+
+<p>Nothing in the Python code knows the database's address. It's handed in from outside, and the chain looks like this:</p>
+
+<div class="flow">
+<pre>  .env                   two connection strings, never committed to git
+    │
+    ▼
+  app/core/settings.py   reads them, validates them, REFUSES TO START if
+    │                    either is missing or malformed
+    ▼
+  SQLAlchemy engine      opens the actual network connection to Mumbai
+    │
+    ▼
+  repository.py          the only layer allowed to write SQL
+    │
+    ▼
+  service.py  →  router.py  →  your browser</pre>
+</div>
+
+<p>Two connection strings, not one — the owner for migrations, the app for everything else. The app refuses to boot if they're identical, which is exactly what caught a mistake in the CI pipeline earlier today.</p>
+
+<pre><code>DATABASE_URL=postgresql+asyncpg://spendwise_app:***@spendwise-db….ap-south-1.rds.amazonaws.com:5432/spendwise?ssl=require</code></pre>
+
+<div class="warn">
+<p><strong><code>?ssl=require</code>, not <code>sslmode=require</code>.</strong> RDS insists on an encrypted connection. The driver this project uses (asyncpg) spells that option differently from the usual PostgreSQL tools, and gets the spelling wrong in a way that produces a confusing error rather than a clear one.</p>
+</div>
+
+<h2><span class="n">5</span>What it unlocked</h2>
+
+<p>Before: <strong>209 tests were being skipped</strong> because there was no database to run them against. A skipped test and a passing test look identical on a green checkmark, which is why they were excluded by name rather than left to quietly skip.</p>
+
+<p>After the schema was applied to both databases:</p>
+
+<pre><code>418 tests · all passed
+gate tests (the day-one proof): 12 passed</code></pre>
+
+<p>Including the one that matters most — the proof that a second person's request for someone else's data is refused <em>by the database itself</em>, not by a check in Python that a future bug could skip past.</p>
+
+<h2><span class="n">6</span>Rebuilding it</h2>
+
+<p>This is a demo, so it gets torn down and rebuilt. Two things worth knowing:</p>
+
+<p><strong>Stopping an RDS instance is not free and not permanent</strong> — storage still bills, and AWS restarts it automatically after 7 days. For a demo, delete rather than stop. Deleting offers a final snapshot; snapshots bill separately, so decline it.</p>
+
+<p>Rebuilding is: create the instance, create the two logins and two databases, run <code>alembic upgrade head</code>, point <code>.env</code> at the new endpoint. Roughly fifteen minutes, most of it waiting.</p>
+
+<footer>
+Built 25 August 2026 · account 944483082287 · region ap-south-1 · PostgreSQL 17.9<br>
+Passwords live only in <code>.env</code>, which is gitignored. They are not in this file and never will be.
+</footer>
+
+</div>
+</body>
+</html>
