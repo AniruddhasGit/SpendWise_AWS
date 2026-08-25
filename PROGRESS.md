@@ -491,3 +491,60 @@ superuser and RLS passes for the wrong reason.
 
 - **Session closed 2026-08-21_1605 by Aniruddha Jathar** → handoff: handoffs/HANDOFF_2026-08-21_1605_aniruddha-jathar.md
 - Amended after close: pushed to **both** remotes at the client's request — `AniruddhasGit/SpendWise` (main) and `AniruddhaDynpro/SpendWise`, both at `b22c093`. The handoff originally recorded origin as deliberately behind; corrected in place.
+
+---
+
+## 2026-08-25 — CI, and three failures worth keeping
+
+**The build session did not run today. This was an OPS session**, and `.github/workflows/**` is the
+OPS lane under `COORDINATION.md`. No application code, no migration, no story, no test was touched;
+`app/`, `client/`, `alembic/` and `tests/` are byte-identical to `2026-08-21_1605`. The ledger is
+unchanged, because nothing was built to change it.
+
+**`.github/workflows/ci.yml` exists.** The 0-byte placeholder the last handoff flagged as "delete it
+or claim it" is claimed. Four jobs, each answering one question, each carrying its own "green means"
+and — the line that costs nothing and is always omitted — its "green misses".
+`assemble` · `image` · `tests` · `secrets`. Three green as observed; `image` red on a Docker Hub 500,
+re-run dispatched and unconfirmed at close.
+
+**The first push failed in zero seconds with no jobs at all.** Two `image:` keys in one file — the
+smoke-test job pasted below `secrets` instead of replacing the build-only one. **PyYAML parsed it
+happily**: duplicate keys are legal YAML, last one wins. GitHub rejected the file outright, and the
+run's display name was the file path rather than `CI`, because GitHub never got as far as reading
+`name:`. **A local parse is not a schema check, and the gap between them is a whole class of bug.**
+
+**Then the container refused to boot, and it was right to.** `alembic/env.py` raised on
+`MIGRATION_DATABASE_URL == DATABASE_URL` — the workflow had handed the `postgres:16` service's one
+superuser to both. `SW-ADR-081` in the error text, verbatim, from a guard written weeks before there
+was any CI to catch. **The application enforced its own invariant against the pipeline
+configuring it.** Fixed by creating `spendwise_owner` and `spendwise_app`, the two roles
+`0001_baseline.py` grants to by name.
+
+**The third failure was not ours** — `auth.docker.io` returned 500 while pulling `node:20-alpine`.
+Recorded as what it is: a non-hermetic dependency in the `image` job, which can go red with zero
+code changes.
+
+**A decision deliberately not taken.** The CI Postgres now has the same role separation as
+production, so RLS *could* bite there — which makes it tempting to run the `db` tests in CI and
+call isolation proven. `SW-ADR-008` rules that gate against real RDS and `GOTCHAS.md` names a
+stand-in PostgreSQL as a false-green hazard for exactly it. That is an ADR-level decision, not a CI
+tweak, and it was left where it belongs.
+
+**Git identity moved to the AniruddhasGit account** at the client's request. Consequence, recorded
+rather than discovered later: **`git push origin main` now fails with `Repository not found`** —
+that account has no access to the private `AniruddhaDynpro/SpendWise`. `personal` is at `a117bc7`;
+`origin` is three commits behind at `f320195`.
+
+**`C:\Ideal\CI_DESIGN_PLAYBOOK.md`** — written outside this repo on purpose, because it is
+project-agnostic. Twelve sections; the catalogue's seventh column is "what green does NOT tell you".
+`ci.yml`'s comments cite it by section.
+
+**Not done, recorded as such:** the `image` re-run was unconfirmed at close · nothing deployed ·
+the day-one gate still unproven · Family B (lint/format/types), Family F (consistency check) and
+`actionlint` all unbuilt, each named in the workflow's own NOT-BUILT-YET block with the reason.
+
+**Open / next:** confirm the `image` re-run · **set up RDS** (releases 209 skipped tests, the
+day-one gate, all of M6) · `consistency_check.py` and `actionlint` as CI jobs (need nothing
+external) · `E5-S3` (needs no bucket) · `E0-S10`'s signature.
+
+- **Session closed 2026-08-25_1556 by Aniruddha Jathar** → handoff: handoffs/HANDOFF_2026-08-25_1556_aniruddha-jathar.md
