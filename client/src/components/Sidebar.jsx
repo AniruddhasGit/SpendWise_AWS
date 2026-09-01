@@ -23,7 +23,7 @@ const ICONS = {
 }
 
 export default function Sidebar({ view, onView, principal, theme, onTheme,
-                                 open, onClose }) {
+                                 open, onClose, onSignOut }) {
   const items = [
     { id: 'dashboard', label: 'Dashboard' },
     { id: 'categories', label: 'Categories' },
@@ -92,12 +92,19 @@ export default function Sidebar({ view, onView, principal, theme, onTheme,
           </p>
         </div>
 
+        {/* Sign out lives HERE, beside the account it signs out of. It used to
+            sit alone in a page footer, which is the one place a person does not
+            look for it — they look at their own name. Moving it rather than
+            adding a second control keeps `data-testid="sign-out"` unique, which
+            two browser tests rely on. */}
         <div className="rail-foot">
           <span className="rail-who" data-testid="whoami">{principal.display_name}</span>
           <span className="entry-meta">{principal.email}</span>
           {principal.role === 'admin' && (
             <span className="pill" data-testid="role-pill">administrator</span>
           )}
+          <button type="button" className="btn-link rail-signout"
+                  onClick={onSignOut} data-testid="sign-out">Sign out</button>
         </div>
       </nav>
     </>

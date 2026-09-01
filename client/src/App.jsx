@@ -98,7 +98,7 @@ export default function App() {
   return (
     <div className="app">
       <Sidebar view={view} onView={setView} principal={principal}
-               theme={theme} onTheme={chooseTheme}
+               theme={theme} onTheme={chooseTheme} onSignOut={signOut}
                open={railOpen} onClose={() => setRailOpen(false)} />
 
       <div className="app-main">
@@ -134,11 +134,6 @@ export default function App() {
             </div>
           )}
         </main>
-
-        <footer className="app-foot">
-          <button type="button" className="btn-link" onClick={signOut}
-                  data-testid="sign-out">Sign out</button>
-        </footer>
       </div>
     </div>
   )

@@ -154,6 +154,14 @@ table { border-collapse: collapse; width: 100%; }
 }
 .rail-who { font-weight: var(--sw-weight-medium); }
 
+/* Sign out, under the account it signs out of. Left-aligned and given room
+   above it so it reads as an action on that block rather than a fourth line
+   of account detail. */
+.rail-signout {
+  align-self: flex-start;
+  margin-top: var(--sw-space-2);
+}
+
 .rail-scrim { display: none; }
 
 .app-main {
@@ -175,11 +183,6 @@ table { border-collapse: collapse; width: 100%; }
 }
 
 .topbar-mobile { display: none; }
-
-.app-foot {
-  padding: var(--sw-space-4) var(--sw-space-6);
-  text-align: right;
-}
 
 .page-head {
   display: flex;

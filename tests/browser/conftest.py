@@ -78,6 +78,18 @@ def app_server(test_urls):
         # it, and 379049 / 5 is 75810 only on this date.
         "APP_TODAY_OVERRIDE": GATE_DAY,
         "COOKIE_SECURE": "false",   # no TLS on 127.0.0.1 (`SW-ADR-014`)
+        # OFF, for the same reason `settings.py` gives for the in-process suite:
+        # a test that registers eleven accounts must not fail for a reason
+        # unrelated to what it asserts. `SPENDWISE_DOTENV=0` above means the
+        # child never reads `.env`, so without this line the field falls back to
+        # its default of TRUE and `RATE_LIMIT_REGISTER_PER_MIN=5` refuses the
+        # sixth account of every run. The limits themselves are covered
+        # in-process by `test_rate_limits.py`; nothing here is weakened.
+        #
+        # This fixture predates `E1-S6`, which added rate limiting, and the
+        # browser suite was not re-run afterwards — which is why the whole
+        # browser half had never passed.
+        "RATE_LIMIT_ENABLED": "false",
         "LOG_LEVEL": "INFO",
         "EXPOSE_VERSION": "browser-test",
     }
