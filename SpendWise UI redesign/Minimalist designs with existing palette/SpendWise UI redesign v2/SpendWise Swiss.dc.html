@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{box-sizing:border-box}
+  body{margin:0}
+  h1,h2,h3,h4,p,figure,dl,dd{margin:0}
+  ul,ol{margin:0;padding:0;list-style:none}
+  button,input,select,textarea{font:inherit;color:inherit}
+  table{border-collapse:collapse;width:100%}
+  a{color:var(--olive);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px}
+  a:hover{color:var(--olive-deep)}
+  :focus-visible{outline:2px solid var(--olive);outline-offset:2px}
+  .sw-light{
+    --bg:#f2f5e9; --bg-2:#eaefdc; --raised:#fbfcf6; --sunken:#eaefdc;
+    --ink:#14170e; --muted:#5c6350; --faint:#8a9179;
+    --olive:#4e5f22; --olive-deep:#354115; --olive-bright:#7d963a; --olive-soft:#e2eaca;
+    --border:#d8e0c2; --border-strong:#7f8a63; --on-olive:#f7faee;
+    --danger:#9c2f28; --warn:#8a5a1f;
+    --grid:rgb(20 23 14 / .09); --scrim:rgb(20 23 14 / .38);
+    --c1:#4a7c59; --c2:#b5543b; --c3:#3e6b8f; --c4:#9c7a2f; --c5:#2e7d8a;
+    --c6:#7b4b94; --c7:#a04c72; --c8:#7d8471; --c9:#928a85;
+  }
+  .sw-dark{
+    --bg:#0d0f09; --bg-2:#0a0c06; --raised:#181c10; --sunken:#0a0c06;
+    --ink:#eef2e2; --muted:#a8b096; --faint:#79806a;
+    --olive:#b8d16b; --olive-deep:#d0e28a; --olive-bright:#c8dd7d; --olive-soft:#1f2612;
+    --border:#2a3019; --border-strong:#6d7658; --on-olive:#101409;
+    --danger:#f08a80; --warn:#d9a441;
+    --grid:rgb(255 255 255 / .09); --scrim:rgb(0 0 0 / .62);
+    --c1:#6fae82; --c2:#e08a6f; --c3:#74a6cc; --c4:#d4ae5e; --c5:#62b8c4;
+    --c6:#b48ecb; --c7:#d883a6; --c8:#a8b09c; --c9:#9aa096;
+  }
+  @keyframes swRise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  @keyframes swGrow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+</style>
+</helmet>
+
+<div class="sw {{themeClass}}" style="min-height:100vh;background:var(--bg);color:var(--ink);font-family:'DM Sans',system-ui,sans-serif;font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased">
+
+  <sc-if value="{{ isGate }}" hint-placeholder-val="{{ false }}">
+    <div style="min-height:100vh;display:grid;grid-template-rows:auto 1fr auto;padding:0 28px">
+      <div style="display:flex;align-items:center;justify-content:space-between;min-height:64px;border-bottom:1px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="width:13px;height:13px;background:var(--olive)"></span>
+          <span style="font-family:'Bricolage Grotesque',sans-serif;font-size:19px;font-weight:600;letter-spacing:-.02em">SpendWise</span>
+        </div>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">// personal expense tracker</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);align-items:center;gap:0">
+        <div style="padding:56px 48px 56px 0">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">// 001 — access</span>
+          <h1 style="font-family:'Bricolage Grotesque',sans-serif;font-size:76px;font-weight:700;line-height:.92;letter-spacing:-.045em;text-transform:uppercase;margin-top:18px;text-wrap:balance">{{ gateTitle }}</h1>
+          <p style="max-width:26rem;margin-top:22px;font-size:15px;color:var(--muted)">See where your money went. Nothing here is shared, and nobody else can read your amounts.</p>
+        </div>
+
+        <div style="border-left:1px solid var(--border);padding:48px 0 48px 48px;animation:swRise .4s cubic-bezier(.2,.8,.2,1) both">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;padding-bottom:12px;border-bottom:1px solid var(--ink)">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.16em">{{ gateCta }}</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;color:var(--muted)">SW—01</span>
+          </div>
+
+          <form style="display:flex;flex-direction:column;gap:0;max-width:24rem" onSubmit="{{ noop }}">
+            <sc-if value="{{ registering }}" hint-placeholder-val="{{ false }}">
+              <label style="display:flex;flex-direction:column;gap:7px;padding:18px 0;border-bottom:1px solid var(--border)">
+                <span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">Your name</span>
+                <input placeholder="Person A" style="min-height:38px;padding:0;border:0;background:none;color:var(--ink);font-size:17px" style-focus="outline:none;color:var(--olive)">
+              </label>
+            </sc-if>
+            <label style="display:flex;flex-direction:column;gap:7px;padding:18px 0;border-bottom:1px solid var(--border)">
+              <span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">Email</span>
+              <input type="email" placeholder="a@spendwise.test" style="min-height:38px;padding:0;border:0;background:none;color:var(--ink);font-size:17px" style-focus="outline:none;color:var(--olive)">
+            </label>
+            <label style="display:flex;flex-direction:column;gap:7px;padding:18px 0;border-bottom:1px solid var(--border)">
+              <span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">Password</span>
+              <input type="password" placeholder="••••••••••••" style="min-height:38px;padding:0;border:0;background:none;color:var(--ink);font-size:17px" style-focus="outline:none;color:var(--olive)">
+              <sc-if value="{{ registering }}" hint-placeholder-val="{{ false }}">
+                <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)">min 12 characters</span>
+              </sc-if>
+            </label>
+            <button type="button" onClick="{{ signIn }}" style="margin-top:26px;width:100%;min-height:52px;border:0;background:var(--olive);color:var(--on-olive);font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.16em;white-space:nowrap;cursor:pointer;transition:background .12s" style-hover="background:var(--olive-deep)">{{ gateCta }} →</button>
+          </form>
+
+          <p style="margin-top:20px;font-size:14px;color:var(--muted)">
+            {{ gateSwitchText }}
+            <button type="button" onClick="{{ toggleGateMode }}" style="border:0;background:none;padding:0;color:var(--olive);font-weight:500;text-decoration:underline;text-underline-offset:3px;cursor:pointer">{{ gateSwitchCta }}</button>
+          </p>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;min-height:60px;border-top:1px solid var(--border)">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;color:var(--muted)">// AA · ₹ EN-IN · PAISE-EXACT</span>
+        <div style="display:flex;border:1px solid var(--border)">
+          <button type="button" onClick="{{ setLight }}" style="{{ gateLightStyle }}">Light</button>
+          <button type="button" onClick="{{ setDark }}" style="{{ gateDarkStyle }}">Dark</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ signedIn }}" hint-placeholder-val="{{ true }}">
+  <div style="display:flex;min-height:100vh">
+
+    <nav aria-label="Sections" style="position:sticky;top:0;flex:none;width:15.5rem;height:100vh;display:flex;flex-direction:column;border-right:1px solid var(--border);background:var(--bg-2)">
+      <div style="display:flex;align-items:center;gap:10px;min-height:64px;padding:0 20px;border-bottom:1px solid var(--border)">
+        <span style="width:13px;height:13px;flex:none;background:var(--olive)"></span>
+        <span style="font-family:'Bricolage Grotesque',sans-serif;font-size:19px;font-weight:600;letter-spacing:-.02em">SpendWise</span>
+      </div>
+
+      <ul style="display:flex;flex-direction:column">
+        <sc-for list="{{ navItems }}" as="item" hint-placeholder-count="4">
+          <li>
+            <button type="button" onClick="{{ item.go }}" style="{{ item.style }}" style-hover="color:var(--ink)">
+              <span aria-hidden="true" style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;color:var(--muted)">{{ item.num }}</span>
+              <span>{{ item.label }}</span>
+            </button>
+          </li>
+        </sc-for>
+      </ul>
+
+      <div style="display:flex;flex-direction:column;gap:10px;padding:22px 20px;border-bottom:1px solid var(--border)">
+        <h2 style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">// appearance</h2>
+        <div role="radiogroup" aria-label="Theme" style="display:flex;border:1px solid var(--border)">
+          <button type="button" role="radio" aria-checked="{{ isSystem }}" onClick="{{ setSystem }}" style="{{ segSystem }}">System</button>
+          <button type="button" role="radio" aria-checked="{{ isLight }}" onClick="{{ setLight }}" style="{{ segLight }}">Light</button>
+          <button type="button" role="radio" aria-checked="{{ isDark }}" onClick="{{ setDark }}" style="{{ segDark }}">Dark</button>
+        </div>
+        <p style="font-size:12px;color:var(--muted)">{{ themeHint }}</p>
+      </div>
+
+      <div style="margin-top:auto;display:flex;flex-direction:column;gap:3px;padding:20px;border-top:1px solid var(--border)">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">// signed in</span>
+        <span style="margin-top:6px;font-size:15px;font-weight:600">{{ whoName }}</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--muted)">{{ whoEmail }}</span>
+        <sc-if value="{{ isAdminRole }}" hint-placeholder-val="{{ true }}">
+          <span style="align-self:flex-start;margin-top:9px;padding:2px 7px;background:var(--olive);color:var(--on-olive);font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.14em">administrator</span>
+        </sc-if>
+      </div>
+    </nav>
+
+    <div style="flex:1 1 auto;min-width:0;display:flex;flex-direction:column">
+
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:64px;padding:0 32px;border-bottom:1px solid var(--border)">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">{{ crumb }}</span>
+        <div style="display:flex;align-items:center;gap:22px">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.14em;color:var(--muted)">{{ stamp }}</span>
+          <button type="button" onClick="{{ signOut }}" style="min-height:44px;padding:0;border:0;background:none;color:var(--olive);font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.16em;text-decoration:underline;text-underline-offset:4px;cursor:pointer">Sign out</button>
+        </div>
+      </div>
+
+      <main style="flex:1 1 auto;width:100%;max-width:80rem;padding:0 32px 80px">
+
+        <!-- ══ DASHBOARD ══ -->
+        <sc-if value="{{ isDashboard }}" hint-placeholder-val="{{ true }}">
+          <header style="display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:24px;padding:44px 0 26px">
+            <div>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">// 01 — overview</span>
+              <h1 style="font-family:'Bricolage Grotesque',sans-serif;font-size:68px;font-weight:700;line-height:.9;letter-spacing:-.045em;text-transform:uppercase;margin-top:14px">Your spending</h1>
+            </div>
+            <button type="button" onClick="{{ openAdd }}" style="min-height:52px;padding:0 26px;border:0;background:var(--olive);color:var(--on-olive);font-family:'JetBrains Mono',monospace;font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.16em;white-space:nowrap;cursor:pointer;transition:background .12s" style-hover="background:var(--olive-deep)">Add expense +</button>
+          </header>
+
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;padding:0 0 14px;border-bottom:1px solid var(--ink)">
+            <div style="display:flex;border:1px solid var(--border)">
+              <sc-for list="{{ periods }}" as="p" hint-placeholder-count="3">
+                <button type="button" onClick="{{ p.go }}" style="{{ p.style }}">{{ p.label }}</button>
+              </sc-for>
+            </div>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.14em;white-space:nowrap;color:var(--muted)">{{ rangeText }}</span>
+          </div>
+
+          <section aria-label="Total" style="display:grid;grid-template-columns:5.5rem minmax(0,1fr);border-bottom:1px solid var(--border)">
+            <div style="padding:26px 0"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">// 02</span></div>
+            <div style="padding:26px 0 30px">
+              <p style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.18em;color:var(--muted)">{{ headlineLabel }}</p>
+              <p style="font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums;font-size:92px;font-weight:500;line-height:.95;letter-spacing:-.05em;margin-top:14px;overflow-wrap:anywhere">{{ totalText }}</p>
+              <p style="margin-top:16px;font-family:'JetBrains Mono',monospace;font-size:11.5px;text-transform:uppercase;letter-spacing:.12em;color:var(--olive)">▼ 18% <span style="color:var(--muted)">less than last month</span></p>
+            </div>
+          </section>
+
+          <section aria-label="Headline figures" style="display:grid;grid-template-columns:5.5rem minmax(0,1fr);border-bottom:1px solid var(--border)">
+            <div style="padding:24px 0"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">// 03</span></div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(13rem,1fr))">
+              <article style="padding:24px;box-shadow:inset 1px 0 0 var(--border)">
+                <p style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">Entries</p>
+                <p style="font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums;font-size:34px;font-weight:500;line-height:1.1;letter-spacing:-.03em;margin-top:10px">{{ countText }}</p>
+                <p style="font-size:13px;color:var(--muted);margin-top:6px">{{ largestText }}</p>
+              </article>
+              <article style="padding:24px;box-shadow:inset 1px 0 0 var(--border)">
+                <p style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">Daily average</p>
+                <p style="font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums;font-size:34px;font-weight:500;line-height:1.1;letter-spacing:-.03em;margin-top:10px">{{ avgText }}</p>
+                <p style="font-size:13px;color:var(--muted);margin-top:6px">over 5 days</p>
+              </article>
+              <article style="padding:24px;box-shadow:inset 1px 0 0 var(--border)">
+                <p style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">On track for</p>
+                <p style="font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums;font-size:34px;font-weight:500;line-height:1.1;letter-spacing:-.03em;margin-top:10px">{{ projText }}</p>
+                <p style="font-size:13px;color:var(--muted);margin-top:6px">estimate, if the rest matches so far</p>
+              </article>
+            </div>
+          </section>
+
+          <section aria-label="Charts" style="display:grid;grid-template-columns:5.5rem minmax(0,1fr);border-bottom:1px solid var(--border)">
+            <div style="padding:24px 0"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">// 04</span></div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(21rem,1fr))">
+              <article style="padding:24px 28px 28px;box-shadow:inset 1px 0 0 var(--border)">
+                <h2 style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.16em;color:var(--muted);padding-bottom:16px">Spending over time</h2>
+                <svg viewBox="0 0 320 130" preserveAspectRatio="none" style="width:100%;height:130px;display:block" aria-hidden="true">
+                  <line x1="0" y1="32" x2="320" y2="32" stroke="var(--grid)" stroke-width="1"></line>
+                  <line x1="0" y1="65" x2="320" y2="65" stroke="var(--grid)" stroke-width="1"></line>
+                  <line x1="0" y1="98" x2="320" y2="98" stroke="var(--grid)" stroke-width="1"></line>
+                  <line x1="0" y1="129.5" x2="320" y2="129.5" stroke="var(--ink)" stroke-width="1"></line>
+                  <path d="{{ dailyArea }}" fill="var(--olive)" opacity="0.10"></path>
+                  <path d="{{ dailyLine }}" fill="none" stroke="var(--olive)" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round"></path>
+                </svg>
+                <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.12em;color:var(--muted);margin-top:10px"><span>1 AUG</span><span>31 AUG</span></div>
+                <p style="font-size:13px;color:var(--muted);margin-top:14px">Daily spending. Busiest day Monday, 3 Aug 2026, ₹2,440.50</p>
+              </article>
+
+              <article style="padding:24px 28px 28px;box-shadow:inset 1px 0 0 var(--border)">
+                <h2 style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.16em;color:var(--muted);padding-bottom:16px">By category</h2>
+                <div style="display:flex;gap:26px;align-items:center;flex-wrap:wrap">
+                  <div style="position:relative;flex:none;width:9.5rem">
+                    <svg viewBox="0 0 100 100" style="width:100%;height:auto;display:block;transform:rotate(-90deg)">
+                      <circle cx="50" cy="50" r="42" fill="none" stroke="var(--sunken)" stroke-width="9"></circle>
+                      <sc-for list="{{ donut }}" as="s" hint-placeholder-count="4">
+                        <circle cx="50" cy="50" r="42" fill="none" stroke="{{ s.color }}" stroke-width="{{ s.w }}" stroke-dasharray="{{ s.dash }}" stroke-dashoffset="{{ s.offset }}" onClick="{{ s.go }}" style="cursor:pointer;transition:stroke-width .12s"></circle>
+                      </sc-for>
+                    </svg>
+                    <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none">
+                      <span style="font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums;font-size:13px;letter-spacing:-.02em">{{ totalText }}</span>
+                      <span style="font-family:'JetBrains Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.16em;color:var(--muted);margin-top:2px">total</span>
+                    </div>
+                  </div>
+                  <ul style="flex:1 1 12rem;display:flex;flex-direction:column;min-width:0">
+                    <sc-for list="{{ buckets }}" as="b" hint-placeholder-count="4">
+                      <li style="border-top:1px solid var(--border)">
+                        <button type="button" onClick="{{ b.go }}" style="{{ b.legendStyle }}" style-hover="color:var(--olive)">
+                          <span aria-hidden="true" style="width:9px;height:9px;flex:none;background:{{ b.color }}"></span>
+                          <span style="flex:1 1 auto;text-align:left;font-size:14px">{{ b.name }}</span>
+                          <span style="font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums;font-size:12.5px">{{ b.amount }}</span>
+                          <span style="font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums;font-size:11px;color:var(--muted);width:32px;text-align:right">{{ b.pctText }}</span>
+                        </button>
+                      </li>
+                    </sc-for>
+                  </ul>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section aria-label="Category ribbon" style="display:grid;grid-template-columns:5.5rem minmax(0,1fr);border-bottom:1px solid var(--border)">
+            <div style="padding:24px 0"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">// 05</span></div>
+            <div style="padding:24px 0 28px">
+              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding-bottom:14px">
+                <h2 style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">Spending by category</h2>
+                <sc-if value="{{ filterActive }}" hint-placeholder-val="{{ false }}">
+                  <button type="button" onClick="{{ clearFilter }}" style="border:0;background:none;padding:0;color:var(--olive);font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.14em;text-decoration:underline;text-underline-offset:4px;cursor:pointer">Clear filter</button>
+                </sc-if>
+              </div>
+              <div role="group" aria-label="Spending by category" style="display:flex;gap:2px;height:44px;background:var(--sunken)">
+                <sc-for list="{{ buckets }}" as="b" hint-placeholder-count="4">
+                  <button type="button" onClick="{{ b.go }}" aria-label="{{ b.a11y }}" title="{{ b.a11y }}" style="{{ b.bandStyle }}"></button>
+                </sc-for>
+              </div>
+              <ul style="display:flex;flex-wrap:wrap;gap:24px;margin-top:14px">
+                <sc-for list="{{ buckets }}" as="b" hint-placeholder-count="4">
+                  <li style="display:flex;align-items:center;gap:8px;font-size:13px">
+                    <span style="width:8px;height:8px;background:{{ b.color }}"></span>
+                    <span>{{ b.name }}</span>
+                    <span style="font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums;font-size:11.5px;color:var(--muted)">{{ b.pctText }}</span>
+                  </li>
+                </sc-for>
+              </ul>
+            </div>
+          </section>
+
+          <section aria-label="Patterns" style="display:grid;grid-template-columns:5.5rem minmax(0,1fr);border-bottom:1px solid var(--border)">
+            <div style="padding:24px 0"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">// 06</span></div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(21rem,1fr))">
+              <article style="padding:24px 28px 28px;box-shadow:inset 1px 0 0 var(--border)">
+                <h2 style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.16em;color:var(--muted);padding-bottom:16px">Running total</h2>
+                <svg viewBox="0 0 320 120" preserveAspectRatio="none" style="width:100%;height:120px;display:block" aria-hidden="true">
+                  <line x1="0" y1="30" x2="320" y2="30" stroke="var(--grid)" stroke-width="1"></line>
+                  <line x1="0" y1="60" x2="320" y2="60" stroke="var(--grid)" stroke-width="1"></line>
+                  <line x1="0" y1="90" x2="320" y2="90" stroke="var(--grid)" stroke-width="1"></line>
+                  <line x1="0" y1="119.5" x2="320" y2="119.5" stroke="var(--ink)" stroke-width="1"></line>
+                  <path d="{{ cumArea }}" fill="var(--olive)" opacity="0.10"></path>
+                  <path d="{{ cumLine }}" fill="none" stroke="var(--olive)" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round"></path>
+                </svg>
+                <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.12em;color:var(--muted);margin-top:10px"><span>1 AUG</span><span>31 AUG</span></div>
+                <p style="font-size:13px;color:var(--muted);margin-top:14px">Running total, ending {{ totalText }}</p>
+              </article>
+
+              <article style="padding:24px 28px 28px;box-shadow:inset 1px 0 0 var(--border)">
+                <h2 style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.16em;color:var(--muted);padding-bottom:16px">By day of the week</h2>
+                <ul style="display:flex;flex-direction:column">
+                  <sc-for list="{{ weekdays }}" as="d" hint-placeholder-count="7">
+                    <li style="display:flex;align-items:center;gap:14px;padding:9px 0;border-top:1px solid var(--border)">
+                      <span style="width:34px;font-family:'JetBrains Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted)">{{ d.label }}</span>
+                      <span style="flex:1 1 auto;height:6px;background:var(--sunken);overflow:hidden">
+                        <span style="{{ d.fill }}"></span>
+                      </span>
+                      <span style="font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums;font-size:11.5px;width:80px;text-align:right;color:var(--muted)">{{ d.text }}</span>
+                    </li>
+                  </sc-for>
+                </ul>
+                <p style="font-size:13px;color:var(--muted);margin-top:16px">Recorded on 3 of 5 days.</p>
+              </article>
+            </div>
+          </section>
+
+          <section aria-label="Entries" style="display:grid;grid-template-columns:5.5rem minmax(0,1fr)">
+            <div style="padding:34px 0"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">// 07</span></div>
+            <div style="padding:34px 0 0">
+              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding-bottom:16px;border-bottom:1px solid var(--ink)">
+                <h2 style="font-family:'Bricolage Grotesque',sans-serif;font-size:34px;font-weight:700;letter-spacing:-.035em;text-transform:uppercase;line-height:1">Entries</h2>
+                <sc-if value="{{ filterActive }}" hint-placeholder-val="{{ false }}">
+                  <button type="button" onClick="{{ clearFilter }}" style="border:0;background:none;padding:0;color:var(--olive);font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.14em;text-decoration:underline;text-underline-offset:4px;cursor:pointer">Clear filter</button>
+                </sc-if>
+              </div>
+
+              <sc-for list="{{ groups }}" as="g" hint-placeholder-count="3">
+                <section aria-label="{{ g.date }}">
+                  <h3 style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">
+                    <span>{{ g.date }}</span>
+                    <span style="font-variant-numeric:tabular-nums;letter-spacing:.06em">{{ g.subtotal }}</span>
+                  </h3>
+                  <ul>
+                    <sc-for list="{{ g.items }}" as="e" hint-placeholder-count="2">
+                      <li style="display:flex;align-items:center;gap:16px;padding:16px 0;border-bottom:1px solid var(--border)" style-hover="background:var(--olive-soft)">
+                        <span aria-hidden="true" style="width:8px;height:8px;flex:none;background:{{ e.color }}"></span>
+                        <div style="flex:1 1 auto;min-width:0">
+                          <div style="font-size:15.5px;font-weight:500">{{ e.desc }}</div>
+                          <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-top:2px">{{ e.cat }}</div>
+                        </div>
+                        <div style="font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums;font-size:15px;letter-spacing:-.01em">{{ e.amount }}</div>
+                        <div style="display:flex;gap:4px;flex:none">
+                          <button type="button" onClick="{{ openAdd }}" style="min-width:44px;min-height:36px;border:0;background:none;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.14em;white-space:nowrap;cursor:pointer" style-hover="color:var(--olive)">Edit</button>
+                          <button type="button" style="min-width:44px;min-height:36px;border:0;background:none;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.14em;white-space:nowrap;cursor:pointer" style-hover="color:var(--danger)">Delete</button>
+                        </div>
+                      </li>
+                    </sc-for>
+                  </ul>
+                </section>
+              </sc-for>
+            </div>
+          </section>
+        </sc-if>
+
+        <!-- ══ CATEGORIES ══ -->
+        <sc-if value="{{ isCategories }}" hint-placeholder-val="{{ false }}">
+          <header style="padding:44px 0 26px;border-bottom:1px solid var(--ink)">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">// 02 — taxonomy</span>
+            <h1 style="font-family:'Bricolage Grotesque',sans-serif;font-size:68px;font-weight:700;line-height:.9;letter-spacing:-.045em;text-transform:uppercase;margin-top:14px">Categories</h1>
+            <p style="font-size:15px;color:var(--muted);max-width:44rem;margin-top:20px">The eight you started with, and any you add. Renaming or recolouring one never touches the money in it.</p>
+          </header>
+
+          <section style="display:grid;grid-template-columns:5.5rem minmax(0,1fr);border-bottom:1px solid var(--border)">
+            <div style="padding:26px 0"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">// new</span></div>
+            <div style="padding:26px 0 30px">
+              <h2 style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">Add a category</h2>
+              <div style="display:flex;gap:32px;align-items:flex-end;flex-wrap:wrap;margin-top:20px">
+                <label style="flex:1 1 18rem;display:flex;flex-direction:column;gap:8px;min-width:0;padding-bottom:12px;border-bottom:1px solid var(--border-strong)">
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">Name</span>
+                  <input placeholder="e.g. Subscriptions" style="min-height:34px;padding:0;border:0;background:none;color:var(--ink);font-size:18px" style-focus="outline:none;color:var(--olive)">
+                </label>
+                <fieldset style="border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:10px">
+                  <legend style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.16em;color:var(--muted);padding:0;margin-bottom:10px">Colour</legend>
+                  <div style="display:flex;gap:6px;flex-wrap:wrap">
+                    <sc-for list="{{ swatches }}" as="s" hint-placeholder-count="9">
+                      <button type="button" onClick="{{ s.go }}" aria-label="{{ s.name }}" title="{{ s.name }}" style="{{ s.style }}"></button>
+                    </sc-for>
+                  </div>
+                </fieldset>
+                <button type="button" style="min-height:48px;padding:0 28px;border:0;background:var(--olive);color:var(--on-olive);font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.16em;white-space:nowrap;cursor:pointer" style-hover="background:var(--olive-deep)">Add</button>
+              </div>
+            </div>
+          </section>
+
+          <section style="display:grid;grid-template-columns:5.5rem minmax(0,1fr)">
+            <div style="padding:26px 0"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">// all</span></div>
+            <ul style="padding:26px 0 0">
+              <sc-for list="{{ cats }}" as="c" hint-placeholder-count="8">
+                <li style="display:flex;align-items:center;gap:16px;padding:17px 0;border-bottom:1px solid var(--border)" style-hover="background:var(--olive-soft)">
+                  <span aria-hidden="true" style="width:11px;height:11px;flex:none;background:{{ c.color }}"></span>
+                  <span style="flex:1 1 auto;font-size:17px;font-weight:500;min-width:0;letter-spacing:-.01em">{{ c.name }}</span>
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);text-align:right;white-space:nowrap">{{ c.usage }}</span>
+                  <span style="display:flex;gap:4px;flex:none">
+                    <button type="button" style="min-width:44px;min-height:36px;border:0;background:none;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.14em;white-space:nowrap;cursor:pointer" style-hover="color:var(--olive)">Edit</button>
+                    <button type="button" style="min-width:44px;min-height:36px;border:0;background:none;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.14em;white-space:nowrap;cursor:pointer" style-hover="color:var(--danger)">Delete</button>
+                  </span>
+                </li>
+              </sc-for>
+            </ul>
+          </section>
+        </sc-if>
+
+        <!-- ══ SETTINGS ══ -->
+        <sc-if value="{{ isSettings }}" hint-placeholder-val="{{ false }}">
+          <header style="padding:44px 0 26px;border-bottom:1px solid var(--ink)">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">// 03 — account</span>
+            <h1 style="font-family:'Bricolage Grotesque',sans-serif;font-size:68px;font-weight:700;line-height:.9;letter-spacing:-.045em;text-transform:uppercase;margin-top:14px">Settings</h1>
+            <p style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.1em;color:var(--muted);margin-top:18px">{{ whoEmail }}</p>
+          </header>
+
+          <section style="display:grid;grid-template-columns:5.5rem minmax(0,1fr);border-bottom:1px solid var(--border)">
+            <div style="padding:26px 0"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">// 01</span></div>
+            <div style="padding:26px 0 30px;max-width:44rem">
+              <h2 style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">Your name</h2>
+              <p style="font-size:14px;color:var(--muted);margin:10px 0 22px">What SpendWise calls you. Your email is your identity and cannot be changed.</p>
+              <div style="display:flex;gap:20px;align-items:flex-end;flex-wrap:wrap">
+                <input value="Person A" style="flex:1 1 18rem;min-height:38px;padding:0 0 10px;border:0;border-bottom:1px solid var(--border-strong);background:none;color:var(--ink);font-size:18px" style-focus="outline:none;border-bottom-color:var(--olive)">
+                <button type="button" style="min-height:46px;padding:0 26px;border:0;background:var(--olive);color:var(--on-olive);font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.16em;white-space:nowrap;cursor:pointer" style-hover="background:var(--olive-deep)">Save</button>
+              </div>
+            </div>
+          </section>
+
+          <section style="display:grid;grid-template-columns:5.5rem minmax(0,1fr);border-bottom:1px solid var(--border)">
+            <div style="padding:26px 0"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">// 02</span></div>
+            <div style="padding:26px 0 30px;max-width:44rem">
+              <h2 style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">Appearance</h2>
+              <p style="font-size:14px;color:var(--muted);margin:10px 0 22px">System follows your device. The other two override it everywhere, on this browser.</p>
+              <div role="radiogroup" aria-label="Theme" style="display:flex;border:1px solid var(--border);max-width:26rem">
+                <button type="button" role="radio" aria-checked="{{ isSystem }}" onClick="{{ setSystem }}" style="{{ segSystem }}">System</button>
+                <button type="button" role="radio" aria-checked="{{ isLight }}" onClick="{{ setLight }}" style="{{ segLight }}">Light</button>
+                <button type="button" role="radio" aria-checked="{{ isDark }}" onClick="{{ setDark }}" style="{{ segDark }}">Dark</button>
+              </div>
+              <p style="font-size:13px;color:var(--muted);margin-top:14px">{{ themeHint2 }}</p>
+            </div>
+          </section>
+
+          <section style="display:grid;grid-template-columns:5.5rem minmax(0,1fr);border-bottom:1px solid var(--border)">
+            <div style="padding:26px 0"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">// 03</span></div>
+            <div style="padding:26px 0 30px;max-width:44rem">
+              <h2 style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">Password</h2>
+              <p style="font-size:14px;color:var(--muted);margin:10px 0 22px">Changing it signs you out everywhere else and keeps you signed in here.</p>
+              <div style="display:flex;flex-direction:column;gap:0;max-width:26rem">
+                <label style="display:flex;flex-direction:column;gap:8px;padding:16px 0;border-bottom:1px solid var(--border)">
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">Current password</span>
+                  <input type="password" placeholder="••••••••••••" style="min-height:34px;padding:0;border:0;background:none;color:var(--ink);font-size:17px" style-focus="outline:none;color:var(--olive)">
+                </label>
+                <label style="display:flex;flex-direction:column;gap:8px;padding:16px 0;border-bottom:1px solid var(--border)">
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">New password</span>
+                  <input type="password" placeholder="••••••••••••" style="min-height:34px;padding:0;border:0;background:none;color:var(--ink);font-size:17px" style-focus="outline:none;color:var(--olive)">
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)">min 12 characters</span>
+                </label>
+                <button type="button" style="align-self:flex-start;margin-top:22px;min-height:46px;padding:0 26px;border:0;background:var(--olive);color:var(--on-olive);font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.16em;white-space:nowrap;cursor:pointer" style-hover="background:var(--olive-deep)">Change password</button>
+              </div>
+            </div>
+          </section>
+
+          <section style="display:grid;grid-template-columns:5.5rem minmax(0,1fr);border-bottom:1px solid var(--border)">
+            <div style="padding:26px 0"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">// 04</span></div>
+            <div style="padding:26px 0 30px;max-width:44rem">
+              <h2 style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">Your data</h2>
+              <p style="font-size:14px;color:var(--muted);margin:10px 0 22px">Every category and every expense on this account, as JSON. Amounts are exact integers in paise.</p>
+              <button type="button" style="min-height:46px;padding:0 24px;border:1px solid var(--ink);background:transparent;color:var(--ink);font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.16em;white-space:nowrap;cursor:pointer" style-hover="background:var(--ink);color:var(--bg)">Download my data ↓</button>
+            </div>
+          </section>
+
+          <section style="display:grid;grid-template-columns:5.5rem minmax(0,1fr)">
+            <div style="padding:26px 0"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.16em;color:var(--danger)">// 05</span></div>
+            <div style="padding:26px 0 0">
+              <div style="border-top:2px solid var(--danger);padding-top:22px">
+                <h2 style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.16em;color:var(--danger)">Closing your account</h2>
+                <p style="font-size:14px;color:var(--muted);margin:12px 0 10px;max-width:52rem">Two ways out, and they are not the same. One pauses the account; the other closes it. Neither erases anything.</p>
+                <p style="font-size:14px;color:var(--muted);margin-bottom:26px;max-width:52rem"><strong style="color:var(--ink)">Your records are kept, not erased.</strong> An expense history is the one thing here that cannot be reconstructed, so neither of these throws any of it away and an administrator can undo either one. Take a copy first if you want one — <em>Your data</em>, just above.</p>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(17rem,1fr));gap:28px">
+                  <section style="display:flex;flex-direction:column;gap:12px;align-items:flex-start;padding:0 28px 0 0">
+                    <h3 style="font-family:'Bricolage Grotesque',sans-serif;font-size:20px;font-weight:600;letter-spacing:-.02em">Pause it</h3>
+                    <p style="font-size:13.5px;color:var(--muted)">Signs you out everywhere and refuses any further sign-in. Your email address stays yours, and an administrator can switch it back on whenever you ask.</p>
+                    <button type="button" style="margin-top:6px;min-height:46px;padding:0 22px;border:1px solid var(--danger);background:transparent;color:var(--danger);font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.14em;white-space:nowrap;cursor:pointer" style-hover="background:var(--danger);color:var(--on-olive)">Deactivate my account</button>
+                  </section>
+                  <section style="display:flex;flex-direction:column;gap:12px;align-items:flex-start;padding:0">
+                    <h3 style="font-family:'Bricolage Grotesque',sans-serif;font-size:20px;font-weight:600;letter-spacing:-.02em">Close it</h3>
+                    <p style="font-size:13.5px;color:var(--muted)">Marks the account closed and ends it. Reversible by an administrator, and your records stay where they are.</p>
+                    <button type="button" style="margin-top:6px;min-height:46px;padding:0 22px;border:1px solid var(--danger);background:transparent;color:var(--danger);font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.14em;white-space:nowrap;cursor:pointer" style-hover="background:var(--danger);color:var(--on-olive)">Delete my account</button>
+                  </section>
+                </div>
+              </div>
+            </div>
+          </section>
+        </sc-if>
+
+        <!-- ══ ADMIN ══ -->
+        <sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ false }}">
+          <header style="padding:44px 0 26px">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">// 04 — console</span>
+            <h1 style="font-family:'Bricolage Grotesque',sans-serif;font-size:68px;font-weight:700;line-height:.9;letter-spacing:-.045em;text-transform:uppercase;margin-top:14px">Administration</h1>
+            <p style="font-size:15px;color:var(--muted);max-width:50rem;margin-top:20px">Accounts and activity. Opening one account shows how much that person spent over a range and never what they spent it on — no category, no description, no single entry. That limit is enforced by the database, not by this page, and every look is audited.</p>
+          </header>
+
+          <div role="tablist" aria-label="Administration sections" style="display:flex;gap:0;flex-wrap:wrap;border-bottom:1px solid var(--ink)">
+            <sc-for list="{{ adminTabs }}" as="t" hint-placeholder-count="4">
+              <button type="button" role="tab" aria-selected="{{ t.on }}" onClick="{{ t.go }}" style="{{ t.style }}">{{ t.label }}</button>
+            </sc-for>
+          </div>
+
+          <sc-if value="{{ isAdminOverview }}" hint-placeholder-val="{{ true }}">
+            <section aria-label="Totals" style="display:grid;grid-template-columns:5.5rem minmax(0,1fr);border-bottom:1px solid var(--border)">
+              <div style="padding:24px 0"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">// 01</span></div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(13rem,1fr))">
+                <sc-for list="{{ adminStats }}" as="s" hint-placeholder-count="4">
+                  <article style="{{ s.style }}">
+                    <p style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">{{ s.label }}</p>
+                    <p style="font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums;font-size:44px;font-weight:500;line-height:1;letter-spacing:-.04em;margin-top:12px">{{ s.value }}</p>
+                    <p style="font-size:12.5px;color:var(--muted);margin-top:8px">{{ s.hint }}</p>
+                  </article>
+                </sc-for>
+              </div>
+            </section>
+
+            <section aria-label="Activity" style="display:grid;grid-template-columns:5.5rem minmax(0,1fr)">
+              <div style="padding:24px 0"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">// 02</span></div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(21rem,1fr))">
+                <article style="padding:24px 28px 28px;box-shadow:inset 1px 0 0 var(--border)">
+                  <h2 style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.16em;color:var(--muted);padding-bottom:16px">New accounts, last 30 days</h2>
+                  <svg viewBox="0 0 320 120" preserveAspectRatio="none" style="width:100%;height:120px;display:block" aria-hidden="true">
+                    <line x1="0" y1="30" x2="320" y2="30" stroke="var(--grid)" stroke-width="1"></line>
+                    <line x1="0" y1="60" x2="320" y2="60" stroke="var(--grid)" stroke-width="1"></line>
+                    <line x1="0" y1="90" x2="320" y2="90" stroke="var(--grid)" stroke-width="1"></line>
+                    <line x1="0" y1="119.5" x2="320" y2="119.5" stroke="var(--ink)" stroke-width="1"></line>
+                    <path d="{{ signupArea }}" fill="var(--olive)" opacity="0.10"></path>
+                    <path d="{{ signupLine }}" fill="none" stroke="var(--olive)" stroke-width="1.5" vector-effect="non-scaling-stroke"></path>
+                  </svg>
+                  <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.12em;color:var(--muted);margin-top:10px"><span>8 JUL</span><span>6 AUG</span></div>
+                  <p style="font-size:13px;color:var(--muted);margin-top:14px">2 in the last 30 days.</p>
+                </article>
+
+                <article style="padding:24px 28px 28px;box-shadow:inset 1px 0 0 var(--border)">
+                  <h2 style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.16em;color:var(--muted);padding-bottom:16px">How accounts are being used</h2>
+                  <ul style="display:flex;flex-direction:column">
+                    <sc-for list="{{ usageRows }}" as="r" hint-placeholder-count="3">
+                      <li style="display:flex;align-items:center;gap:14px;padding:11px 0;border-top:1px solid var(--border)">
+                        <span style="width:112px;font-family:'JetBrains Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)">{{ r.label }}</span>
+                        <span style="flex:1 1 auto;height:6px;background:var(--sunken);overflow:hidden">
+                          <span style="{{ r.fill }}"></span>
+                        </span>
+                        <span style="font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums;font-size:11.5px;width:24px;text-align:right;color:var(--muted)">{{ r.value }}</span>
+                      </li>
+                    </sc-for>
+                  </ul>
+                  <p style="font-size:13px;color:var(--muted);margin-top:16px">Recency comes from each account's most recent expense DATE. The amounts behind those dates are not readable from here.</p>
+                </article>
+              </div>
+            </section>
+          </sc-if>
+
+          <sc-if value="{{ isAdminAccounts }}" hint-placeholder-val="{{ false }}">
+            <section style="display:grid;grid-template-columns:5.5rem minmax(0,1fr)">
+              <div style="padding:26px 0"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">// list</span></div>
+              <div style="padding:26px 0 0;min-width:0">
+                <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap">
+                  <input placeholder="Search by email or name" style="flex:1 1 20rem;max-width:26rem;min-height:38px;padding:0 0 10px;border:0;border-bottom:1px solid var(--border-strong);background:none;color:var(--ink);font-size:16px" style-focus="outline:none;border-bottom-color:var(--olive)">
+                  <div role="group" aria-label="Filter by deletion" style="display:flex;border:1px solid var(--border)">
+                    <sc-for list="{{ delFilters }}" as="f" hint-placeholder-count="3">
+                      <button type="button" onClick="{{ f.go }}" style="{{ f.style }}">{{ f.label }}</button>
+                    </sc-for>
+                  </div>
+                </div>
+
+                <div style="overflow-x:auto;margin-top:26px">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th scope="col" style="text-align:left;padding:12px 16px 12px 0;font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.16em;color:var(--muted);border-bottom:1px solid var(--ink)">Account</th>
+                        <th scope="col" style="text-align:left;padding:12px 16px;font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.16em;color:var(--muted);border-bottom:1px solid var(--ink)">Role</th>
+                        <th scope="col" style="text-align:left;padding:12px 16px;font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.16em;color:var(--muted);border-bottom:1px solid var(--ink)">Status</th>
+                        <th scope="col" style="text-align:right;padding:12px 16px;font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.16em;color:var(--muted);border-bottom:1px solid var(--ink)">Expenses</th>
+                        <th scope="col" style="text-align:left;padding:12px 16px;font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.16em;color:var(--muted);border-bottom:1px solid var(--ink)">Last activity</th>
+                        <th scope="col" style="padding:12px 0 12px 16px;border-bottom:1px solid var(--ink)"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <sc-for list="{{ adminUsers }}" as="u" hint-placeholder-count="2">
+                        <tr style-hover="background:var(--olive-soft)">
+                          <td style="padding:16px 16px 16px 0;border-bottom:1px solid var(--border)">
+                            <span style="display:block;font-weight:600;font-size:15px">{{ u.name }}</span>
+                            <span style="display:block;font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--muted);margin-top:2px">{{ u.email }}</span>
+                          </td>
+                          <td style="padding:16px;border-bottom:1px solid var(--border)">
+                            <span style="{{ u.roleStyle }}">{{ u.role }}</span>
+                          </td>
+                          <td style="padding:16px;border-bottom:1px solid var(--border);font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.1em">
+                            <span aria-hidden="true" style="{{ u.dotStyle }}"></span>{{ u.status }}
+                          </td>
+                          <td style="padding:16px;border-bottom:1px solid var(--border);text-align:right;font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums;font-size:14px">{{ u.expenses }}</td>
+                          <td style="padding:16px;border-bottom:1px solid var(--border);font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)">{{ u.last }}</td>
+                          <td style="padding:16px 0 16px 16px;border-bottom:1px solid var(--border)">
+                            <div style="display:flex;gap:4px;justify-content:flex-end;flex-wrap:wrap">
+                              <sc-for list="{{ u.actions }}" as="a" hint-placeholder-count="5">
+                                <button type="button" style="min-height:34px;padding:0 8px;border:0;background:none;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:9.5px;text-transform:uppercase;letter-spacing:.12em;white-space:nowrap;cursor:pointer" style-hover="color:var(--olive)">{{ a }}</button>
+                              </sc-for>
+                            </div>
+                          </td>
+                        </tr>
+                      </sc-for>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </section>
+          </sc-if>
+
+          <sc-if value="{{ isAdminOther }}" hint-placeholder-val="{{ false }}">
+            <section style="display:grid;grid-template-columns:5.5rem minmax(0,1fr)">
+              <div style="padding:30px 0"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">// note</span></div>
+              <p style="padding:30px 0;font-size:15px;color:var(--muted);max-width:44rem">{{ adminOtherNote }}</p>
+            </section>
+          </sc-if>
+        </sc-if>
+
+      </main>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ══ ADD-EXPENSE PANEL ══ -->
+  <sc-if value="{{ panelOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closePanel }}" style="position:fixed;inset:0;z-index:60;background:var(--scrim);display:flex;justify-content:flex-end;backdrop-filter:blur(3px)">
+      <div role="dialog" aria-modal="true" aria-label="Add an expense" onClick="{{ stop }}" style="width:min(28rem,100%);height:100%;background:var(--bg);border-left:1px solid var(--ink);display:flex;flex-direction:column;overflow:auto;animation:swRise .24s cubic-bezier(.2,.8,.2,1) both">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:64px;padding:0 28px;border-bottom:1px solid var(--ink)">
+          <h2 style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.18em">// new expense</h2>
+          <button type="button" onClick="{{ closePanel }}" aria-label="Close" style="width:36px;height:36px;border:0;background:none;color:var(--muted);font-size:16px;cursor:pointer" style-hover="color:var(--ink)">✕</button>
+        </div>
+
+        <div style="padding:0 28px">
+          <label style="display:flex;flex-direction:column;gap:8px;padding:24px 0 20px;border-bottom:1px solid var(--border)">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">Amount</span>
+            <input inputmode="decimal" placeholder="0.00" style="min-height:48px;padding:0;border:0;background:none;color:var(--ink);font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums;font-size:38px;font-weight:500;letter-spacing:-.04em" style-focus="outline:none;color:var(--olive)">
+          </label>
+          <label style="display:flex;flex-direction:column;gap:8px;padding:18px 0;border-bottom:1px solid var(--border)">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">Date</span>
+            <input type="date" value="2026-08-21" style="min-height:34px;padding:0;border:0;background:none;color:var(--ink);font-family:'JetBrains Mono',monospace;font-size:15px" style-focus="outline:none;color:var(--olive)">
+          </label>
+          <label style="display:flex;flex-direction:column;gap:8px;padding:18px 0;border-bottom:1px solid var(--border)">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">Category</span>
+            <select style="min-height:34px;padding:0;border:0;background:none;color:var(--ink);font-size:16px" style-focus="outline:none;color:var(--olive)">
+              <option>No category</option>
+              <option>Groceries</option>
+              <option>Food &amp; Dining</option>
+              <option>Transport</option>
+              <option>Rent &amp; Utilities</option>
+              <option>Health</option>
+              <option>Entertainment</option>
+              <option>Shopping</option>
+              <option>Other</option>
+            </select>
+          </label>
+          <label style="display:flex;flex-direction:column;gap:8px;padding:18px 0;border-bottom:1px solid var(--border)">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.16em;color:var(--muted)">Note <span style="color:var(--muted)">(optional)</span></span>
+            <input placeholder="Weekly shop" style="min-height:34px;padding:0;border:0;background:none;color:var(--ink);font-size:16px" style-focus="outline:none;color:var(--olive)">
+          </label>
+        </div>
+
+        <div style="display:flex;margin-top:auto;border-top:1px solid var(--ink)">
+          <button type="button" onClick="{{ closePanel }}" style="flex:0 0 auto;min-height:60px;padding:0 26px;border:0;border-right:1px solid var(--ink);background:transparent;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:500;text-transform:uppercase;letter-spacing:.16em;white-space:nowrap;cursor:pointer" style-hover="color:var(--ink)">Cancel</button>
+          <button type="button" onClick="{{ closePanel }}" style="flex:1 1 auto;min-height:60px;border:0;background:var(--olive);color:var(--on-olive);font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.16em;white-space:nowrap;cursor:pointer" style-hover="background:var(--olive-deep)">Add expense →</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:1150},&quot;startView&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Dashboard&quot;,&quot;Categories&quot;,&quot;Settings&quot;,&quot;Admin&quot;],&quot;default&quot;:&quot;Dashboard&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Preview state&quot;},&quot;startSignedIn&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Preview state&quot;},&quot;role&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Administrator&quot;,&quot;Person&quot;],&quot;default&quot;:&quot;Administrator&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Preview state&quot;}}">
+const R = (p) => '₹' + (p / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+const CATS = [
+  { id: 1, name: 'Groceries', v: '--c1' },
+  { id: 2, name: 'Food & Dining', v: '--c2' },
+  { id: 3, name: 'Transport', v: '--c3' },
+  { id: 4, name: 'Rent & Utilities', v: '--c4' },
+  { id: 5, name: 'Health', v: '--c5' },
+  { id: 6, name: 'Entertainment', v: '--c6' },
+  { id: 7, name: 'Shopping', v: '--c7' },
+  { id: 8, name: 'Other', v: '--c8' },
+];
+
+const BUCKETS = [
+  { key: 1, name: 'Groceries', v: '--c1', paise: 210000, percent: 55 },
+  { key: 3, name: 'Transport', v: '--c3', paise: 125000, percent: 33 },
+  { key: 5, name: 'Health', v: '--c5', paise: 34050, percent: 9 },
+  { key: 'none', name: 'Uncategorised', v: '--c9', paise: 9999, percent: 3 },
+];
+
+const ENTRIES = [
+  { id: 1, date: '5 Aug 2026', desc: 'No note', cat: 'Uncategorised', v: '--c9', paise: 9999, key: 'none' },
+  { id: 2, date: '3 Aug 2026', desc: 'Weekly shop', cat: 'Groceries', v: '--c1', paise: 210000, key: 1 },
+  { id: 3, date: '3 Aug 2026', desc: 'Pharmacy', cat: 'Health', v: '--c5', paise: 34050, key: 5 },
+  { id: 4, date: '1 Aug 2026', desc: 'Auto to office', cat: 'Transport', v: '--c3', paise: 125000, key: 3 },
+];
+
+const DAILY = [125000, 0, 244050, 0, 9999, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+
+const MONO = "font-family:'JetBrains Mono',monospace;text-transform:uppercase;white-space:nowrap;cursor:pointer";
+const CHIP_ON = 'min-height:44px;padding:0 20px;border:0;background:var(--olive);color:var(--on-olive);font-size:10.5px;font-weight:600;letter-spacing:.16em;' + MONO;
+const CHIP_OFF = 'min-height:44px;padding:0 20px;border:0;background:none;color:var(--muted);font-size:10.5px;font-weight:500;letter-spacing:.16em;transition:color .12s;' + MONO;
+const SEG_ON = 'flex:1 1 auto;min-height:38px;padding:0 10px;border:0;background:var(--olive);color:var(--on-olive);font-size:10px;font-weight:600;letter-spacing:.14em;' + MONO;
+const SEG_OFF = 'flex:1 1 auto;min-height:38px;padding:0 10px;border:0;background:none;color:var(--muted);font-size:10px;font-weight:500;letter-spacing:.14em;' + MONO;
+
+function path(vals, h, cumulative) {
+  const series = cumulative ? vals.reduce((a, v) => (a.push((a[a.length - 1] || 0) + v), a), []) : vals;
+  const max = Math.max(...series, 1);
+  const n = series.length;
+  const pts = series.map((v, i) => [(i / (n - 1)) * 320, h - 6 - (v / max) * (h - 16)]);
+  const line = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+  return { line, area: line + ' L320 ' + h + ' L0 ' + h + ' Z' };
+}
+
+class Component extends DCLogic {
+  state = {
+    signedIn: null, gateMode: 'login', theme: 'light',
+    view: null, period: 'this', filter: null,
+    adminTab: 'overview', delFilter: 'any', swatch: 0, panelOpen: false,
+  };
+
+  set = (patch) => this.setState(patch);
+
+  renderVals() {
+    const s = this.state;
+    const isAdminRole = (this.props.role ?? 'Administrator') === 'Administrator';
+    const signedIn = s.signedIn === null ? (this.props.startSignedIn ?? true) : s.signedIn;
+    const startView = (this.props.startView ?? 'Dashboard').toLowerCase().slice(0, 5);
+    const view = s.view || (startView === 'categ' ? 'categories' : startView === 'setti' ? 'settings' : startView === 'admin' ? 'admin' : 'dashboard');
+    const dark = s.theme === 'dark';
+    const total = s.filter === null ? 379049 : BUCKETS.find((b) => b.key === s.filter).paise;
+    const shown = s.filter === null ? ENTRIES : ENTRIES.filter((e) => e.key === s.filter);
+
+    const groups = [];
+    for (const e of shown) {
+      const last = groups[groups.length - 1];
+      const row = { ...e, color: 'var(' + e.v + ')', amount: R(e.paise) };
+      if (last && last.date === e.date) last.items.push(row);
+      else groups.push({ date: e.date, items: [row] });
+    }
+    for (const g of groups) g.subtotal = R(g.items.reduce((a, i) => a + i.paise, 0));
+
+    const C = 2 * Math.PI * 42;
+    let acc = 0;
+    const donut = BUCKETS.map((b) => {
+      const len = (b.percent / 100) * C;
+      const seg = { color: 'var(' + b.v + ')', w: s.filter === b.key ? 15 : 9, dash: len.toFixed(2) + ' ' + (C - len).toFixed(2), offset: (-acc).toFixed(2), go: () => this.set({ filter: s.filter === b.key ? null : b.key }) };
+      acc += len;
+      return seg;
+    });
+
+    const buckets = BUCKETS.map((b) => {
+      const on = s.filter === b.key;
+      const dim = s.filter !== null && !on;
+      return {
+        name: b.name, color: 'var(' + b.v + ')', amount: R(b.paise), pctText: b.percent + '%',
+        a11y: b.name + ': ' + R(b.paise) + ', ' + b.percent + '% of total',
+        go: () => this.set({ filter: on ? null : b.key }),
+        bandStyle: 'flex:0 0 auto;width:calc(' + b.percent + '% - 2px);border:0;padding:0;cursor:pointer;background:var(' + b.v + ');opacity:' + (dim ? '.34' : '1') + ';box-shadow:' + (on ? 'inset 0 0 0 3px var(--bg),inset 0 0 0 5px var(--ink)' : 'none') + ';transition:opacity .14s,box-shadow .14s',
+        legendStyle: 'display:flex;align-items:center;gap:12px;width:100%;padding:11px 0;border:0;background:none;color:' + (on ? 'var(--olive)' : 'var(--ink)') + ';font-weight:' + (on ? '600' : '400') + ';cursor:pointer;opacity:' + (dim ? '.5' : '1') + ';transition:color .12s,opacity .12s',
+      };
+    });
+
+    const wdVals = [0, 244050, 0, 9999, 0, 0, 125000];
+    const wdMax = 244050;
+    const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((label, i) => ({
+      label, text: R(wdVals[i]),
+      fill: 'display:block;height:100%;width:' + Math.max(1, (wdVals[i] / wdMax) * 100) + '%;background:var(--olive);transform-origin:left;animation:swGrow .6s cubic-bezier(.2,.8,.2,1) both',
+    }));
+
+    const d1 = path(DAILY, 130, false);
+    const d2 = path(DAILY, 120, true);
+    const su = path([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1], 120, false);
+
+    const navSrc = [
+      { id: 'dashboard', label: 'Dashboard', num: '01' },
+      { id: 'categories', label: 'Categories', num: '02' },
+      { id: 'settings', label: 'Settings', num: '03' },
+    ];
+    if (isAdminRole) navSrc.push({ id: 'admin', label: 'Administration', num: '04' });
+
+    const nav = navSrc.map((it) => {
+      const on = view === it.id;
+      return {
+        ...it, go: () => this.set({ view: it.id }),
+        style: 'display:flex;align-items:center;gap:14px;width:100%;min-height:50px;padding:0 20px;border:0;border-bottom:1px solid var(--border);border-left:3px solid ' + (on ? 'var(--olive)' : 'transparent') + ';background:' + (on ? 'var(--bg)' : 'none') + ';color:' + (on ? 'var(--ink)' : 'var(--muted)') + ";font-family:'DM Sans',system-ui,sans-serif;font-size:15px;font-weight:" + (on ? '600' : '400') + ';letter-spacing:-.005em;text-align:left;cursor:pointer;transition:color .12s,background .12s',
+      };
+    });
+
+    const periods = [
+      { id: 'this', label: 'This month' },
+      { id: 'last', label: 'Last month' },
+      { id: '30', label: 'Last 30 days' },
+    ].map((p) => ({ label: p.label, go: () => this.set({ period: p.id }), style: s.period === p.id ? CHIP_ON : CHIP_OFF }));
+
+    const adminTabs = [
+      { id: 'overview', label: 'Overview' },
+      { id: 'accounts', label: 'Accounts' },
+      { id: 'sessions', label: 'Signed in now' },
+      { id: 'audit', label: 'Audit log' },
+    ].map((t) => {
+      const on = s.adminTab === t.id;
+      return {
+        label: t.label, on, go: () => this.set({ adminTab: t.id }),
+        style: 'min-height:48px;padding:0 22px 0 0;margin-right:22px;border:0;border-bottom:3px solid ' + (on ? 'var(--olive)' : 'transparent') + ';background:none;color:' + (on ? 'var(--ink)' : 'var(--muted)') + ';font-size:10.5px;font-weight:' + (on ? '600' : '500') + ';letter-spacing:.16em;margin-bottom:-1px;' + MONO,
+      };
+    });
+
+    const delFilters = [
+      { id: 'any', label: 'All accounts' },
+      { id: 'false', label: 'Not deleted' },
+      { id: 'true', label: 'Deleted only' },
+    ].map((f) => ({ label: f.label, go: () => this.set({ delFilter: f.id }), style: s.delFilter === f.id ? CHIP_ON : CHIP_OFF }));
+
+    const pill = "display:inline-block;padding:2px 8px;background:var(--olive);color:var(--on-olive);font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.14em";
+    const dot = (c) => 'display:inline-block;width:7px;height:7px;margin-right:9px;background:' + c;
+    const ACTIONS = ['View', 'Sign out', 'Deactivate', 'Promote', 'Reset password'];
+    const adminUsers = [
+      { name: 'Person A', email: 'a@spendwise.test', role: 'admin', roleStyle: pill, status: 'active', dotStyle: dot('var(--olive)'), expenses: '4', last: '5 Aug 2026', actions: ACTIONS },
+      { name: 'Person B', email: 'b@spendwise.test', role: 'user', roleStyle: "font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted)", status: 'active', dotStyle: dot('var(--olive)'), expenses: '2', last: '6 Aug 2026', actions: ACTIONS },
+    ];
+
+    const usageMax = 2;
+    const usageRows = [
+      { label: 'Active this week', value: '2', n: 2 },
+      { label: 'Dormant 30d+', value: '0', n: 0 },
+      { label: 'Never used', value: '0', n: 0 },
+    ].map((r) => ({ ...r, fill: 'display:block;height:100%;width:' + Math.max(1, (r.n / usageMax) * 100) + '%;background:var(--olive);transform-origin:left;animation:swGrow .6s cubic-bezier(.2,.8,.2,1) both' }));
+
+    const swatches = [...CATS.map((c) => c.v), '--c9'].map((v, i) => ({
+      name: 'Colour ' + (i + 1), go: () => this.set({ swatch: i }),
+      style: 'width:40px;height:40px;border:2px solid ' + (s.swatch === i ? 'var(--ink)' : 'transparent') + ';background:var(' + v + ');cursor:pointer',
+    }));
+
+    const usageText = { 1: '1 · ₹2,100.00', 3: '1 · ₹1,250.00', 5: '1 · ₹340.50' };
+
+    const crumbFor = { dashboard: '// spendwise / dashboard', categories: '// spendwise / categories', settings: '// spendwise / settings', admin: '// spendwise / administration' };
+
+    return {
+      themeClass: dark ? 'sw-dark' : 'sw-light',
+      signedIn, isGate: !signedIn,
+      registering: s.gateMode === 'register',
+      gateTitle: s.gateMode === 'register' ? 'Create your account' : 'Welcome back',
+      gateCta: s.gateMode === 'register' ? 'Create account' : 'Sign in',
+      gateSwitchText: s.gateMode === 'register' ? 'Already have an account?' : 'New to SpendWise?',
+      gateSwitchCta: s.gateMode === 'register' ? 'Sign in' : 'Create one',
+      toggleGateMode: () => this.set({ gateMode: s.gateMode === 'register' ? 'login' : 'register' }),
+      signIn: () => this.set({ signedIn: true }),
+      signOut: () => this.set({ signedIn: false, view: 'dashboard' }),
+
+      isSystem: s.theme === 'system', isLight: s.theme === 'light', isDark: dark,
+      segSystem: s.theme === 'system' ? SEG_ON : SEG_OFF,
+      segLight: s.theme === 'light' ? SEG_ON : SEG_OFF,
+      segDark: dark ? SEG_ON : SEG_OFF,
+      gateLightStyle: dark ? CHIP_OFF : CHIP_ON,
+      gateDarkStyle: dark ? CHIP_ON : CHIP_OFF,
+      setSystem: () => this.set({ theme: 'system' }),
+      setLight: () => this.set({ theme: 'light' }),
+      setDark: () => this.set({ theme: 'dark' }),
+      themeHint: s.theme === 'system' ? 'Following your device — currently light.' : 'Always ' + s.theme + '.',
+      themeHint2: s.theme === 'system' ? 'Currently showing light.' : 'Always ' + s.theme + ', whatever your device is set to.',
+
+      whoName: 'Person A',
+      whoEmail: 'a@spendwise.test',
+      isAdminRole,
+      crumb: crumbFor[view],
+      stamp: 'SW · 2026-08-26',
+
+      navItems: nav,
+      isDashboard: view === 'dashboard', isCategories: view === 'categories',
+      isSettings: view === 'settings', isAdmin: view === 'admin',
+      isAdminOverview: s.adminTab === 'overview', isAdminAccounts: s.adminTab === 'accounts',
+      isAdminOther: s.adminTab === 'sessions' || s.adminTab === 'audit',
+      adminOtherNote: s.adminTab === 'sessions'
+        ? '4 live sessions. SpendWise does not show where a session is signed in from.'
+        : 'Every administrative action, and every read of these pages. Written in the same transaction as the change it records, and immutable at the database — 37 entries.',
+
+      periods, rangeText: 'This month · 2026-08-01 → 2026-08-31',
+      headlineLabel: s.filter === null ? 'Total' : 'Filtered total',
+      totalText: R(total), countText: String(shown.length),
+      largestText: 'Largest ' + R(Math.max(...shown.map((e) => e.paise))),
+      avgText: R(Math.round(total / 5)),
+      projText: R(Math.round(total / 5) * 31),
+      filterActive: s.filter !== null,
+      clearFilter: () => this.set({ filter: null }),
+      buckets, donut, groups, weekdays,
+      dailyLine: d1.line, dailyArea: d1.area,
+      cumLine: d2.line, cumArea: d2.area,
+      signupLine: su.line, signupArea: su.area,
+
+      cats: CATS.map((c) => ({ name: c.name, color: 'var(' + c.v + ')', usage: usageText[c.id] || 'nothing this month' })),
+      swatches,
+
+      adminTabs, delFilters, adminUsers, usageRows,
+      adminStats: [
+        { label: 'Accounts', value: '2', hint: '1 administrator' },
+        { label: 'Active', value: '2', hint: '0 paused · 0 closed' },
+        { label: 'Signed in now', value: '4', hint: 'live sessions across all accounts' },
+        { label: 'Expenses recorded', value: '6', hint: 'a count of rows — never a sum' },
+      ].map((x, i) => ({ ...x, style: 'padding:24px;box-shadow:inset 1px 0 0 var(--border)' })),
+
+      panelOpen: s.panelOpen,
+      openAdd: () => this.set({ panelOpen: true }),
+      closePanel: () => this.set({ panelOpen: false }),
+      stop: (e) => e.stopPropagation(),
+      noop: (e) => e.preventDefault(),
+    };
+  }
+}
+</script>
+</body>
+</html>

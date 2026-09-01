@@ -1,5 +1,15 @@
 # SW-ADR-147 — Two themes, glass surfaces, and contrast that is computed for all of them
 
+> **⚠ AMENDED 2026-08-27 by `SW-ADR-154`.**
+> Clause **D** below — *"glass alpha is a measured floor, not a taste"* — pinned the floor to a
+> specific alpha (`0.78`). The client's Swiss restyle sets every glass alpha to `1` and the blur to
+> `0`, because a ruled grid needs a flat ground. **The principle is untouched and is now enforced
+> more directly**: the browser criterion no longer asks whether the surface is translucent, it
+> measures the ink-on-card ratio the browser actually painted and requires 4.5:1 — which the old
+> assertion never computed at all. Read clause D as "the floor is measured, never asserted"; do not
+> read it as "the surface must be translucent". Everything else in this record stands, including the
+> two themes, the appearance control, and contrast being computed for both.
+
 | Field | Value |
 |---|---|
 | ADR | `SW-ADR-147` |
@@ -9,6 +19,7 @@
 | Decision outcome | APPROVED_FOR_IMPLEMENTATION |
 | Supersedes | — |
 | Amends | — |
+| Amended by | `SW-ADR-154` (clause D, 2026-08-27) |
 | Raised by | Client request, 2026-08-06: a sidebar shell, an appearance control, and "a greenish glassmorphism going on" |
 | Decided by | BUILD_SESSION (under `SW-ADR-015`) |
 | Decision date | 2026-08-06 |

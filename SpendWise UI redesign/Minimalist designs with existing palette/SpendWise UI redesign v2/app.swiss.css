@@ -1,0 +1,534 @@
+/* SWISS RESTYLE LAYER — client/src/styles/app.swiss.css
+ *
+ * Import AFTER app.css (and after app.redesign.css if you keep it):
+ *
+ *   import './styles/tokens.css'
+ *   import './styles/app.css'
+ *   import './styles/app.swiss.css'
+ *
+ * Rules:
+ *   - targets EXISTING class names only. No .jsx file changes.
+ *   - no raw hex, no second money formatter, no `:focus-visible`, no
+ *     `outline: none` — so `npm run lint:tokens` still passes.
+ *   - every colour is a token. Every hairline is --sw-border or --sw-ink.
+ *
+ * The idiom, in one line: labels and controls are MONO / UPPERCASE / WIDE
+ * TRACKED, titles are display grotesque at tight negative tracking, and
+ * nothing is separated by a shadow or a corner — only by a 1px rule.
+ */
+
+/* ── 0. the page ─────────────────────────────────────────────────────────── */
+body {
+  background: var(--sw-paper);   /* flat: the wash radials are gone */
+  font-size: 0.9375rem;
+}
+
+/* ── 1. flatten every glass surface ──────────────────────────────────────── */
+/* app.css groups these under one selector; this is the same list, opaque. */
+.glass, .card, .rail, .entries, .state, .banner, .gate-card, .panel, .table-wrap {
+  background: var(--sw-paper);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/* ── 2. the mono micro-label idiom ───────────────────────────────────────── */
+/* One declaration block, applied to every label-class in the app. */
+.card-label,
+.ribbon-title,
+.card-heading,
+.rail-heading,
+.facts dt,
+.table thead th,
+.field label,
+.swatches legend,
+.plot-axis,
+.bar-label,
+.entry-meta,
+.cat-usage,
+.legend-pct,
+.pill,
+.chip,
+.segment,
+.tab,
+.btn,
+.btn-link,
+.rail-hint,
+.gate-sub {
+  font-family: var(--sw-font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+}
+
+.card-label,
+.ribbon-title,
+.card-heading,
+.rail-heading,
+.facts dt,
+.table thead th,
+.field label,
+.swatches legend {
+  font-size: 0.625rem;               /* 10px */
+  font-weight: var(--sw-weight-semibold);
+  color: var(--sw-ink-muted);
+  margin-bottom: var(--sw-space-3);
+}
+
+/* The `//` marker. This is the one visual device of the reference that would
+   otherwise need markup — `::before` gets it with no .jsx change. */
+.card-label::before,
+.ribbon-title::before,
+.rail-heading::before,
+.card-heading::before { content: "// "; color: var(--sw-ink-faint); }
+
+.plot-axis, .bar-label, .cat-usage, .legend-pct {
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  color: var(--sw-ink-muted);
+}
+
+/* --sw-ink-faint carries NO content (SW-ADR-117): it is only ever the `//`
+   marker glyph above, placeholders, and disabled text. */
+::placeholder { color: var(--sw-ink-faint); }
+
+/* ── 3. titles ───────────────────────────────────────────────────────────── */
+.page-title, .gate-title {
+  font-family: var(--sw-font-display);
+  font-size: var(--sw-text-2xl);
+  font-weight: 700;
+  line-height: var(--sw-leading-tight);
+  letter-spacing: -0.045em;
+  text-transform: uppercase;
+  color: var(--sw-ink);            /* the gate title was accent-coloured */
+}
+.page-title::after { content: none; }   /* the accent rule under the title goes */
+
+.page-head {
+  align-items: flex-end;
+  padding-bottom: var(--sw-space-6);
+  border-bottom: 1px solid var(--sw-ink);
+}
+
+.section-title {
+  font-family: var(--sw-font-display);
+  font-size: 2.125rem;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+.section-head { padding-bottom: var(--sw-space-4); border-bottom: 1px solid var(--sw-ink); }
+
+/* ── 4. the hero total ───────────────────────────────────────────────────── */
+.card-hero { padding: var(--sw-space-6) 0 var(--sw-space-8); border-bottom: 1px solid var(--sw-border); }
+.card-hero::before, .card-hero::after { content: none; }   /* spine + circle go */
+
+.card-hero-value {
+  font-family: var(--sw-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--sw-text-3xl);
+  font-weight: var(--sw-weight-medium);
+  line-height: 0.95;
+  letter-spacing: -0.05em;
+  margin-top: var(--sw-space-3);
+}
+.delta {
+  font-family: var(--sw-font-mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-top: var(--sw-space-4);
+}
+
+/* ── 5. cards become grid cells, divided by their own hairline ───────────── */
+/* The rule is drawn INSET on each cell, never as a background on the grid
+   container: an auto-fit grid with 3 children in 2 columns leaves an empty
+   cell, and a painted container shows through it as a solid block. */
+.cards, .panels { gap: 0; }
+.cards > .card, .panels > .card {
+  padding: var(--sw-space-6);
+  box-shadow: inset 1px 0 0 var(--sw-border);
+}
+
+.card-value {
+  font-family: var(--sw-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 2.125rem;
+  font-weight: var(--sw-weight-medium);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+
+.card-danger { border: 0; border-top: 2px solid var(--sw-danger); padding-top: var(--sw-space-6); }
+.notice { border-radius: 0; font-family: var(--sw-font-mono); font-size: var(--sw-text-sm); }
+
+/* ── 6. the rail ─────────────────────────────────────────────────────────── */
+.rail {
+  gap: 0;
+  padding: 0;
+  width: 15.5rem;
+  background: var(--sw-paper-sunken);
+  border-right: 1px solid var(--sw-border);
+}
+.rail-brand {
+  min-height: 64px;
+  padding: 0 var(--sw-space-6);
+  border-bottom: 1px solid var(--sw-border);
+}
+.wordmark {
+  font-family: var(--sw-font-display);
+  font-size: 1.1875rem;
+  font-weight: var(--sw-weight-semibold);
+  letter-spacing: -0.02em;
+  color: var(--sw-ink);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sw-space-2);
+}
+/* A square mark, not a rounded gradient tile. */
+.wordmark::before {
+  content: "";
+  width: 0.7em; height: 0.7em;
+  flex: none;
+  background: var(--sw-pine);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.rail-nav { gap: 0; }
+.rail-item {
+  min-height: 50px;
+  padding: 0 var(--sw-space-6);
+  border: 0;
+  border-bottom: 1px solid var(--sw-border);
+  border-left: 3px solid transparent;
+  border-radius: 0;
+  font-size: var(--sw-text-base);
+  color: var(--sw-ink-muted);
+}
+.rail-item:hover { background: none; color: var(--sw-ink); }
+.rail-item[aria-current='page'] {
+  background: var(--sw-paper);
+  border-left-color: var(--sw-pine);
+  color: var(--sw-ink);
+  font-weight: var(--sw-weight-semibold);
+}
+/* The glyph icons become the section index. Keep them — they are in the .jsx —
+   but quiet them to a mono tick so they read as numbering, not decoration. */
+.rail-icon { font-size: 0.7rem; color: var(--sw-ink-muted); width: 1.1rem; text-align: center; }
+
+.rail-section { padding: var(--sw-space-6); border-bottom: 1px solid var(--sw-border); gap: var(--sw-space-3); }
+.rail-hint { font-family: var(--sw-font-body); text-transform: none; letter-spacing: 0; font-size: var(--sw-text-xs); }
+.rail-foot { padding: var(--sw-space-6); border-top: 1px solid var(--sw-border); }
+.rail-who { font-weight: var(--sw-weight-semibold); font-size: var(--sw-text-base); }
+
+/* ── 7. content column ───────────────────────────────────────────────────── */
+.content {
+  max-width: 80rem;
+  margin: 0;
+  padding: 0 var(--sw-space-8) var(--sw-space-12);
+  gap: 0;
+}
+.content > * + * { margin-top: 0; }
+.app-foot { padding: var(--sw-space-4) var(--sw-space-8); border-top: 1px solid var(--sw-border); }
+
+/* ── 8. buttons ──────────────────────────────────────────────────────────── */
+.btn {
+  min-height: 52px;
+  padding: 0 var(--sw-space-6);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--sw-pine);
+  color: var(--sw-on-pine);
+  font-size: 0.7rem;
+  font-weight: var(--sw-weight-semibold);
+}
+.btn:active:not([aria-disabled='true']) { transform: none; }
+.btn-quiet {
+  background: transparent;
+  color: var(--sw-ink);
+  border: 1px solid var(--sw-ink);
+  font-weight: var(--sw-weight-medium);
+}
+.btn-quiet:hover:not([aria-disabled='true']) { background: var(--sw-ink); color: var(--sw-paper); }
+.btn-danger { background: transparent; color: var(--sw-danger); border: 1px solid var(--sw-danger); }
+.btn-danger:hover:not([aria-disabled='true']) { filter: none; background: var(--sw-danger); color: var(--sw-on-pine); }
+.btn-link {
+  font-size: 0.625rem;
+  font-weight: var(--sw-weight-medium);
+  text-underline-offset: 4px;
+}
+.icon-btn { border-radius: 0; background: none; }
+.icon-btn:hover { background: none; color: var(--sw-pine); }
+
+/* ── 9. chips and the segmented control ──────────────────────────────────── */
+.periods, .filters { gap: 0; border: 1px solid var(--sw-border); width: max-content; }
+.chip {
+  border: 0;
+  border-radius: 0;
+  background: none;
+  font-size: 0.65rem;
+  font-weight: var(--sw-weight-medium);
+}
+.chip:hover { background: none; color: var(--sw-ink); }
+.chip[aria-pressed='true'] {
+  background: var(--sw-pine);
+  color: var(--sw-on-pine);
+  font-weight: var(--sw-weight-semibold);
+}
+
+.segmented { border-radius: 0; padding: 0; background: none; border: 1px solid var(--sw-border); }
+.segment { border-radius: 0; font-size: 0.625rem; font-weight: var(--sw-weight-medium); }
+.segment[aria-checked='true'] { font-weight: var(--sw-weight-semibold); }
+
+/* ── 10. admin tabs: an underline on a rule ─────────────────────────────── */
+.tabs { gap: 0; border-bottom: 1px solid var(--sw-ink); }
+.tab {
+  min-height: 48px;
+  padding: 0 var(--sw-space-6) 0 0;
+  margin-right: var(--sw-space-6);
+  margin-bottom: -1px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  border-radius: 0;
+  background: none;
+  font-size: 0.65rem;
+  font-weight: var(--sw-weight-medium);
+}
+.tab[aria-selected='true'] {
+  background: none;
+  border-bottom-color: var(--sw-pine);
+  color: var(--sw-ink);
+  font-weight: var(--sw-weight-semibold);
+}
+
+/* ── 11. charts ──────────────────────────────────────────────────────────── */
+.plot-axis { margin-top: var(--sw-space-2); margin-bottom: 0; }
+.donut { width: 9.5rem; }
+.donut-total { font-family: var(--sw-font-mono); font-size: var(--sw-text-sm); letter-spacing: -0.02em; }
+
+.donut-legend { gap: 0; }
+.legend-btn { border: 0; border-top: 1px solid var(--sw-border); border-radius: 0; padding: var(--sw-space-3) 0; }
+.legend-btn:hover { background: none; color: var(--sw-pine); }
+.legend-btn[aria-pressed='true'] { border-color: var(--sw-border); color: var(--sw-pine); font-weight: var(--sw-weight-semibold); }
+.legend-swatch { width: 9px; height: 9px; border-radius: 0; }
+.legend-amount, .legend-pct { font-family: var(--sw-font-mono); font-variant-numeric: tabular-nums; }
+
+.bars { gap: 0; }
+.bar-row { padding: var(--sw-space-2) 0; border-top: 1px solid var(--sw-border); }
+.bar-track { height: 6px; border-radius: 0; background: var(--sw-paper-sunken); }
+.bar-fill { border-radius: 0; background: var(--sw-pine); }
+.bar-value { font-family: var(--sw-font-mono); font-variant-numeric: tabular-nums; font-size: 0.7rem; }
+
+.daybars { gap: 1px; }
+.daybar { border-radius: 0; }
+
+/* ── 12. the ribbon — geometry untouched (SW-ADR-055) ───────────────────── */
+/* No min-width, no flex-grow, no gap is added or removed here. Only the
+   surface changes: square, taller, on a flat sunken ground. */
+.ribbon {
+  height: 44px;
+  border: 0;
+  border-radius: 0;
+  background: var(--sw-paper-sunken);
+}
+.band { box-shadow: inset -2px 0 0 var(--sw-paper); }
+.band:last-child { box-shadow: none; }
+.ribbon[data-filtering='true'] .band[aria-pressed='true'] {
+  /* both cues kept: the inset marker AND the others dimming */
+  box-shadow: inset 0 0 0 3px var(--sw-paper), inset 0 0 0 5px var(--sw-ink);
+}
+.ribbon-legend { gap: var(--sw-space-2) var(--sw-space-6); font-family: var(--sw-font-body); text-transform: none; letter-spacing: 0; }
+.ribbon-legend .legend-item span:first-child { border-radius: 0 !important; }
+
+/* ── 13. entries ─────────────────────────────────────────────────────────── */
+.entries { overflow: visible; }
+.entry {
+  padding: var(--sw-space-4) 0;
+  border-bottom: 1px solid var(--sw-border);
+}
+.entry:last-child { border-bottom: 1px solid var(--sw-border); }
+.entry:hover:not(.day-head) { background: var(--sw-pine-soft); }
+
+.day-head {
+  background: none;
+  border-bottom: 1px solid var(--sw-border);
+  padding: var(--sw-space-2) 0;
+  font-family: var(--sw-font-mono);
+  font-size: 0.625rem;
+  font-weight: var(--sw-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--sw-ink-muted);
+}
+.entry-dot { width: 8px; height: 8px; border-radius: 0; }
+.entry-desc { font-weight: var(--sw-weight-medium); }
+.entry-meta {
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  color: var(--sw-ink-muted);
+}
+.entry-amount {
+  font-family: var(--sw-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--sw-text-base);
+  letter-spacing: -0.01em;
+}
+.entry-actions .btn-link { min-width: var(--sw-target-min); min-height: 36px; padding: 0; }
+
+/* ── 14. categories ──────────────────────────────────────────────────────── */
+.cat-list { gap: 0; }
+.cat-row {
+  padding: var(--sw-space-4) 0;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--sw-border);
+  border-radius: 0;
+}
+.cat-row:hover { background: var(--sw-pine-soft); }
+.cat-dot { width: 11px; height: 11px; border-radius: 0; }
+.cat-name { font-size: 1.0625rem; font-weight: var(--sw-weight-medium); letter-spacing: -0.01em; }
+.swatch { width: 40px; height: 40px; border-radius: 0; box-shadow: none; }
+.swatch[aria-pressed='true'] { border-color: var(--sw-ink); box-shadow: inset 0 0 0 2px var(--sw-paper); }
+
+/* ── 15. inputs — a ruled line, not a box ───────────────────────────────── */
+.field input, .field select,
+.row-form input, .field-grow input {
+  border: 0;
+  border-bottom: 1px solid var(--sw-border-strong);
+  border-radius: 0;
+  padding: 0 0 var(--sw-space-2);
+  background: none;
+  font-size: 1.0625rem;
+}
+.field input:focus, .field select:focus { border-bottom-color: var(--sw-pine); }
+.field input[aria-invalid='true'] { border-bottom-color: var(--sw-danger); }
+.field { margin-bottom: var(--sw-space-6); }
+.field-error { font-family: var(--sw-font-mono); font-size: var(--sw-text-xs); letter-spacing: 0.06em; }
+
+/* The amount field is the one a person opens the dialog to type in. */
+.panel input[name='amount'] {
+  font-family: var(--sw-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 2.375rem;
+  font-weight: var(--sw-weight-medium);
+  letter-spacing: -0.04em;
+  min-height: 48px;
+}
+
+/* ── 16. the panel ───────────────────────────────────────────────────────── */
+.scrim { align-items: stretch; justify-content: flex-end; padding: 0; backdrop-filter: blur(3px); }
+.panel {
+  max-width: 28rem;
+  height: 100%;
+  max-height: none;
+  padding: 0 var(--sw-space-8) var(--sw-space-8);
+  border-radius: 0;
+  border-left: 1px solid var(--sw-ink);
+  box-shadow: none;
+}
+.panel-title {
+  font-family: var(--sw-font-mono);
+  font-size: 0.625rem;
+  font-weight: var(--sw-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  padding: var(--sw-space-6) 0;
+  margin: 0 0 var(--sw-space-4);
+  border-bottom: 1px solid var(--sw-ink);
+}
+.panel-actions { margin-top: var(--sw-space-8); border-top: 1px solid var(--sw-ink); padding-top: var(--sw-space-6); }
+
+/* ── 17. tables ──────────────────────────────────────────────────────────── */
+.table-wrap { border: 0; }
+.table thead th {
+  font-size: 0.6rem;
+  background: none;
+  border-bottom: 1px solid var(--sw-ink);
+  padding: var(--sw-space-3) var(--sw-space-4) var(--sw-space-3) 0;
+}
+.table th, .table td { padding: var(--sw-space-4) var(--sw-space-4) var(--sw-space-4) 0; }
+.table tbody tr:hover { background: var(--sw-pine-soft); }
+.table tbody tr:last-child td { border-bottom: 1px solid var(--sw-border); }
+.table .num { font-family: var(--sw-font-mono); font-variant-numeric: tabular-nums; }
+.cell-strong { font-weight: var(--sw-weight-semibold); }
+.cell-sub { font-family: var(--sw-font-mono); font-size: var(--sw-text-xs); color: var(--sw-ink-muted); }
+.pill {
+  border-radius: 0;
+  padding: 2px var(--sw-space-2);
+  background: var(--sw-pine);
+  color: var(--sw-on-pine);
+  font-size: 0.6rem;
+  font-weight: var(--sw-weight-semibold);
+  letter-spacing: 0.14em;
+}
+.ok-dot, .off-dot, .gone-dot { width: 7px; height: 7px; border-radius: 0; }
+.row-actions .btn-link { min-height: 34px; padding: 0 var(--sw-space-2); font-size: 0.6rem; }
+
+.facts { gap: var(--sw-space-6); }
+.facts dd { font-family: var(--sw-font-mono); font-variant-numeric: tabular-nums; font-size: var(--sw-text-xl); letter-spacing: -0.02em; }
+.audit-row { border-bottom: 1px solid var(--sw-border); padding: var(--sw-space-2) 0; font-family: var(--sw-font-mono); font-size: var(--sw-text-sm); }
+
+/* ── 18. leaving ─────────────────────────────────────────────────────────── */
+.leaving { gap: var(--sw-space-8); }
+.leaving-option {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+.leaving-title { font-family: var(--sw-font-display); font-size: 1.25rem; font-weight: var(--sw-weight-semibold); letter-spacing: -0.02em; }
+
+/* ── 19. the gate ────────────────────────────────────────────────────────── */
+.gate { align-items: stretch; padding: 0; }
+.gate-card {
+  max-width: none;
+  padding: var(--sw-space-12) var(--sw-space-8);
+  border-radius: 0;
+  box-shadow: none;
+  animation: sw-rise var(--sw-motion-base) var(--sw-motion-ease);
+}
+.gate-card::before { content: none; }   /* the 3px top bar goes */
+.gate-sub {
+  font-family: var(--sw-font-body);
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: var(--sw-text-base);
+  margin-bottom: var(--sw-space-8);
+}
+.gate-footer { border-top: 1px solid var(--sw-border); text-align: left; }
+
+/* ── 20. states, banners, skeletons ─────────────────────────────────────── */
+.state { border: 0; border-top: 1px solid var(--sw-border); text-align: left; padding: var(--sw-space-12) 0; }
+.state-title { font-family: var(--sw-font-display); font-size: 2.125rem; font-weight: 700; text-transform: uppercase; letter-spacing: -0.035em; }
+.state-body { margin-inline: 0; }
+.state-error { border-top-color: var(--sw-danger); }
+.banner { border-radius: 0; border-left-width: 3px; background: var(--sw-paper-sunken); }
+.skeleton { border-radius: 0; }
+.form-error { border-radius: 0; font-family: var(--sw-font-mono); font-size: var(--sw-text-xs); letter-spacing: 0.06em; }
+.consequences { font-size: var(--sw-text-sm); }
+
+/* ── 21. keyframes ───────────────────────────────────────────────────────── */
+/* Both are neutralised by the prefers-reduced-motion block in tokens.css. */
+@keyframes sw-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes sw-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+/* ── 22. phone width ─────────────────────────────────────────────────────── */
+/* app.css already owns the phone rules; these only restate the ones the
+   flattening above would otherwise break. Nothing is hidden that exists on
+   desktop, and every control keeps its 44px floor. */
+@media (max-width: 900px) {
+  .rail { background: var(--sw-paper-sunken); border-right: 1px solid var(--sw-border); }
+  .topbar-mobile { background: var(--sw-paper); border-bottom: 1px solid var(--sw-ink); }
+  .content { padding: 0 var(--sw-space-4) var(--sw-space-12); }
+  .page-title, .gate-title { font-size: 2.75rem; }
+  .card-hero-value { font-size: 3rem; }
+  .section-title, .state-title { font-size: 1.75rem; }
+  .cards > .card, .panels > .card { box-shadow: none; border-bottom: 1px solid var(--sw-border); padding: var(--sw-space-4) 0; }
+  .scrim { align-items: flex-end; }
+  .panel { max-width: none; border-left: 0; border-top: 1px solid var(--sw-ink); height: auto; }
+  .segment { min-height: var(--sw-target-min); }
+}

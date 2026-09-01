@@ -28,19 +28,19 @@ text only, where WCAG exempts the requirement, and it must never carry content.
 | `--sw-ink` | `--sw-paper` | **16.41:1** | 4.5 | PASS | body text on the page |
 | `--sw-ink` | `--sw-paper-raised` | **17.57:1** | 4.5 | PASS | body text on a card |
 | `--sw-ink` | `--sw-paper-sunken` | **15.43:1** | 4.5 | PASS | body text in a well |
-| `--sw-ink` | `--sw-glass` | **17.33:1** | 4.5 | PASS | body text on glass |
+| `--sw-ink` | `--sw-glass` | **16.41:1** | 4.5 | PASS | body text on glass |
 | `--sw-ink-muted` | `--sw-paper` | **6.93:1** | 4.5 | PASS | labels and timestamps |
 | `--sw-ink-muted` | `--sw-paper-raised` | **7.42:1** | 4.5 | PASS | labels on a card |
-| `--sw-ink-muted` | `--sw-glass` | **7.32:1** | 4.5 | PASS | labels on glass |
+| `--sw-ink-muted` | `--sw-glass` | **6.93:1** | 4.5 | PASS | labels on glass |
 | `--sw-pine` | `--sw-paper` | **6.37:1** | 4.5 | PASS | links and accent text |
 | `--sw-pine` | `--sw-paper-raised` | **6.82:1** | 4.5 | PASS | accent text on a card |
-| `--sw-pine` | `--sw-glass` | **6.73:1** | 4.5 | PASS | accent text on glass |
+| `--sw-pine` | `--sw-glass` | **6.37:1** | 4.5 | PASS | accent text on glass |
 | `--sw-danger` | `--sw-paper` | **6.67:1** | 4.5 | PASS | validation errors |
 | `--sw-warning` | `--sw-paper` | **5.34:1** | 4.5 | PASS | approaching a limit |
 | `--sw-on-pine` | `--sw-pine` | **6.66:1** | 4.5 | PASS | text on a primary button |
 | `--sw-on-pine` | `--sw-danger` | **6.97:1** | 4.5 | PASS | text on a destructive button |
 | `--sw-focus-color` | `--sw-paper` | **6.37:1** | 3.0 | PASS | the focus ring on the page |
-| `--sw-focus-color` | `--sw-glass` | **6.73:1** | 3.0 | PASS | the focus ring on glass |
+| `--sw-focus-color` | `--sw-glass` | **6.37:1** | 3.0 | PASS | the focus ring on glass |
 | `--sw-border-strong` | `--sw-paper` | **3.33:1** | 3.0 | PASS | table rules and strong hairlines |
 | `--sw-cat-1` | `--sw-paper` | **4.40:1** | 3.0 | PASS | category band |
 | `--sw-cat-2` | `--sw-paper` | **4.43:1** | 3.0 | PASS | category band |
@@ -61,19 +61,19 @@ text only, where WCAG exempts the requirement, and it must never carry content.
 | `--sw-ink` | `--sw-paper` | **16.92:1** | 4.5 | PASS | body text on the page |
 | `--sw-ink` | `--sw-paper-raised` | **15.20:1** | 4.5 | PASS | body text on a card |
 | `--sw-ink` | `--sw-paper-sunken` | **17.26:1** | 4.5 | PASS | body text in a well |
-| `--sw-ink` | `--sw-glass` | **15.59:1** | 4.5 | PASS | body text on glass |
+| `--sw-ink` | `--sw-glass` | **16.92:1** | 4.5 | PASS | body text on glass |
 | `--sw-ink-muted` | `--sw-paper` | **8.55:1** | 4.5 | PASS | labels and timestamps |
 | `--sw-ink-muted` | `--sw-paper-raised` | **7.68:1** | 4.5 | PASS | labels on a card |
-| `--sw-ink-muted` | `--sw-glass` | **7.88:1** | 4.5 | PASS | labels on glass |
+| `--sw-ink-muted` | `--sw-glass` | **8.55:1** | 4.5 | PASS | labels on glass |
 | `--sw-pine` | `--sw-paper` | **11.36:1** | 4.5 | PASS | links and accent text |
 | `--sw-pine` | `--sw-paper-raised` | **10.20:1** | 4.5 | PASS | accent text on a card |
-| `--sw-pine` | `--sw-glass` | **10.46:1** | 4.5 | PASS | accent text on glass |
+| `--sw-pine` | `--sw-glass` | **11.36:1** | 4.5 | PASS | accent text on glass |
 | `--sw-danger` | `--sw-paper` | **7.94:1** | 4.5 | PASS | validation errors |
 | `--sw-warning` | `--sw-paper` | **8.57:1** | 4.5 | PASS | approaching a limit |
 | `--sw-on-pine` | `--sw-pine` | **10.99:1** | 4.5 | PASS | text on a primary button |
 | `--sw-on-pine` | `--sw-danger` | **7.68:1** | 4.5 | PASS | text on a destructive button |
 | `--sw-focus-color` | `--sw-paper` | **11.36:1** | 3.0 | PASS | the focus ring on the page |
-| `--sw-focus-color` | `--sw-glass` | **10.46:1** | 3.0 | PASS | the focus ring on glass |
+| `--sw-focus-color` | `--sw-glass` | **11.36:1** | 3.0 | PASS | the focus ring on glass |
 | `--sw-border-strong` | `--sw-paper` | **4.02:1** | 3.0 | PASS | table rules and strong hairlines |
 | `--sw-cat-1` | `--sw-paper` | **7.39:1** | 3.0 | PASS | category band |
 | `--sw-cat-2` | `--sw-paper` | **7.38:1** | 3.0 | PASS | category band |

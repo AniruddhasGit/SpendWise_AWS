@@ -10,6 +10,10 @@ import './styles/app.css'
 // The redesign layer, LAST — it overrides app.css by cascade order, not by
 // specificity, so nothing here needs !important and app.css stays readable.
 import './styles/app.redesign.css'
+// The Swiss restyle, LAST. Same cascade argument as the line above: it targets
+// class names that already exist and overrides by order, so no `.jsx` file
+// changes and nothing here needs `!important`.
+import './styles/app.swiss.css'
 
 // BEFORE the first render. Applying the theme in an effect means the first
 // paint uses the media query and then flips — a white flash on every load for

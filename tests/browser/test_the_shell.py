@@ -127,27 +127,64 @@ async def test_the_choice_survives_a_reload_and_system_is_the_absence_of_it(
         "document.documentElement.hasAttribute('data-theme')") is False
 
 
-async def test_text_stays_readable_on_glass_in_both_themes(page, seeded) -> None:
+async def test_text_stays_readable_on_the_card_in_both_themes(page, seeded) -> None:
     """The contrast tool computes this from `tokens.css`; this checks the
-    browser agrees — that the glass really is translucent and the composited
-    result is still the ink colour the tool measured against."""
+    browser agrees — that body ink on a card really clears 4.5:1 where it is
+    actually painted.
+
+    **This criterion was rewritten under `SW-ADR-154` (client ruling
+    2026-08-27), which amends `SW-ADR-147` D.** It used to assert the card's
+    background was `rgba(...)` — that the glass was translucent — on the
+    reasoning that an opaque card meant `backdrop-filter` had nothing to blur.
+
+    That was a check on the MECHANISM. The requirement was always that the
+    text is readable; glass was how the design of the day achieved it. The
+    Swiss restyle removes translucency on purpose (`--sw-glass` -> `--sw-paper`,
+    blur 0), so the old assertion could only ever fail, and passing it would
+    have meant abandoning the restyle rather than satisfying a real need.
+
+    What replaces it is strictly stronger. The old test never computed a ratio
+    at all — a translucent card compositing to something unreadable would have
+    passed it. This one reads the colours the browser actually painted and does
+    the WCAG arithmetic on them, in both themes.
+    """
     await _sign_in(page, seeded["A"])
     await page.wait_for_selector('[data-testid="headline"]')
 
     for theme in ("light", "dark"):
         await page.get_by_test_id(f"theme-{theme}").click()
         await page.wait_for_timeout(250)
-        style = await page.evaluate("""
+        measured = await page.evaluate("""
             () => {
               const card = document.querySelector('.card')
-              const s = getComputedStyle(card)
-              return { bg: s.backgroundColor, fg: getComputedStyle(document.body).color }
+              const bg = getComputedStyle(card).backgroundColor
+              const fg = getComputedStyle(document.body).color
+              const parse = c => c.match(/[\\d.]+/g).slice(0, 3).map(Number)
+              // WCAG 2.1 relative luminance.
+              const lum = ([r, g, b]) => {
+                const f = v => {
+                  v /= 255
+                  return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)
+                }
+                return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b)
+              }
+              const a = lum(parse(bg)), b = lum(parse(fg))
+              const ratio = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)
+              // A card that is still translucent would composite over whatever
+              // sits behind it, and the pair measured here would not be the
+              // pair `contrast.py` measured. Report the alpha so a regression
+              // says WHICH assumption broke.
+              const alpha = bg.startsWith('rgba') ? Number(bg.match(/[\\d.]+/g)[3]) : 1
+              return { bg, fg, ratio, alpha }
             }
         """)
-        # An `rgba(...)` background is the glass being translucent. An opaque
-        # card would mean `backdrop-filter` had nothing to blur and the whole
-        # effect was decoration.
-        assert "rgba" in style["bg"], f"{theme}: the card is not translucent ({style['bg']})"
+        assert measured["alpha"] == 1, (
+            f"{theme}: the card is translucent ({measured['bg']}) — SW-ADR-154 "
+            f"made the ground flat, so contrast.py's figures assume an "
+            f"unblended pair")
+        assert measured["ratio"] >= 4.5, (
+            f"{theme}: body ink on the card is {measured['ratio']:.2f}:1, "
+            f"below the 4.5:1 floor — {measured['fg']} on {measured['bg']}")
 
 
 # ── custom categories ──────────────────────────────────────────────────────

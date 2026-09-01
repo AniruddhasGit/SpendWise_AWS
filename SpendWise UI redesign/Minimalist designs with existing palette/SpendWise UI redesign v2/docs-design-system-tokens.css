@@ -1,0 +1,225 @@
+/* SOURCE OF TRUTH — docs/05 B DesignSystem/tokens.css
+ *
+ * SWISS RESTYLE, 2026-08-26. Third visual revision. The PALETTE IS UNCHANGED
+ * from the 2026-08-21 olive / greenish-white / near-black redesign — every hex
+ * below is the value already in `client/src/styles/tokens.css`, byte for byte,
+ * including all nine category bands. `tools/contrast.py` figures therefore
+ * still hold for every colour pair.
+ *
+ * What changed is GEOMETRY and TYPE SCALE only:
+ *   - radii collapse to 0 (Swiss/International-style: a rule, not a rounded box)
+ *   - shadows collapse to none; separation is a 1px hairline in --sw-border
+ *   - the two display steps grow, and leading tightens
+ *   - the wash radials are removed; the page is a flat --sw-paper
+ *
+ * Regenerate the client copy: py client/sync_tokens.py
+ * Token NAMES are unchanged. `--sw-pine` still means "the accent".
+ */
+
+:root {
+  /* surface + ink — UNCHANGED from the 2026-08-21 redesign -------------- */
+  --sw-paper: #f2f5e9;
+  --sw-paper-raised: #fbfcf6;
+  --sw-paper-sunken: #eaefdc;
+  --sw-ink: #14170e;
+  --sw-ink-muted: #4f5643;
+  --sw-ink-faint: #7c8468;        /* placeholder and disabled ONLY — never content */
+  --sw-pine: #4e5f22;
+  --sw-pine-deep: #354115;
+  --sw-pine-soft: #e2eaca;
+  --sw-border: #d8e0c2;
+  --sw-border-strong: #7f8a63;
+  --sw-positive: #4e5f22;
+  --sw-warning: #8a5a1f;
+  --sw-danger: #9c2f28;
+
+  /* category bands — UNCHANGED, SW-ADR-092 ------------------------------ */
+  --sw-cat-1: #4a7c59;
+  --sw-cat-2: #b5543b;
+  --sw-cat-3: #3e6b8f;
+  --sw-cat-4: #9c7a2f;
+  --sw-cat-5: #2e7d8a;
+  --sw-cat-6: #7b4b94;
+  --sw-cat-7: #a04c72;
+  --sw-cat-8: #7d8471;
+  --sw-cat-uncat: #928a85;
+
+  /* type — families UNCHANGED, two display steps grew ------------------- */
+  --sw-font-display: "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --sw-font-body:    "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --sw-font-mono:    "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --sw-text-xs: 0.75rem;   --sw-text-sm: 0.875rem;  --sw-text-base: 1rem;
+  --sw-text-lg: 1.125rem;  --sw-text-xl: 1.5rem;
+  --sw-text-2xl: 4.25rem;  /* was 2.5rem — page titles */
+  --sw-text-3xl: 5.75rem;  /* was 3.75rem — the hero total */
+
+  --sw-weight-regular: 400; --sw-weight-medium: 500; --sw-weight-semibold: 600;
+  --sw-leading-tight: 0.9;  /* was 1.08 */
+  --sw-leading-normal: 1.5;
+
+  /* space — UNCHANGED --------------------------------------------------- */
+  --sw-space-1: 0.25rem; --sw-space-2: 0.5rem;  --sw-space-3: 0.75rem;
+  --sw-space-4: 1rem;    --sw-space-6: 1.5rem;  --sw-space-8: 2rem;
+  --sw-space-12: 3rem;
+
+  /* radius — COLLAPSED. A Swiss grid separates with rules, not corners.
+     `--sw-radius-full` is kept at 999px because two things legitimately want
+     a circle (the status dots), and app.swiss.css squares the rest by name. */
+  --sw-radius-sm: 0px; --sw-radius-md: 0px; --sw-radius-lg: 0px;
+  --sw-radius-full: 999px;
+
+  /* shadow — COLLAPSED to none. The panel keeps a hairline edge only. */
+  --sw-shadow-sm: none;
+  --sw-shadow-md: none;
+  --sw-shadow-panel: -1px 0 0 var(--sw-ink);
+
+  --sw-motion-fast: 120ms; --sw-motion-base: 200ms;
+  --sw-motion-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* focus — SW-ADR-117. One rule, unchanged, never overridden. */
+  --sw-focus-width: 2px;
+  --sw-focus-offset: 2px;
+  --sw-focus-color: var(--sw-pine);
+
+  --sw-target-min: 44px;
+
+  --sw-scrim: rgb(20 23 14 / 0.38);
+
+  /* glass — FLATTENED. The alphas go to 1 and the blur to 0: an opaque
+     surface is what a hairline-ruled grid needs, and every composited
+     contrast figure becomes its own unblended figure, which can only rise. */
+  --sw-glass: var(--sw-paper);
+  --sw-glass-strong: var(--sw-paper);
+  --sw-glass-sunken: var(--sw-paper-sunken);
+  --sw-glass-border: var(--sw-border);
+  --sw-glass-blur: 0px;
+
+  /* the page wash is removed — flat paper */
+  --sw-wash-1: transparent;
+  --sw-wash-2: transparent;
+
+  --sw-on-pine: #f7faee;
+
+  /* charts — UNCHANGED hues, lighter fill */
+  --sw-plot-line: #4e5f22;
+  --sw-plot-fill: rgb(78 95 34 / 0.10);
+  --sw-plot-grid: rgb(20 23 14 / 0.09);
+}
+
+/* ── dark ─────────────────────────────────────────────────────────────────
+   Structure unchanged and it must stay: the media query scoped
+   `:root:not([data-theme="light"])` is the DEFAULT, `:root[data-theme="dark"]`
+   is the OVERRIDE the appearance control writes. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --sw-paper: #0d0f09;
+    --sw-paper-raised: #181c10;
+    --sw-paper-sunken: #0a0c06;
+    --sw-ink: #eef2e2;
+    --sw-ink-muted: #a8b096;
+    --sw-ink-faint: #79806a;
+    --sw-pine: #b8d16b;
+    --sw-pine-deep: #d0e28a;
+    --sw-pine-soft: #1f2612;
+    --sw-border: #2a3019;
+    --sw-border-strong: #6d7658;
+    --sw-positive: #b8d16b;
+    --sw-warning: #d9a441;
+    --sw-danger: #f08a80;
+    --sw-on-pine: #101409;
+
+    --sw-cat-1: #6fae82;
+    --sw-cat-2: #e08a6f;
+    --sw-cat-3: #74a6cc;
+    --sw-cat-4: #d4ae5e;
+    --sw-cat-5: #62b8c4;
+    --sw-cat-6: #b48ecb;
+    --sw-cat-7: #d883a6;
+    --sw-cat-8: #a8b09c;
+    --sw-cat-uncat: #9aa096;
+
+    --sw-glass: var(--sw-paper);
+    --sw-glass-strong: var(--sw-paper);
+    --sw-glass-sunken: var(--sw-paper-sunken);
+    --sw-glass-border: var(--sw-border);
+    --sw-wash-1: transparent;
+    --sw-wash-2: transparent;
+    --sw-scrim: rgb(0 0 0 / 0.62);
+
+    --sw-plot-line: #b8d16b;
+    --sw-plot-fill: rgb(184 209 107 / 0.12);
+    --sw-plot-grid: rgb(255 255 255 / 0.09);
+
+    --sw-shadow-sm: none;
+    --sw-shadow-md: none;
+    --sw-shadow-panel: -1px 0 0 var(--sw-ink);
+  }
+}
+
+:root[data-theme="dark"] {
+  --sw-paper: #0d0f09;
+  --sw-paper-raised: #181c10;
+  --sw-paper-sunken: #0a0c06;
+  --sw-ink: #eef2e2;
+  --sw-ink-muted: #a8b096;
+  --sw-ink-faint: #79806a;
+  --sw-pine: #b8d16b;
+  --sw-pine-deep: #d0e28a;
+  --sw-pine-soft: #1f2612;
+  --sw-border: #2a3019;
+  --sw-border-strong: #6d7658;
+  --sw-positive: #b8d16b;
+  --sw-warning: #d9a441;
+  --sw-danger: #f08a80;
+  --sw-on-pine: #101409;
+
+  --sw-cat-1: #6fae82;
+  --sw-cat-2: #e08a6f;
+  --sw-cat-3: #74a6cc;
+  --sw-cat-4: #d4ae5e;
+  --sw-cat-5: #62b8c4;
+  --sw-cat-6: #b48ecb;
+  --sw-cat-7: #d883a6;
+  --sw-cat-8: #a8b09c;
+  --sw-cat-uncat: #9aa096;
+
+  --sw-glass: var(--sw-paper);
+  --sw-glass-strong: var(--sw-paper);
+  --sw-glass-sunken: var(--sw-paper-sunken);
+  --sw-glass-border: var(--sw-border);
+  --sw-wash-1: transparent;
+  --sw-wash-2: transparent;
+  --sw-scrim: rgb(0 0 0 / 0.62);
+
+  --sw-plot-line: #b8d16b;
+  --sw-plot-fill: rgb(184 209 107 / 0.12);
+  --sw-plot-grid: rgb(255 255 255 / 0.09);
+
+  --sw-shadow-sm: none;
+  --sw-shadow-md: none;
+  --sw-shadow-panel: -1px 0 0 var(--sw-ink);
+}
+
+/* Numbers ALWAYS use tabular figures. SRC-001 §9.4 asks for this by name. */
+.sw-num {
+  font-family: var(--sw-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Focus. The ONE rule. `outline: none` never ships without a replacement. */
+:focus-visible {
+  outline: var(--sw-focus-width) solid var(--sw-focus-color);
+  outline-offset: var(--sw-focus-offset);
+}
+
+/* Reduced motion means INSTANT, not slower — SW-ADR-117 (2). */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

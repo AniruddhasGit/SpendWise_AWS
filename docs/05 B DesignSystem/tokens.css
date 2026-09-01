@@ -1,124 +1,116 @@
+/* SOURCE OF TRUTH — docs/05 B DesignSystem/tokens.css
+ *
+ * SWISS RESTYLE, 2026-08-26. Third visual revision. The PALETTE IS UNCHANGED
+ * from the 2026-08-21 olive / greenish-white / near-black redesign — every hex
+ * below is the value already in `client/src/styles/tokens.css`, byte for byte,
+ * including all nine category bands. `tools/contrast.py` figures therefore
+ * still hold for every colour pair.
+ *
+ * What changed is GEOMETRY and TYPE SCALE only:
+ *   - radii collapse to 0 (Swiss/International-style: a rule, not a rounded box)
+ *   - shadows collapse to none; separation is a 1px hairline in --sw-border
+ *   - the two display steps grow, and leading tightens
+ *   - the wash radials are removed; the page is a flat --sw-paper
+ *
+ * Regenerate the client copy: py client/sync_tokens.py
+ * Token NAMES are unchanged. `--sw-pine` still means "the accent".
+ */
+
 :root {
-  /* surface + ink ------------------------------------------------
-     REDESIGN 2026-08-21. The palette moved from paper-and-pine to
-     greenish-white / olive / near-black at the client's request. The token
-     NAMES are unchanged on purpose — `--sw-pine` still means "the accent", so
-     no component, test or ADR reference had to move. Re-run
-     `py tools/contrast.py` before merging: every figure in DESIGN-SYSTEM.md
-     §2.1 was computed from the OLD hexes and none of them describe these. */
-  --sw-paper: #f2f5e9;            /* the page. Greenish white, never pure white. */
-  --sw-paper-raised: #fbfcf6;     /* cards and the add-expense panel, lifted off the page. */
-  --sw-paper-sunken: #eaefdc;     /* table header rows, inset wells. */
-  --sw-ink: #14170e;              /* primary text. Near-black with an olive cast, never #000. */
-  --sw-ink-muted: #4f5643;        /* secondary text, labels, timestamps. */
-  --sw-ink-faint: #7c8468;        /* placeholder and disabled text ONLY. Fails AA on body copy — never use it for content. */
-  --sw-pine: #4e5f22;             /* the accent — olive. Primary buttons, active states, links. */
-  --sw-pine-deep: #354115;        /* pressed and hover on olive. */
-  --sw-pine-soft: #e2eaca;        /* tinted backgrounds behind accent content. */
-  --sw-border: #d8e0c2;           /* hairlines, input borders, band separators. */
-  --sw-border-strong: #7f8a63;    /* focus-adjacent borders, table rules. Kept at >=3:1 against paper. */
-  --sw-positive: #4e5f22;         /* same as the accent — under-budget, success. */
-  --sw-warning: #8a5a1f;          /* approaching a limit. Unchanged: it must not read as the accent. */
-  --sw-danger: #9c2f28;           /* destructive actions, validation errors. Unchanged. */
+  /* surface + ink — UNCHANGED from the 2026-08-21 redesign -------------- */
+  --sw-paper: #f2f5e9;
+  --sw-paper-raised: #fbfcf6;
+  --sw-paper-sunken: #eaefdc;
+  --sw-ink: #14170e;
+  --sw-ink-muted: #4f5643;
+  --sw-ink-faint: #7c8468;        /* placeholder and disabled ONLY — never content */
+  --sw-pine: #4e5f22;
+  --sw-pine-deep: #354115;
+  --sw-pine-soft: #e2eaca;
+  --sw-border: #d8e0c2;
+  --sw-border-strong: #7f8a63;
+  --sw-positive: #4e5f22;
+  --sw-warning: #8a5a1f;
+  --sw-danger: #9c2f28;
 
-  /* category bands — seeded set, SW-ADR-092 -----------------------
-     UNCHANGED. Nine bands need nine distinguishable hues; a three-colour
-     brand palette cannot supply them, and `SW-ADR-092` fixes these values
-     with measured figures behind each one. */
-  --sw-cat-1: #4a7c59;            /* Groceries */
-  --sw-cat-2: #b5543b;            /* Food & Dining */
-  --sw-cat-3: #3e6b8f;            /* Transport */
-  --sw-cat-4: #9c7a2f;            /* Rent & Utilities */
-  --sw-cat-5: #2e7d8a;            /* Health */
-  --sw-cat-6: #7b4b94;            /* Entertainment */
-  --sw-cat-7: #a04c72;            /* Shopping */
-  --sw-cat-8: #7d8471;            /* Other */
-  --sw-cat-uncat: #928a85;        /* Uncategorised — always last */
-  /* Was #948c87 until the 2026-08-21 redesign. The BAND did not change; the
-     ground under it did. #948c87 measured 3.51:1 against the old paper
-     #faf7f2 and 2.99:1 against the new greenish-white #f2f5e9 — a fail by
-     0.01, produced by a palette change that deliberately left every band
-     alone. Darkened 0.8pp within the hue (drift 0.00°) to 3.07:1, per the
-     instruction SW-ADR-092 gives for bands and the precedent SW-ADR-131 set
-     for this exact token. A contrast pair is a pair: changing either side
-     re-opens every figure that rests on it. */
+  /* category bands — UNCHANGED, SW-ADR-092 ------------------------------ */
+  --sw-cat-1: #4a7c59;
+  --sw-cat-2: #b5543b;
+  --sw-cat-3: #3e6b8f;
+  --sw-cat-4: #9c7a2f;
+  --sw-cat-5: #2e7d8a;
+  --sw-cat-6: #7b4b94;
+  --sw-cat-7: #a04c72;
+  --sw-cat-8: #7d8471;
+  --sw-cat-uncat: #928a85;
 
-  /* type ----------------------------------------------------------
-     Display is now a grotesque rather than a serif, so the headline total and
-     the page titles read as interface rather than as editorial. Numbers keep
-     a tabular mono, which `SRC-001 §9.4` asks for by name.
-     SELF-HOST THESE (`SW-ADR-020` rejects a font CDN) — see handoff/README.md. */
+  /* type — families UNCHANGED, two display steps grew ------------------- */
   --sw-font-display: "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", sans-serif;
   --sw-font-body:    "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --sw-font-mono:    "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
 
   --sw-text-xs: 0.75rem;   --sw-text-sm: 0.875rem;  --sw-text-base: 1rem;
-  --sw-text-lg: 1.125rem;  --sw-text-xl: 1.5rem;    --sw-text-2xl: 2.5rem;
-  --sw-text-3xl: 3.75rem;
+  --sw-text-lg: 1.125rem;  --sw-text-xl: 1.5rem;
+  --sw-text-2xl: 4.25rem;  /* was 2.5rem — page titles */
+  --sw-text-3xl: 5.75rem;  /* was 3.75rem — the hero total */
 
   --sw-weight-regular: 400; --sw-weight-medium: 500; --sw-weight-semibold: 600;
-  --sw-leading-tight: 1.08;  --sw-leading-normal: 1.5;
+  --sw-leading-tight: 0.9;  /* was 1.08 */
+  --sw-leading-normal: 1.5;
 
-  /* space, radius, shadow, motion ---------------------------------- */
+  /* space — UNCHANGED --------------------------------------------------- */
   --sw-space-1: 0.25rem; --sw-space-2: 0.5rem;  --sw-space-3: 0.75rem;
   --sw-space-4: 1rem;    --sw-space-6: 1.5rem;  --sw-space-8: 2rem;
   --sw-space-12: 3rem;
 
-  /* Softer corners throughout. The old 6px read as a form control on a card
-     the size of the hero; 10/14 reads as a surface. */
-  --sw-radius-sm: 5px; --sw-radius-md: 10px; --sw-radius-lg: 14px;
+  /* radius — COLLAPSED. A Swiss grid separates with rules, not corners.
+     `--sw-radius-full` is kept at 999px because two things legitimately want
+     a circle (the status dots), and app.swiss.css squares the rest by name. */
+  --sw-radius-sm: 0px; --sw-radius-md: 0px; --sw-radius-lg: 0px;
   --sw-radius-full: 999px;
 
-  --sw-shadow-sm: 0 1px 2px rgb(20 23 14 / 0.05);
-  --sw-shadow-md: 0 3px 14px rgb(20 23 14 / 0.07);
-  --sw-shadow-panel: 0 0 0 1px rgb(20 23 14 / 0.06), 0 24px 60px rgb(20 23 14 / 0.18);
+  /* shadow — COLLAPSED to none. The panel keeps a hairline edge only. */
+  --sw-shadow-sm: none;
+  --sw-shadow-md: none;
+  --sw-shadow-panel: -1px 0 0 var(--sw-ink);
 
   --sw-motion-fast: 120ms; --sw-motion-base: 200ms;
   --sw-motion-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 
-  /* focus — SW-ADR-117. One rule, never overridden without a replacement. */
+  /* focus — SW-ADR-117. One rule, unchanged, never overridden. */
   --sw-focus-width: 2px;
   --sw-focus-offset: 2px;
   --sw-focus-color: var(--sw-pine);
 
-  /* the smallest a control may be at phone width — SW-ADR-117 (5) */
   --sw-target-min: 44px;
 
   --sw-scrim: rgb(20 23 14 / 0.38);
 
-  /* glass — SW-ADR-147 -------------------------------------------------
-     The alphas are unchanged from the values tools/contrast.py fixed. The
-     SURFACE hex behind each one moved, so the composited figures moved with
-     it — re-run the tool; do not assume 0.78 still clears the floor. */
-  --sw-glass: rgb(251 252 246 / 0.80);
-  --sw-glass-strong: rgb(251 252 246 / 0.93);
-  --sw-glass-sunken: rgb(234 239 220 / 0.70);
-  --sw-glass-border: rgb(255 255 255 / 0.62);
-  --sw-glass-blur: 16px;
+  /* glass — FLATTENED. The alphas go to 1 and the blur to 0: an opaque
+     surface is what a hairline-ruled grid needs, and every composited
+     contrast figure becomes its own unblended figure, which can only rise. */
+  --sw-glass: var(--sw-paper);
+  --sw-glass-strong: var(--sw-paper);
+  --sw-glass-sunken: var(--sw-paper-sunken);
+  --sw-glass-border: var(--sw-border);
+  --sw-glass-blur: 0px;
 
-  /* The page wash the glass sits on. Two soft olive radials over paper. */
-  --sw-wash-1: rgb(78 95 34 / 0.13);
-  --sw-wash-2: rgb(20 23 14 / 0.05);
+  /* the page wash is removed — flat paper */
+  --sw-wash-1: transparent;
+  --sw-wash-2: transparent;
 
-  /* Text on an accent or danger fill. */
   --sw-on-pine: #f7faee;
 
-  /* charts — SW-ADR-147. Same hue as the accent, different weights, and
-     never a category colour. */
+  /* charts — UNCHANGED hues, lighter fill */
   --sw-plot-line: #4e5f22;
-  --sw-plot-fill: rgb(78 95 34 / 0.15);
-  --sw-plot-grid: rgb(20 23 14 / 0.07);
+  --sw-plot-fill: rgb(78 95 34 / 0.10);
+  --sw-plot-grid: rgb(20 23 14 / 0.09);
 }
 
 /* ── dark ─────────────────────────────────────────────────────────────────
-   `SW-ADR-147` unchanged in structure: the media query is the DEFAULT and
-   `[data-theme]` is the OVERRIDE, so an explicit light choice still beats a
-   dark system.
-
-   Not an inversion. Olive #4e5f22 measures far under 3:1 on a near-black
-   ground, so dark uses a light tint of the same hue (#b8d16b) and the ground
-   drops to a near-black with an olive cast rather than to grey. The nine
-   category bands keep the dark re-tints `SW-ADR-147` already measured. */
+   Structure unchanged and it must stay: the media query scoped
+   `:root:not([data-theme="light"])` is the DEFAULT, `:root[data-theme="dark"]`
+   is the OVERRIDE the appearance control writes. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --sw-paper: #0d0f09;
@@ -147,21 +139,21 @@
     --sw-cat-8: #a8b09c;
     --sw-cat-uncat: #9aa096;
 
-    --sw-glass: rgb(24 28 16 / 0.80);
-    --sw-glass-strong: rgb(24 28 16 / 0.94);
-    --sw-glass-sunken: rgb(10 12 6 / 0.70);
-    --sw-glass-border: rgb(255 255 255 / 0.09);
-    --sw-wash-1: rgb(184 209 107 / 0.10);
-    --sw-wash-2: rgb(184 209 107 / 0.04);
+    --sw-glass: var(--sw-paper);
+    --sw-glass-strong: var(--sw-paper);
+    --sw-glass-sunken: var(--sw-paper-sunken);
+    --sw-glass-border: var(--sw-border);
+    --sw-wash-1: transparent;
+    --sw-wash-2: transparent;
     --sw-scrim: rgb(0 0 0 / 0.62);
 
     --sw-plot-line: #b8d16b;
-    --sw-plot-fill: rgb(184 209 107 / 0.16);
-    --sw-plot-grid: rgb(255 255 255 / 0.07);
+    --sw-plot-fill: rgb(184 209 107 / 0.12);
+    --sw-plot-grid: rgb(255 255 255 / 0.09);
 
-    --sw-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.40);
-    --sw-shadow-md: 0 3px 14px rgb(0 0 0 / 0.45);
-    --sw-shadow-panel: 0 0 0 1px rgb(255 255 255 / 0.08), 0 24px 60px rgb(0 0 0 / 0.60);
+    --sw-shadow-sm: none;
+    --sw-shadow-md: none;
+    --sw-shadow-panel: -1px 0 0 var(--sw-ink);
   }
 }
 
@@ -192,25 +184,24 @@
   --sw-cat-8: #a8b09c;
   --sw-cat-uncat: #9aa096;
 
-  --sw-glass: rgb(24 28 16 / 0.80);
-  --sw-glass-strong: rgb(24 28 16 / 0.94);
-  --sw-glass-sunken: rgb(10 12 6 / 0.70);
-  --sw-glass-border: rgb(255 255 255 / 0.09);
-  --sw-wash-1: rgb(184 209 107 / 0.10);
-  --sw-wash-2: rgb(184 209 107 / 0.04);
+  --sw-glass: var(--sw-paper);
+  --sw-glass-strong: var(--sw-paper);
+  --sw-glass-sunken: var(--sw-paper-sunken);
+  --sw-glass-border: var(--sw-border);
+  --sw-wash-1: transparent;
+  --sw-wash-2: transparent;
   --sw-scrim: rgb(0 0 0 / 0.62);
 
   --sw-plot-line: #b8d16b;
-  --sw-plot-fill: rgb(184 209 107 / 0.16);
-  --sw-plot-grid: rgb(255 255 255 / 0.07);
+  --sw-plot-fill: rgb(184 209 107 / 0.12);
+  --sw-plot-grid: rgb(255 255 255 / 0.09);
 
-  --sw-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.40);
-  --sw-shadow-md: 0 3px 14px rgb(0 0 0 / 0.45);
-  --sw-shadow-panel: 0 0 0 1px rgb(255 255 255 / 0.08), 0 24px 60px rgb(0 0 0 / 0.60);
+  --sw-shadow-sm: none;
+  --sw-shadow-md: none;
+  --sw-shadow-panel: -1px 0 0 var(--sw-ink);
 }
 
-/* Numbers ALWAYS use tabular figures so columns of money line up.
-   SRC-001 §9.4 asks for this by name. */
+/* Numbers ALWAYS use tabular figures. SRC-001 §9.4 asks for this by name. */
 .sw-num {
   font-family: var(--sw-font-mono);
   font-variant-numeric: tabular-nums;
@@ -223,7 +214,7 @@
   outline-offset: var(--sw-focus-offset);
 }
 
-/* Reduced motion means INSTANT, not slower — SW-ADR-117 (2). Testable. */
+/* Reduced motion means INSTANT, not slower — SW-ADR-117 (2). */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

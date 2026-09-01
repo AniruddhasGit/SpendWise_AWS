@@ -19,7 +19,7 @@ never become a `MUST`.
 | # | Folder | What it is | State |
 |---|---|---|---|
 | 00 | **SourceOfTruth** | `SRC-001` the client's requirements, verbatim and clause-numbered, plus `SRC-002` their rulings — **frozen and SHA-256 hashed**. 10 errata at its foot. Never edited. | **written** |
-| 01 | **ADR** | 153 decision records (131 APPROVED, 22 superseded or withdrawn) + `ADR_DECISION_RELEASE_LEDGER.tsv`. Fail-closed. | **written** |
+| 01 | **ADR** | 154 decision records (132 APPROVED, 22 superseded or withdrawn) + `ADR_DECISION_RELEASE_LEDGER.tsv`. Fail-closed. | **written** |
 | 02 | **BRD** | 76 business requirements — what and why. No technology. | **written** |
 | 03 | **PRD** | 42 specifications, every screen, rule and error, plus the API contract and two worked payloads. **The code is written from this.** | **written** |
 | 05 | **Bible** | 48 stories under 7 epics, 195 binary acceptance criteria. The scope arbiter. | **written** |
@@ -74,7 +74,7 @@ stronger check regenerates and compares content.
 `CONSTITUTION.md` **Article X**, which carries 38 rows. All were adjudicated on 2026-08-05
 (`SW-ADR-091`…`128`), so no behaviour is unruled. `OPEN-NAME-01` is the one that matters formally:
 until a named human signs the ratification block, the Constitution is **UNADOPTED** and all
-153 ADRs carry a "recorded while ungoverned" caveat.
+154 ADRs carry a "recorded while ungoverned" caveat.
 
 ## Reading rules
 
