@@ -602,3 +602,59 @@ session, ahead of everything else.
 `actionlint` as CI jobs · `E5-S3`.
 
 - **Session closed 2026-08-25_1715 by Aniruddha Jathar** → handoff: handoffs/HANDOFF_2026-08-25_1715_aniruddha-jathar.md
+
+---
+
+## 2026-09-01 — the whole suite is green, and two defects nobody had reported
+
+**473 tests pass.** Including all 55 browser criteria, which **had never once run to completion**.
+`consistency_check.py` PASS with `--selftest` observing 18/18 checks fire on a planted violation;
+contrast light 26/26, dark 26/26; `lint:tokens` PASS.
+
+**`CV-16` — the day-one gate observed in a real browser — went green for the first time**, and the
+cause of its never having done so was one line. `tests/browser/conftest.py` spawns its own uvicorn
+with `SPENDWISE_DOTENV=0`, so `.env` is unread and `RATE_LIMIT_ENABLED` falls back to its field
+default of TRUE. The suite registers dozens of accounts against a limit of five per minute, and
+**34 setups died on a 429 before asserting anything**. The fixture predates `E1-S6`, which added
+rate limiting, and nothing re-ran it afterwards. `settings.py` already stated the intent; the
+browser fixture simply never obeyed a rule the in-process suite already followed.
+
+**Sign out moved from a page footer to beside the account it signs out of** — moved rather than
+added, so `data-testid="sign-out"` stays unique for the two criteria that locate it and the one that
+asserts a background control cannot take focus through `inert`.
+
+**The client's Swiss restyle contradicted an approved record on arrival, and it was escalated rather
+than absorbed.** `SW-ADR-147` D pinned the contrast floor to a glass alpha of 0.78; the restyle sets
+every alpha to 1 and blur to 0. **No code change could make that criterion green** — satisfying it
+meant abandoning the restyle. Three options, stopped, client chose to keep the restyle.
+
+**`SW-ADR-154` amends `SW-ADR-147` D rather than withdrawing it.** The principle — a floor is
+computed, never asserted — is untouched and now enforced *more* directly. The old assertion checked
+whether a background string contained `rgba` and **computed no ratio at all**, so a translucent card
+compositing to mud would have passed it. The replacement reads the painted colours and does the WCAG
+arithmetic in both themes. **Red-proofed both ways before being trusted**: forced translucent it
+names the alpha, forced opaque-at-3.46:1 it names the ratio, reverted it goes green.
+
+**The restyle shipped with two defects of its own, fixed rather than ruled around.** `.periods`
+carried `width: max-content`, which defeated `app.css`'s `flex-wrap` and pushed the page **222px past
+a 375px window**. And `.entry-meta` had been added to the mono-uppercase label list although it is
+not a label class — it renders a person's own category name, their email in the rail and the admin
+table, the `days-elapsed` figure the gate reads, and every chart caption. **An address stored as
+`a@spendwise.test` was being displayed as `A@SPENDWISE.TEST`.** The application had started editing
+its users' own data, and it would never have shown up in a screenshot review: uppercase looks like a
+design choice. It took a criterion asserting the exact stored string to catch it.
+
+**Adding one ADR broke fourteen cross-references and the checker found every one** — a missing
+amendment banner on `SW-ADR-147` (Art II.6), a drifted `docs/README.md`, and four documents still
+claiming 153 ADRs. All corrected before the commit landed.
+
+**Not done, recorded as such:** the AWS access key pasted into a chat on 2026-08-25 is **still
+unrotated** and its IAM user holds `AdministratorAccess` · `E0-S10` still owes a named human's
+observation and the deliberate RLS red-proof, so **M0 stays 9/10** — `CV-16` going green is evidence
+toward it, not the story · nothing deployed · `rds_bootstrap.sql` still cannot run as generated.
+
+**Open / next:** rotate the key · red-proof the gate with a named human (closes `E0-S10`, M0 10/10) ·
+`E6-S1` and the rest of M6 · fix `generate.py` · `consistency_check.py` and `actionlint` as CI jobs ·
+`E5-S3`.
+
+- **Session closed 2026-09-01_1302 by Aniruddha Jathar** → handoff: handoffs/HANDOFF_2026-09-01_1302_aniruddha-jathar.md
