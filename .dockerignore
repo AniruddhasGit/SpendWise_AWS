@@ -60,3 +60,11 @@ workflows/
 .idea/
 tools/
 alembic/versions/__pycache__/
+
+# ── the nested worktrees ─────────────────────────────────────────────────────
+# `dev/` and `uat/` are checkouts of the other two branches sitting inside this
+# folder. Without these two lines every `docker build .` from main uploads THREE
+# copies of the project to the daemon as build context, and bakes two of them
+# into the image.
+dev/
+uat/

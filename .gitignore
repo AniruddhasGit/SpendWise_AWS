@@ -28,3 +28,11 @@ Thumbs.db
 
 # your RDS master password - never committed
 rds.txt
+
+# ── the other two environments, as nested git worktrees ──────────────────────
+# `dev/` and `uat/` are working directories for the dev and uat branches, living
+# inside this one so all three environments sit together. They are NOT copies of
+# the code — one repository, three checkouts. Ignored here because from main's
+# point of view they are somebody else's working tree.
+/dev/
+/uat/
