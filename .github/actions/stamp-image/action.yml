@@ -37,10 +37,16 @@ runs:
                 --image-ids imageTag="${{ inputs.source-tag }}" \
                 --output json)
 
-        MANIFEST=$(echo "$IMG" | jq -r '.images[0].imageManifest')
+        # The manifest goes to a FILE, not through an argument. It is ~850
+        # bytes of JSON full of quotes and colons; handing it to the CLI as a
+        # string means every shell between here and the API gets an opinion
+        # about it. Verified on Windows, where exactly that produced
+        # "Invalid parameter at 'ImageManifest': Invalid JSON syntax" from a
+        # manifest that was perfectly valid. file:// has no such argument.
+        echo "$IMG" | jq -r '.images[0].imageManifest' > manifest.json
         MEDIA=$(echo "$IMG" | jq -r '.images[0].imageManifestMediaType')
 
-        if [ -z "$MANIFEST" ] || [ "$MANIFEST" = "null" ]; then
+        if [ ! -s manifest.json ] || [ "$(cat manifest.json)" = "null" ]; then
           echo "::error::${{ inputs.source-tag }} is not in ${{ inputs.repository }}." >&2
           exit 1
         fi
@@ -51,7 +57,7 @@ runs:
         if OUT=$(aws ecr put-image \
                    --repository-name "${{ inputs.repository }}" \
                    --image-tag "${{ inputs.new-tag }}" \
-                   --image-manifest "$MANIFEST" \
+                   --image-manifest file://manifest.json \
                    --image-manifest-media-type "$MEDIA" 2>&1); then
           echo "Stamped ${{ inputs.new-tag }}"
         elif echo "$OUT" | grep -q 'ImageAlreadyExistsException'; then
