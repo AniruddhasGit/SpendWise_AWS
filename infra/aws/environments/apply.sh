@@ -20,6 +20,18 @@ CLUSTER=spendwise-cluster
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ECS_DIR="$(cd "${HERE}/../ecs" && pwd)"
 
+# ---------------------------------------------------------------------------
+# Git Bash reports this script's directory as a POSIX path (/d/Project/...),
+# but the AWS CLI on Windows is a native binary that cannot resolve one - it
+# fails with "Unable to load paramfile". cygpath -m converts to C:/Project/...,
+# which file:// accepts. On Linux and macOS there is no cygpath and the path is
+# already correct, so this is a no-op there.
+# ---------------------------------------------------------------------------
+if command -v cygpath >/dev/null 2>&1; then
+  HERE="$(cygpath -m "$HERE")"
+  ECS_DIR="$(cygpath -m "$ECS_DIR")"
+fi
+
 say() { printf '\n== %s\n' "$*"; }
 
 for ENV in dev uat; do
