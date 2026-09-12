@@ -46,6 +46,19 @@ docs/
 !docs/03 PRD/
 !docs/03 PRD/api/
 !docs/03 PRD/api/contract.json
+# ...and a SECOND exception, found the same way and one layer deeper.
+# `alembic/versions/0002_cr001_soft_delete_and_admin_daily.py:36` reads
+# `security.sql` while MIGRATING, to avoid holding a second definition of a
+# SECURITY DEFINER function. Migrations run from the entrypoint, inside the
+# container, so this is a runtime dependency too.
+#
+# Production never noticed: its database was already at head, so alembic had
+# nothing to apply and never opened the file. CI starts from an EMPTY database,
+# runs every migration, and dies here. An image can therefore be "working in
+# production" and unable to build a new environment from scratch — which is
+# precisely what three environments needed it to do.
+!docs/06 DataModel/
+!docs/06 DataModel/security.sql
 evidence/
 goals/
 handoffs/

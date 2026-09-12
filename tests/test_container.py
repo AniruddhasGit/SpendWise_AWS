@@ -248,25 +248,47 @@ def test_every_docs_file_read_at_runtime_is_actually_in_the_image():
     The test is written against the pattern rather than the one known file, so
     the next module that reads a spec at runtime is caught on the commit that
     adds it.
+
+    THE SCAN ROOTS ARE READ OUT OF THE DOCKERFILE, not listed here. The first
+    version of this test hard-coded `app/` and therefore missed
+    `alembic/versions/0002_cr001_soft_delete_and_admin_daily.py:36`, which
+    reads `docs/06 DataModel/security.sql` *during the migration*. That one
+    stayed invisible for five weeks because every database it met was already
+    at head, so alembic never ran it and never opened the file. CI's database
+    is created empty on every run, and CI was red on main for four commits.
+
+    So: whatever the image COPYs in, this test looks at. A test that guards the
+    image while holding its own opinion of what the image contains is a test
+    that goes green on the day those two disagree.
     """
     pattern = re.compile(
         r"""parents\[\d+\]\s*/\s*["']docs["']\s*(?:/\s*["'][^"']+["']\s*)+""",
         re.X,
     )
-    needed: set[str] = set()
-    for py in (ROOT / "app").rglob("*.py"):
-        for m in pattern.finditer(py.read_text("utf-8")):
-            parts = re.findall(r"""["']([^"']+)["']""", m.group(0))
-            needed.add("/".join(parts))
+
+    roots = [
+        ROOT / d for d in re.findall(r"^COPY\s+([\w./-]+)/\s+\./", DOCKERFILE, re.M)
+        if (ROOT / d).is_dir()
+    ]
+    assert roots, "no directory COPY lines found in the Dockerfile — has its shape changed?"
+
+    needed: dict[str, str] = {}
+    for root in roots:
+        for py in root.rglob("*.py"):
+            for m in pattern.finditer(py.read_text("utf-8")):
+                parts = re.findall(r"""["']([^"']+)["']""", m.group(0))
+                needed["/".join(parts)] = py.relative_to(ROOT).as_posix()
 
     assert needed, \
         "no runtime docs/ reads found — if that is now true, delete this test " \
         "rather than letting it pass vacuously"
 
-    for path in sorted(needed):
+    for path, reader in sorted(needed.items()):
         assert path in DOCKERFILE, (
-            f"{path} is read at runtime by app/, but no COPY in the Dockerfile "
-            f"puts it in the image. Every error path will raise FileNotFoundError."
+            f"{path} is read at runtime by {reader}, but no COPY in the "
+            f"Dockerfile puts it in the image. It will raise FileNotFoundError "
+            f"the first time that code path runs — which may be long after "
+            f"deploy, and on a machine you are not watching."
         )
         assert f"!{path}" in DOCKERIGNORE, (
             f"{path} is COPYed by the Dockerfile but `.dockerignore` excludes "

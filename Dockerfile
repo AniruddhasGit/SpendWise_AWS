@@ -108,6 +108,19 @@ COPY docker-entrypoint.sh ./
 # production on 2026-09-13.
 COPY ["docs/03 PRD/api/contract.json", "./docs/03 PRD/api/contract.json"]
 
+# The second one, which hid behind an already-migrated database.
+#
+# `alembic/versions/0002_cr001_soft_delete_and_admin_daily.py:36` resolves
+# `parents[2]/"docs"/"06 DataModel"/"security.sql"` and reads the generated
+# SECURITY DEFINER function bodies out of it during the migration, rather than
+# keeping a second copy of them in Python.
+#
+# Migrations run from docker-entrypoint.sh, in this container, so the file has
+# to be here. It was missing for five weeks without symptom because every
+# database it met was already at head. The first database that was NOT — CI's,
+# which is created empty on every run — failed on migration 0002.
+COPY ["docs/06 DataModel/security.sql", "./docs/06 DataModel/security.sql"]
+
 # The built client, from stage 1 and nothing else from it.
 #
 # The destination path is NOT arbitrary. `app/core/spa.py` resolves its
