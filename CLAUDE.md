@@ -182,14 +182,39 @@ fast** — a missing required key aborts startup rather than defaulting silently
 the dependent story `Blocked`, never stubbed. **Never commit a credential**; `/tt` scans the staged
 diff before every push.
 
-## The build session does not touch AWS
+## AWS: what SW-ADR-005 says, and what is actually true
 
-`SW-ADR-005`. No pipeline files, no infrastructure code, nothing created in AWS. In exchange it gives
-**advance notice** of every AWS dependency in `docs/30 Deployment/AWS_PREP_QUEUE.md` and in chat,
-early enough to prepare while code is still being written.
+`SW-ADR-005` rules that the build session writes application code only and creates nothing in AWS.
+**That is no longer what happens**, and the gap is recorded here rather than left for you to trip
+over.
 
-Consequence, stated every time it matters: this session **never observes the app running in AWS**,
-so every claim about AWS behaviour is **reasoned, not observed**, and is labelled that way.
+On 2026-09-12 and 2026-09-13 the client directed this session to deploy and then to build the
+environments and pipeline — *"build it"*, *"continue the infra build"*, *"start building the infra,
+we do not have time"*, scope confirmed as *"Everything: branches, GitHub, AWS, CD"*. What now exists:
+three environments on one EC2 host (`:8000` production, `:8001` uat, `:8002` dev), a database per
+environment on one RDS instance, and a CD pipeline. It is committed under `infra/` with the
+reasoning in comments — start at `infra/README.md`.
+
+**A superseding ADR is OWED and is BLOCKED.** Writing one was attempted and reverted: seventeen
+documents cite `SW-ADR-005`, and `tools/consistency_check.py` fails any live document resting on a
+non-APPROVED record. Two of the seventeen are `SRC-001` and `SRC-002`, which are frozen and
+SHA-256-fingerprinted, so they can never be annotated to say "superseded" — meaning superseding this
+particular ADR cannot pass the gate as the gate is currently written. Resolving that means either
+narrowing the check to exempt frozen sources, or accepting a permanently red gate. **Narrowing a
+quality check is RESERVED** (see below), so it waits for the client. The draft record is kept
+outside the repository rather than half-applied.
+
+**Until then, treat `SW-ADR-005` as historical on the AWS question and this section as current.**
+
+**What the old record still gets right, and what it now gets backwards:** it warned this session
+would never observe AWS, so every AWS claim was *reasoned, not observed*. It observes AWS directly
+now, which raises the bar: an AWS claim that was **not** observed is a defect, not an accepted
+limitation. Art VII is unchanged — *here is the command and here is the output*, never *the pipeline
+went green*.
+
+**Still reserved, and not softened by any of this:** billing, anything that changes what the product
+is, waiving or narrowing a quality check, and exposing a database to the public internet — the last
+of which was declined during the session that built all this and referred to the client.
 
 ## Win condition — define victory, then stop
 

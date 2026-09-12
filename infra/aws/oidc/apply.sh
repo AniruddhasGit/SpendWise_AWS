@@ -18,6 +18,22 @@
 #   it would let ANY workflow running on main assume the production role,
 #   which is every future workflow anyone ever adds, gate or no gate.
 #
+# THE SUBJECT IS THE IMMUTABLE FORM, AND THAT IS NOT OPTIONAL HERE.
+#   This repository has immutable subject claims switched on:
+#
+#     gh api repos/AniruddhasGit/SpendWise/actions/oidc/customization/sub
+#     -> "use_immutable_subject": true
+#        "sub_claim_prefix": "repo:AniruddhasGit@169955520/SpendWise@1334397382"
+#
+#   so a real token says repo:OWNER@169955520/REPO@1334397382:environment:dev,
+#   carrying numeric ids rather than names. The plain form every tutorial shows
+#   - repo:owner/name:environment:dev - never matches. The only symptom is
+#   "Not authorized to perform sts:AssumeRoleWithWebIdentity", which names no
+#   condition and points at nothing. Cost: one failed deploy to find.
+#
+#   The ids are worth keeping: unlike a name, they cannot be re-registered by
+#   someone else after a rename.
+#
 # Idempotent. Safe to re-run.
 # =============================================================================
 set -euo pipefail

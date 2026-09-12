@@ -11,7 +11,7 @@
       "Condition": {
         "StringEquals": {
           "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
-          "token.actions.githubusercontent.com:sub": "repo:AniruddhasGit/SpendWise:environment:production"
+          "token.actions.githubusercontent.com:sub": "repo:AniruddhasGit@169955520/SpendWise@1334397382:environment:production"
         }
       }
     }
