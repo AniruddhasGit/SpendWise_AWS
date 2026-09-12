@@ -1,8 +1,9 @@
 # 2026-09-13 — building the three-environment pipeline
 
-Six entries. One of them ran and did damage; the other five were caught while reading a draft, not
-while debugging a failure. That ratio is the point of this file: the cheap catches all came from
-someone asking "what would this actually do?" before running it.
+Eight entries. One ran and did damage, one cost a failed deploy, and the other six were caught
+while reading a draft rather than while debugging a failure. That ratio is the point of this
+file: every cheap catch came from someone asking "what would this actually do?" before running
+it.
 
 Context: dev / uat / production as three isolated environments, with a promotion path that cannot
 be jumped. GitHub Actions, OIDC, ECS, and per-environment database credentials.
@@ -50,7 +51,7 @@ instance does not mean reachable from the internet.
 
 ---
 
-## The five caught while reading
+## The seven caught while reading
 
 ### The production trust policy had a second door
 
@@ -164,15 +165,96 @@ hostname that does not exist. The working profile is `dynpro`.
 
 ---
 
+### The OIDC subject was the documented one, not the real one
+
+**Shape:** wrong-assumption
+
+**Believed.** A GitHub Actions OIDC trust policy identifies the caller by its `sub` claim, which
+for an environment-scoped job is:
+
+```
+repo:AniruddhasGit/SpendWise:environment:dev
+```
+
+That is the form in GitHub's documentation, in AWS's documentation, and in every worked example.
+The three trust policies were written against it and read carefully for the *shape* of the
+condition - an earlier draft allowed a `ref` alternative, which was caught and removed.
+
+**Actually.** This repository has **immutable subject claims** enabled, which nothing in the
+workflow, the policy, or the AWS console mentions:
+
+```
+gh api repos/AniruddhasGit/SpendWise/actions/oidc/customization/sub
+{"use_default":true,"use_immutable_subject":true,
+ "sub_claim_prefix":"repo:AniruddhasGit@169955520/SpendWise@1334397382"}
+```
+
+Real tokens carry `repo:AniruddhasGit@169955520/SpendWise@1334397382:environment:dev` - the numeric
+owner id and repository id, not the names. The documented form never matches.
+
+**Caught by.** The first pipeline-driven deploy. CI passed, the environment gating worked, uat and
+production were correctly skipped, and the deploy died at the first step with:
+
+```
+Could not assume role with OIDC: Not authorized to perform sts:AssumeRoleWithWebIdentity
+```
+
+That message names no condition, no claim and no value. It is identical whether the audience is
+wrong, the subject is wrong, the provider is missing, or the thumbprint is stale.
+
+> **Lesson.** The policy was reviewed for whether it said the right thing and never for whether it
+> matched the actual token. Those are different questions, and only the second is decidable by
+> looking at the token. When a policy compares against a claim, print the claim - GitHub exposes the
+> template at `/actions/oidc/customization/sub`, and one API call before writing the policy would
+> have cost nothing.
+>
+> Keep the feature rather than switching it off, which was the other available "fix": a numeric id
+> cannot be re-registered by someone else after a rename, and a name can.
+
+---
+
+### Superseding an ADR the frozen sources cite cannot pass the gate
+
+**Shape:** the-check-was-wrong
+
+**Believed.** `SW-ADR-005` ("the build session touches no AWS") had been overtaken by events, so the
+method's own procedure applies: write a superseding record, mark the old one SUPERSEDED, update the
+ledger.
+
+**Actually.** `tools/consistency_check.py` gates on no live document resting authority on a
+non-APPROVED record - correctly, since an earlier review found the constitution resting the
+product's central security promise on a withdrawn ADR. Marking `SW-ADR-005` superseded turned
+**seventeen** citations into failures at once.
+
+Fifteen are ordinary documents that can be annotated. Two are `SRC-001` and `SRC-002`, which are
+frozen and SHA-256-fingerprinted; changing a byte invalidates every artifact derived from them. They
+carry `Carried into: SW-ADR-005` provenance pointers that can never be updated.
+
+So superseding this particular ADR cannot pass the gate - not because anything is wrong, but because
+the check has no exemption for documents that are definitionally unupdatable. It already exempts
+`all-ADRs/` and the ledger on exactly that reasoning.
+
+**Caught by.** Running `consistency_check.py` before committing, as `CLAUDE.md` requires.
+
+> **Lesson.** The tempting fix was one `continue` for `docs/00 SourceOfTruth/`, and the argument for
+> it is decent - a frozen source's forward pointer records what was derived from it, not a claim
+> that the target is still authority. But narrowing a quality check is **reserved**, and "the gate
+> is wrong" is exactly what someone says when the gate is right. Reverted and referred to the
+> client, with the draft record kept outside the repository rather than half-applied. A gate that
+> blocks something legitimate is a design question, not a thing to route around at the moment it
+> becomes inconvenient.
+
+---
+
 ## Shape counts for this session
 
 | Shape | Count |
 |---|---|
-| the-check-was-wrong | 2 |
-| wrong-assumption | 2 |
+| the-check-was-wrong | 3 |
+| wrong-assumption | 3 |
 | fix-caused-it (averted) | 1 |
 | environment | 1 |
 
-Five of six were found by reading a draft aloud against the question "what does this actually do,
+Six of eight were found by reading a draft aloud against the question "what does this actually do,
 line by line?" — not by running anything. The one that got through was the one nobody read back
 before it executed.
