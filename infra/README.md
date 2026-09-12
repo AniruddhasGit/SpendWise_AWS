@@ -121,13 +121,17 @@ six-hour window), against production's 512 MiB reservation — about 3× oversiz
 
 | Service | Reserved | Hard limit | Workers |
 |---|---|---|---|
-| `spendwise` | 512 | 768 | 2 |
+| `spendwise` | 384 | 768 | 2 |
 | `spendwise-uat` | 192 | 384 | 1 |
 | `spendwise-dev` | 192 | 384 | 1 |
-| | **896 of 916** | | |
+| | **768 of 916** | | 148 MiB spare |
 
-Twenty MiB of headroom is thin. Dropping production's reservation to 384 — still more than twice
-observed peak — would free 128 MiB and cost one restart.
+Production was reserving 512 against a measured peak of 171 — three times what it uses — which left
+only 20 MiB once dev and uat were added. Revision `spendwise:3` dropped it to 384, still 2.2x peak,
+and the host went from 404 MiB free to 532.
+
+Only the **soft** limit (`memoryReservation`) decides placement; the hard limit is the OOM ceiling
+and is left at 768 deliberately. Lowering that too would shrink the crash margin and free nothing.
 
 All three services run `maximumPercent: 100`, `minimumHealthyPercent: 0`: ECS stops the old task
 before starting the new one. On a host this size there is no room to run two copies during a
