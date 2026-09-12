@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SpendWise — explanation</title>
+<style>
+  :root{
+    --bg:#fbfaf7; --card:#ffffff; --ink:#1c1b18; --muted:#6b6862;
+    --line:#e3e0d8; --accent:#5b6f3f; --accent-soft:#eef1e6; --code:#f4f2ec;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#16171a; --card:#1e2024; --ink:#e8e6e1; --muted:#9a978f;
+      --line:#2e3238; --accent:#a3bd77; --accent-soft:#242a1e; --code:#24262b;
+    }
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; padding:3.5rem 1.25rem 5rem;
+    background:var(--bg); color:var(--ink);
+    font:16px/1.65 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  .wrap{max-width:42rem;margin:0 auto}
+  h1{font-size:1.9rem;line-height:1.2;margin:0 0 .4rem;letter-spacing:-.02em}
+  .sub{color:var(--muted);margin:0 0 2.5rem;font-size:1.02rem}
+  p{margin:0 0 1rem}
+  code{background:var(--code);padding:.12em .38em;border-radius:4px;
+       font:0.87em ui-monospace,SFMono-Regular,Consolas,monospace}
+  a.ver{
+    display:block;text-decoration:none;color:inherit;background:var(--card);
+    border:1px solid var(--line);border-radius:10px;padding:1rem 1.15rem;margin:0 0 .7rem;
+  }
+  a.ver:hover{border-color:var(--accent);background:var(--accent-soft)}
+  .vnum{color:var(--accent);font-weight:650;font-variant-numeric:tabular-nums;font-size:.85rem}
+  .vtitle{font-weight:650;letter-spacing:-.01em;margin:.15rem 0 .2rem}
+  .vmeta{color:var(--muted);font-size:.89rem}
+  .pending{opacity:.6;border-style:dashed}
+  .pending:hover{border-color:var(--line);background:var(--card);cursor:default}
+  .note{
+    background:var(--accent-soft);border-left:3px solid var(--accent);
+    padding:.85rem 1rem;border-radius:0 8px 8px 0;margin:2rem 0 0;
+  }
+  .note p:last-child{margin-bottom:0}
+  footer{margin-top:3rem;padding-top:1.25rem;border-top:1px solid var(--line);
+         color:var(--muted);font-size:.87rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>SpendWise, explained</h1>
+<p class="sub">One page per stage of the build. Each one is the complete picture as it stood on that date — so the newest is always enough on its own, and reading them in order shows the thing being built.</p>
+
+<a class="ver" href="01_2026-09-12_the-system-so-far.html">
+  <div class="vnum">VERSION 1 · 12 September 2026</div>
+  <div class="vtitle">The whole system, so far</div>
+  <div class="vmeta">The app, the container, and the one database on AWS. What each piece does, why it was built that way, and the seven things that don't exist yet.</div>
+</a>
+
+<div class="ver pending">
+  <div class="vnum">VERSION 2 · not written yet</div>
+  <div class="vtitle">Somewhere to keep the image</div>
+  <div class="vmeta">Will cover the container registry — what it is, why a server can't just build the app itself, and the login that expires every twelve hours.</div>
+</div>
+
+<div class="ver pending">
+  <div class="vnum">VERSION 3 · not written yet</div>
+  <div class="vtitle">Somewhere to run it</div>
+  <div class="vmeta">The server, the thing that keeps the container alive on it, and how it gets the database password without anyone typing it in.</div>
+</div>
+
+<div class="note">
+<p><strong>How to read these in a year.</strong> Open the highest-numbered one. It contains everything. The older ones are only there if you want to know what changed and when — each is a snapshot, not a chapter, so you never have to assemble the picture from pieces.</p>
+</div>
+
+<footer>
+Written alongside the build, in <code>explanation/</code>.<br>
+No password, key or connection string appears in any of these files.
+</footer>
+
+</div>
+</body>
+</html>

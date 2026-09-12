@@ -34,12 +34,13 @@ def test_the_client_is_built_in_a_node_stage_that_does_not_survive():
     A single-stage image that installed node would work and ship ~200MB of
     build tooling to production, where it is attack surface with no purpose.
     """
-    assert re.search(r"^FROM node:20-alpine AS client", DOCKERFILE, re.M), \
+    assert re.search(r"^FROM (?:--platform=\S+ )?node:20-alpine AS client",
+                     DOCKERFILE, re.M), \
         "SRC-001 §11.1 names node:20-alpine as the first stage"
     assert re.search(r"^COPY --from=client ", DOCKERFILE, re.M), \
         "nothing is copied out of the client stage — the build result is discarded"
     # The runtime stage must not install node itself.
-    runtime = DOCKERFILE.split("FROM python:")[1]
+    runtime = re.split(r"^FROM .*python:", DOCKERFILE, maxsplit=1, flags=re.M)[1]
     assert "npm" not in runtime and "nodejs" not in runtime, \
         "the runtime stage installs node — that is the toolchain §11.1 excludes"
 
@@ -51,11 +52,44 @@ def test_the_python_base_pins_its_patch_version():
     which is exactly the property `requirements.lock` exists to remove one
     layer up. Pinning one and floating the other is half a guarantee.
     """
-    m = re.search(r"^FROM (python:3\.12\.\d+-slim)", DOCKERFILE, re.M)
+    m = re.search(r"^FROM (?:--platform=\S+ )?(python:3\.12\.\d+-slim)",
+                  DOCKERFILE, re.M)
     assert m, "the runtime base must be python:3.12.<patch>-slim, patch pinned"
     assert "-alpine" not in m.group(1), \
         "SW-ADR-016 locks the stack; alpine's musl forces source builds of " \
         "wheels that ship manylinux binaries"
+
+
+def test_the_runtime_stage_pins_its_cpu_architecture():
+    """The image must declare the CPU it is for, not inherit the builder's.
+
+    `SW-ADR-005` leaves building and pushing to the client, by hand, from
+    whatever laptop is in front of them. An unpinned runtime stage therefore
+    produces an arm64 image on Apple Silicon and an amd64 image everywhere
+    else, from the identical commit.
+
+    That failure is unusually expensive: the push succeeds, ECS accepts the
+    task definition and places the task, and only then does the container die
+    with `exec format error`. Nothing in the deploy path reads as wrong until
+    the very last step, and until the `/ecs/spendwise` log group exists there
+    is no record of it at all.
+
+    The client stage is deliberately NOT pinned — it emits JavaScript, which
+    has no architecture, so pinning it would buy nothing and cost emulation.
+    """
+    runtime_from = re.search(r"^FROM (--platform=\S+ )?python:", DOCKERFILE, re.M)
+    assert runtime_from, "no runtime FROM line found"
+    assert runtime_from.group(1), \
+        "the runtime stage does not pin --platform; the image's architecture " \
+        "would be whatever the builder's laptop happens to be"
+    assert "linux/amd64" in runtime_from.group(1), \
+        "the runtime stage must pin linux/amd64 — the deploy target is a " \
+        "t3.micro, which is x86"
+
+    client_from = re.search(r"^FROM (--platform=\S+ )?node:", DOCKERFILE, re.M)
+    assert client_from, "no client FROM line found"
+    assert "BUILDPLATFORM" in (client_from.group(1) or ""), \
+        "the client stage should track $BUILDPLATFORM so it builds natively"
 
 
 def test_dependencies_come_from_the_lock_never_from_pyproject():
@@ -196,3 +230,46 @@ def test_a_locally_built_client_cannot_be_copied_in_by_accident():
     laptop, from a commit nobody recorded."""
     assert "client/dist/" in DOCKERIGNORE
     assert "client/node_modules/" in DOCKERIGNORE
+
+
+def test_every_docs_file_read_at_runtime_is_actually_in_the_image():
+    """`.dockerignore` excludes `docs/`. Anything under it that the app READS
+    at runtime must be copied back in explicitly, or the image is broken in a
+    way no import-time check can see.
+
+    This is not hypothetical. `app/core/errors.py` loads the error-code table
+    from `contract.json`, and `app/modules/categories/service.py` loads the
+    seeded category list from the same file — both deliberately, so the code
+    and the spec of record cannot drift. The first real deploy shipped without
+    it: `/healthz` answered 200, and every error path raised FileNotFoundError
+    *inside the handler that formats errors*, so the 500 could not even
+    describe itself. CI's smoke test polls `/healthz` only, so it stayed green.
+
+    The test is written against the pattern rather than the one known file, so
+    the next module that reads a spec at runtime is caught on the commit that
+    adds it.
+    """
+    pattern = re.compile(
+        r"""parents\[\d+\]\s*/\s*["']docs["']\s*(?:/\s*["'][^"']+["']\s*)+""",
+        re.X,
+    )
+    needed: set[str] = set()
+    for py in (ROOT / "app").rglob("*.py"):
+        for m in pattern.finditer(py.read_text("utf-8")):
+            parts = re.findall(r"""["']([^"']+)["']""", m.group(0))
+            needed.add("/".join(parts))
+
+    assert needed, \
+        "no runtime docs/ reads found — if that is now true, delete this test " \
+        "rather than letting it pass vacuously"
+
+    for path in sorted(needed):
+        assert path in DOCKERFILE, (
+            f"{path} is read at runtime by app/, but no COPY in the Dockerfile "
+            f"puts it in the image. Every error path will raise FileNotFoundError."
+        )
+        assert f"!{path}" in DOCKERIGNORE, (
+            f"{path} is COPYed by the Dockerfile but `.dockerignore` excludes "
+            f"docs/ without re-including it, so the build context has no such "
+            f"file and the COPY fails."
+        )

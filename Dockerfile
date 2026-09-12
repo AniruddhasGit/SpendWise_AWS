@@ -19,7 +19,12 @@
 
 
 # ═══ Stage 1 — the client ════════════════════════════════════════════════════
-FROM node:20-alpine AS client
+#
+# `$BUILDPLATFORM`, not a fixed one: this stage runs on whatever machine is
+# doing the building, at native speed. What it emits is JavaScript and CSS,
+# which have no CPU architecture — so there is nothing here to match to the
+# server, and pinning it would only force slow emulation on an ARM laptop.
+FROM --platform=$BUILDPLATFORM node:20-alpine AS client
 
 WORKDIR /build/client
 
@@ -45,7 +50,15 @@ RUN npm run build
 #
 # `-slim`, never `-alpine`. `SW-ADR-016` locks the stack; alpine's musl libc
 # also forces source builds of wheels that ship manylinux binaries.
-FROM python:3.12.10-slim AS runtime
+#
+# `--platform=linux/amd64` is pinned here and NOT left to the builder. This
+# stage ships compiled things — CPython itself, and the wheels behind asyncpg
+# and bcrypt — so the image only runs on the CPU it was built for. The target
+# is a t3.micro, which is x86. Built on an Apple Silicon laptop without this,
+# the push succeeds, ECS places the task, and the container dies with
+# `exec format error` — after the deploy looks like it worked, and (until the
+# log group exists) with nothing anywhere recording why.
+FROM --platform=linux/amd64 python:3.12.10-slim AS runtime
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -79,6 +92,21 @@ COPY app/ ./app/
 COPY alembic/ ./alembic/
 COPY alembic.ini ./
 COPY docker-entrypoint.sh ./
+
+# The one document that is runtime, not memory.
+#
+# `app/core/errors.py:28` and `app/modules/categories/service.py:12` both read
+# this file when the app runs — the error-code table and the seeded category
+# list are loaded from the spec of record instead of being transcribed into
+# Python, so the two can never drift. That makes it a runtime dependency, and
+# the path is load-bearing: errors.py resolves `parents[2]/"docs"/"03 PRD"/
+# "api"/"contract.json"`, which from /app/app/core/errors.py is exactly this.
+#
+# Omitting it produces an image that passes /healthz and 500s on every error
+# path, including the handler that formats the error — so the failure reports
+# itself as a FileNotFoundError inside the error reporter. Observed in
+# production on 2026-09-13.
+COPY ["docs/03 PRD/api/contract.json", "./docs/03 PRD/api/contract.json"]
 
 # The built client, from stage 1 and nothing else from it.
 #

@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SpendWise v1 — the whole system, so far</title>
+<style>
+  :root{
+    --bg:#fbfaf7; --card:#ffffff; --ink:#1c1b18; --muted:#6b6862;
+    --line:#e3e0d8; --accent:#5b6f3f; --accent-soft:#eef1e6;
+    --warn:#8a5a2b; --warn-soft:#fdf3e7; --code:#f4f2ec;
+    --ghost:#b4b0a6;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#16171a; --card:#1e2024; --ink:#e8e6e1; --muted:#9a978f;
+      --line:#2e3238; --accent:#a3bd77; --accent-soft:#242a1e;
+      --warn:#d9a066; --warn-soft:#2a2118; --code:#24262b;
+      --ghost:#5a5850;
+    }
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; padding:2.5rem 1.25rem 5rem;
+    background:var(--bg); color:var(--ink);
+    font:16px/1.65 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  .wrap{max-width:52rem;margin:0 auto}
+  h1{font-size:1.9rem;line-height:1.2;margin:0 0 .4rem;letter-spacing:-.02em}
+  .sub{color:var(--muted);margin:0 0 2rem;font-size:1.02rem}
+  p{margin:0 0 1rem}
+  code{
+    background:var(--code);padding:.12em .38em;border-radius:4px;
+    font:0.87em ui-monospace,SFMono-Regular,Consolas,monospace;
+  }
+  pre{
+    background:var(--code);border:1px solid var(--line);border-radius:8px;
+    padding:.9rem 1rem;overflow-x:auto;margin:0 0 1rem;
+    font:0.84rem/1.55 ui-monospace,SFMono-Regular,Consolas,monospace;
+  }
+  pre code{background:none;padding:0;font-size:1em}
+  table{width:100%;border-collapse:collapse;margin:0 0 1.25rem;font-size:.94rem}
+  th,td{text-align:left;padding:.55rem .7rem;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:600;font-size:.82rem;text-transform:uppercase;letter-spacing:.04em}
+  .scroll{overflow-x:auto}
+  .note{
+    background:var(--accent-soft);border-left:3px solid var(--accent);
+    padding:.85rem 1rem;border-radius:0 8px 8px 0;margin:0 0 1.25rem;
+  }
+  .warn{
+    background:var(--warn-soft);border-left:3px solid var(--warn);
+    padding:.85rem 1rem;border-radius:0 8px 8px 0;margin:0 0 1.25rem;
+  }
+  .note p:last-child,.warn p:last-child{margin-bottom:0}
+  .lead{font-size:1.05rem}
+  strong{font-weight:650}
+  .flow{
+    background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:1.1rem;margin:0 0 1.25rem;overflow-x:auto;
+  }
+  .flow pre{background:none;border:none;padding:0;margin:0;font-size:.8rem}
+
+  /* ---- the map ---- */
+  figure.map{margin:0 0 .6rem;padding:1.25rem 1rem;background:var(--card);
+    border:1px solid var(--line);border-radius:12px;overflow-x:auto}
+  figure.map svg{display:block;width:100%;min-width:34rem;max-width:100%;height:auto;color:var(--ink)}
+  figcaption{color:var(--muted);font-size:.88rem;margin-top:.9rem;text-align:center}
+  .map a rect{transition:fill .12s ease}
+  .map a:hover rect.hit{fill:var(--accent-soft)}
+  .map a:focus-visible rect.hit{fill:var(--accent-soft);outline:2px solid var(--accent)}
+  .maphint{color:var(--muted);font-size:.87rem;text-align:center;margin:0 0 2.25rem}
+
+  /* ---- toolbar ---- */
+  .bar{display:flex;gap:.5rem;align-items:center;margin:0 0 1rem;flex-wrap:wrap}
+  .bar button{
+    font:inherit;font-size:.85rem;color:var(--ink);background:var(--card);
+    border:1px solid var(--line);border-radius:7px;padding:.35rem .7rem;cursor:pointer;
+  }
+  .bar button:hover{background:var(--accent-soft);border-color:var(--accent)}
+  .bar span{color:var(--muted);font-size:.85rem;margin-left:auto}
+
+  /* ---- collapsible sections ---- */
+  details.sec{
+    background:var(--card);border:1px solid var(--line);border-radius:10px;
+    margin:0 0 .6rem;overflow:hidden;
+  }
+  details.sec[open]{border-color:var(--accent)}
+  details.sec > summary{
+    list-style:none;cursor:pointer;padding:.85rem 1rem;display:flex;
+    gap:.75rem;align-items:baseline;
+  }
+  details.sec > summary::-webkit-details-marker{display:none}
+  details.sec > summary:hover{background:var(--accent-soft)}
+  .n{color:var(--accent);font-variant-numeric:tabular-nums;font-weight:650;
+     font-size:.95rem;min-width:1.4rem}
+  .t{font-weight:650;letter-spacing:-.01em}
+  .one{color:var(--muted);font-size:.9rem;display:block;margin-top:.15rem;font-weight:400}
+  .chev{margin-left:auto;color:var(--muted);transition:transform .15s ease;font-size:.8rem}
+  details.sec[open] > summary .chev{transform:rotate(90deg)}
+  .body{padding:.25rem 1.15rem 1.15rem}
+  .body > :last-child{margin-bottom:0}
+
+  /* ---- nested detail ---- */
+  details.more{
+    border:1px solid var(--line);border-radius:8px;margin:0 0 .75rem;background:var(--bg);
+  }
+  details.more > summary{
+    cursor:pointer;padding:.55rem .8rem;font-size:.9rem;color:var(--accent);
+    font-weight:600;list-style:none;
+  }
+  details.more > summary::-webkit-details-marker{display:none}
+  details.more > summary::before{content:"▸ ";font-size:.8em}
+  details.more[open] > summary::before{content:"▾ "}
+  details.more .inner{padding:0 .8rem .7rem;font-size:.95rem}
+  details.more .inner > :last-child{margin-bottom:0}
+
+  .ghostnote{color:var(--muted)}
+  footer{
+    margin-top:3rem;padding-top:1.25rem;border-top:1px solid var(--line);
+    color:var(--muted);font-size:.87rem;
+  }
+  @media (max-width:34rem){
+    .one{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>SpendWise — the whole system, so far</h1>
+<p class="sub">Version 1 · 12 September 2026. Everything that exists today, why it was built that way, and how the pieces reach each other. Start with the map. Click any box to open the part you want.</p>
+
+<figure class="map">
+<svg viewBox="0 0 780 560" role="img"
+     aria-label="A request goes from your browser to one container, which either serves the web page or runs it through router, service and repository down to PostgreSQL on RDS in Mumbai. The ownership rule is checked twice: once in the code and once inside the database. Three pieces are not built yet: the container registry, the server, and receipt storage.">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+    </marker>
+  </defs>
+
+  <!-- browser -->
+  <a href="#s3">
+    <rect class="hit" x="125" y="16" width="220" height="52" rx="8" fill="none" stroke="currentColor" stroke-width="1.5"/>
+    <text x="235" y="40" text-anchor="middle" font-size="13" font-weight="650" fill="currentColor">YOUR BROWSER</text>
+    <text x="235" y="57" text-anchor="middle" font-size="11" fill="currentColor" opacity=".65">the React page you are looking at</text>
+  </a>
+
+  <line x1="235" y1="68" x2="235" y2="100" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+  <text x="248" y="88" font-size="11" fill="currentColor" opacity=".65">the sw_session cookie rides along</text>
+
+  <!-- container boundary -->
+  <rect x="40" y="104" width="392" height="300" rx="10" fill="none" stroke="currentColor" stroke-width="1.5"/>
+  <text x="56" y="126" font-size="12" font-weight="650" fill="currentColor">ONE CONTAINER</text>
+  <text x="56" y="141" font-size="10.5" fill="currentColor" opacity=".6">one image · one address · which is why there is no CORS</text>
+
+  <a href="#s7">
+    <rect class="hit" x="62" y="152" width="348" height="34" rx="6" fill="none" stroke="currentColor" stroke-width="1"/>
+    <text x="236" y="174" text-anchor="middle" font-size="12" fill="currentColor">does the path start with /api/ ?</text>
+  </a>
+
+  <line x1="140" y1="186" x2="140" y2="204" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+  <text x="112" y="200" font-size="10.5" fill="currentColor" opacity=".65">yes</text>
+  <line x1="330" y1="186" x2="330" y2="204" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+  <text x="338" y="200" font-size="10.5" fill="currentColor" opacity=".65">no</text>
+
+  <!-- the three layers -->
+  <a href="#s4">
+    <rect class="hit" x="62" y="206" width="156" height="30" rx="6" fill="none" stroke="currentColor" stroke-width="1"/>
+    <text x="140" y="225" text-anchor="middle" font-size="11.5" fill="currentColor">router · the URL</text>
+  </a>
+  <line x1="140" y1="236" x2="140" y2="248" stroke="currentColor" stroke-width="1.2" marker-end="url(#ar)"/>
+  <a href="#s4">
+    <rect class="hit" x="62" y="250" width="156" height="30" rx="6" fill="none" stroke="currentColor" stroke-width="1"/>
+    <text x="140" y="269" text-anchor="middle" font-size="11.5" fill="currentColor">service · the rules</text>
+  </a>
+  <line x1="140" y1="280" x2="140" y2="292" stroke="currentColor" stroke-width="1.2" marker-end="url(#ar)"/>
+  <a href="#s4">
+    <rect class="hit" x="62" y="294" width="156" height="30" rx="6" fill="none" stroke="currentColor" stroke-width="1"/>
+    <text x="140" y="313" text-anchor="middle" font-size="11.5" fill="currentColor">repository · the SQL</text>
+  </a>
+
+  <!-- lock 1 -->
+  <a href="#s5">
+    <rect class="hit" x="62" y="332" width="156" height="44" rx="6" fill="none" stroke="var(--accent)" stroke-width="1.5"/>
+    <text x="140" y="349" text-anchor="middle" font-size="10.5" font-weight="650" fill="var(--accent)">LOCK 1 — in the code</text>
+    <text x="140" y="365" text-anchor="middle" font-size="10" fill="var(--accent)">WHERE user_id = you</text>
+  </a>
+
+  <!-- the page -->
+  <a href="#s6">
+    <rect class="hit" x="256" y="206" width="154" height="58" rx="6" fill="none" stroke="currentColor" stroke-width="1"/>
+    <text x="333" y="228" text-anchor="middle" font-size="11.5" fill="currentColor">index.html</text>
+    <text x="333" y="245" text-anchor="middle" font-size="10" fill="currentColor" opacity=".65">+ /assets/…</text>
+  </a>
+  <text x="333" y="284" text-anchor="middle" font-size="10" fill="currentColor" opacity=".55">refresh on /expenses?</text>
+  <text x="333" y="297" text-anchor="middle" font-size="10" fill="currentColor" opacity=".55">still this file</text>
+
+  <!-- down to the database -->
+  <line x1="140" y1="376" x2="140" y2="446" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+  <text x="152" y="404" font-size="10.5" fill="currentColor" opacity=".65">SQL, over an encrypted link,</text>
+  <text x="152" y="418" font-size="10.5" fill="currentColor" opacity=".65">carrying "I am user 7"</text>
+
+  <!-- postgres -->
+  <a href="#s5">
+    <rect class="hit" x="40" y="448" width="392" height="84" rx="8" fill="none" stroke="currentColor" stroke-width="1.5"/>
+    <text x="236" y="471" text-anchor="middle" font-size="12.5" font-weight="650" fill="currentColor">PostgreSQL on RDS · Mumbai</text>
+    <rect x="58" y="482" width="356" height="36" rx="6" fill="none" stroke="var(--accent)" stroke-width="1.5"/>
+    <text x="236" y="498" text-anchor="middle" font-size="10.5" font-weight="650" fill="var(--accent)">LOCK 2 — in the database</text>
+    <text x="236" y="512" text-anchor="middle" font-size="10" fill="var(--accent)">it refuses to hand over rows that are not yours</text>
+  </a>
+
+  <!-- not built yet -->
+  <text x="612" y="128" text-anchor="middle" font-size="11" font-weight="650" fill="var(--ghost)">NOT BUILT YET</text>
+  <a href="#s11">
+    <rect class="hit" x="474" y="146" width="276" height="52" rx="8" fill="none" stroke="var(--ghost)" stroke-width="1.5" stroke-dasharray="5 4"/>
+    <text x="612" y="168" text-anchor="middle" font-size="11.5" fill="var(--ghost)">Container registry (ECR)</text>
+    <text x="612" y="184" text-anchor="middle" font-size="10" fill="var(--ghost)">where the built image would be kept</text>
+  </a>
+  <a href="#s11">
+    <rect class="hit" x="474" y="210" width="276" height="52" rx="8" fill="none" stroke="var(--ghost)" stroke-width="1.5" stroke-dasharray="5 4"/>
+    <text x="612" y="232" text-anchor="middle" font-size="11.5" fill="var(--ghost)">The server (EC2 + ECS)</text>
+    <text x="612" y="248" text-anchor="middle" font-size="10" fill="var(--ghost)">where the container would actually run</text>
+  </a>
+  <a href="#s11">
+    <rect class="hit" x="474" y="274" width="276" height="52" rx="8" fill="none" stroke="var(--ghost)" stroke-width="1.5" stroke-dasharray="5 4"/>
+    <text x="612" y="296" text-anchor="middle" font-size="11.5" fill="var(--ghost)">Receipt photos (S3)</text>
+    <text x="612" y="312" text-anchor="middle" font-size="10" fill="var(--ghost)">the one feature still blocked</text>
+  </a>
+  <line x1="540" y1="262" x2="470" y2="300" stroke="var(--ghost)" stroke-width="1.2" stroke-dasharray="4 4"/>
+  <text x="474" y="340" font-size="10" fill="var(--ghost)">would hold the container</text>
+</svg>
+<figcaption>The whole of SpendWise today. The container runs on a laptop, not on AWS — only the database is in the cloud so far.</figcaption>
+</figure>
+<p class="maphint">Every box is a link. Click one to open the section that explains it.</p>
+
+<div class="bar">
+  <button type="button" id="all">Expand all</button>
+  <button type="button" id="none">Collapse all</button>
+  <span>11 sections · everything starts closed</span>
+</div>
+
+<!-- ============ 1 ============ -->
+<details class="sec" id="s1">
+<summary><span class="n">1</span><span class="t">What SpendWise is, and the one promise<span class="one">A spending tracker where you can only ever see your own money.</span></span><span class="chev">▶</span></summary>
+<div class="body">
+
+<p class="lead">Someone signs up, types in what they spent, and sees a dashboard of it. That's the whole product. In the client's own words: <em>"a website where people sign up, log what they spend, and see a dashboard of it. Everyone sees only their own money."</em></p>
+
+<p>Nothing about that is new. What's unusual is how seriously the second half of that sentence is taken. <strong>"Everyone sees only their own money"</strong> isn't a feature — it's the promise the entire build is arranged around, and you'll see it turn up again in the database design, the tests, and the way the admin screens are deliberately crippled.</p>
+
+<h3 style="font-size:1rem;margin:1.5rem 0 .6rem">Two kinds of person</h3>
+<div class="scroll">
+<table>
+<tr><th>Role</th><th>Can do</th><th>Cannot do</th></tr>
+<tr><td><code>user</code></td><td>everything with their own spending</td><td>see anyone else's, at all</td></tr>
+<tr><td><code>admin</code></td><td>reset a password, force a sign-out, deactivate an account</td><td><strong>see what anyone bought or what it cost</strong></td></tr>
+</table>
+</div>
+
+<p>That admin restriction is the client's decision, not a technical accident. His words: <em>"That's private, and there's no support reason to look at it. Admin screens show counts and dates, not amounts or descriptions. If I change my mind later I'd rather add it deliberately than find it was there all along."</em></p>
+
+<details class="more"><summary>How that restriction is actually enforced</summary><div class="inner">
+<p>Not by remembering to leave it out of a screen. The admin can only reach spending data through four special database functions, and those functions declare which columns they are allowed to return — <code>day</code>, <code>total_paise</code>, <code>entries</code>. There is no column a description could arrive in. Even if someone wrote admin code that tried to show it, there's nowhere for the data to come from.</p>
+<p>Later the client partly reversed himself (change request <code>CR-001</code>): an admin can now see a person's <em>total over time</em> — how much, per day. Still not <em>what on</em>. The reversal was done by adding a new function with a wider — but still fixed — set of columns.</p>
+</div></details>
+
+<h3 style="font-size:1rem;margin:1.5rem 0 .6rem">Money is never a decimal number</h3>
+<p>₹1,250.00 is stored as the whole number <code>125000</code> — the count of paise. Never <code>1250.00</code>.</p>
+<p>The reason, again in the client's words: <em>"Floats can't hold 0.10 exactly and summing them drifts, and this is an app whose entire job is adding numbers up."</em> A computer storing 0.10 as a decimal fraction stores something very slightly off, and adding a thousand of those slightly-off numbers gives you a visibly wrong total. Whole numbers of paise can't drift, because there's nothing smaller to lose.</p>
+
+<details class="more"><summary>Where the conversion happens</summary><div class="inner">
+<p>A text like <code>"1250.00"</code> arrives → Python's <code>Decimal</code> reads it exactly → <code>int(d.scaleb(2))</code> turns it into <code>125000</code> → and it stays a whole number from that point on, through the database and back. It only becomes <code>₹1,250.00</code> again in the browser, at the moment of drawing it on screen.</p>
+<p>There's even a check that stops anyone reintroducing the bug: a script greps the frontend and fails the build if any file other than the one money file divides by 100.</p>
+</div></details>
+
+<h3 style="font-size:1rem;margin:1.5rem 0 .6rem">Four things it deliberately does not do</h3>
+<div class="scroll">
+<table>
+<tr><th>Not built</th><th>Why not</th></tr>
+<tr><td>A phone app</td><td>out of scope; it's a website</td></tr>
+<tr><td>Reading your bank SMS</td><td>a website literally cannot read your message inbox</td></tr>
+<tr><td>Connecting to your bank</td><td>India's Account Aggregator system needs a licence from the RBI. There isn't one</td></tr>
+<tr><td>Pulling from Google Pay or Blinkit</td><td>neither of them hands your transactions to other people's apps</td></tr>
+</table>
+</div>
+<p>There's also no "forgot my password" email link — because there is no email anywhere in this system, so a reset link would have nowhere to be sent. That's why an admin does it by hand instead.</p>
+
+<details class="more"><summary>Why the project works in this document-heavy way at all</summary><div class="inner">
+<p>Before any code was written, the requirements were frozen and fingerprinted with a checksum, and every decision since has been written down as a numbered file — 154 of them. A decision can never be edited after it's accepted; reversing one means writing a new record that supersedes the old, leaving both readable.</p>
+<p>The point is that a year later you can ask "why is it like this?" and get an answer with a date and a name on it, instead of a shrug. There's also a rule that anything genuinely undecided must be labelled <code>OPEN</code> and escalated — inventing a sensible-sounding answer is treated as the worst thing a contributor can do, because an invented answer looks exactly like a real one six months later.</p>
+</div></details>
+
+</div>
+</details>
+
+<!-- ============ 2 ============ -->
+<details class="sec" id="s2">
+<summary><span class="n">2</span><span class="t">The map in words<span class="one">Four things exist. Three don't, yet.</span></span><span class="chev">▶</span></summary>
+<div class="body">
+
+<p class="lead">If you only remember one paragraph, make it this one.</p>
+
+<p><strong>There is one program.</strong> It serves the web page <em>and</em> answers the data requests, from the same address. You run it as a container. It talks to <strong>one database</strong>, which is a PostgreSQL server rented from Amazon, sitting in Mumbai. That's it. That's the entire running system.</p>
+
+<div class="scroll">
+<table>
+<tr><th>Piece</th><th>What it is</th><th>Where it runs today</th></tr>
+<tr><td>The web page</td><td>React, compiled into plain files</td><td>inside the container</td></tr>
+<tr><td>The API</td><td>Python, FastAPI</td><td>inside the same container</td></tr>
+<tr><td>The container</td><td>one Docker image holding both</td><td><strong>a laptop</strong> — not AWS yet</td></tr>
+<tr><td>The database</td><td>PostgreSQL 17.9 on Amazon RDS</td><td>AWS, <code>ap-south-1</code> (Mumbai)</td></tr>
+</table>
+</div>
+
+<div class="note">
+<p><strong>Why one program and not two.</strong> The obvious way to build this is two separate things — a website on one address, an API on another. That forces you to deal with CORS, a browser rule that blocks a page on one address from quietly calling another. Putting both in one container means the browser only ever talks to a single address, so there is no rule to satisfy and nothing to configure. One deploy instead of two, as well.</p>
+</div>
+
+<p>The three dashed boxes on the map are the parts that would let this run on AWS instead of a laptop: somewhere to store the built image, a server to run it on, and a bucket for receipt photos. None of them exist yet. Section 11 says exactly what's missing.</p>
+
+</div>
+</details>
+
+<!-- ============ 3 ============ -->
+<details class="sec" id="s3">
+<summary><span class="n">3</span><span class="t">Follow one real click<span class="one">Sign in, then watch the dashboard fetch your total.</span></span><span class="chev">▶</span></summary>
+<div class="body">
+
+<p class="lead">This is the section that makes the rest make sense. Two requests, start to finish.</p>
+
+<h3 style="font-size:1rem;margin:1.25rem 0 .6rem">Request one: signing in</h3>
+<div class="flow">
+<pre>you type email + password, press Sign in
+   │
+   ▼  POST /api/auth/login   (a relative path — no hostname anywhere in the code)
+the container sees the path starts with /api/ → it is NOT the web page
+   │
+   ▼  auth router
+look up the account by email
+   │
+   ▼  bcrypt compares the password — on a background thread, ~250 ms
+   │     unknown email? it compares against a dummy hash anyway,
+   │     so a wrong email and a wrong password take the same time
+   ▼
+write a row in the sessions table
+   │
+   ▼  sign a token naming that row, put it in a cookie
+Set-Cookie: sw_session=…  httpOnly, SameSite=Lax</pre>
+</div>
+
+<p><strong>httpOnly</strong> means JavaScript on the page cannot read the cookie — so a script injected into the page can't steal your session. <strong>SameSite=Lax</strong> means the browser won't send the cookie when another website triggers the request, which stops a malicious page from acting as you.</p>
+
+<h3 style="font-size:1rem;margin:1.5rem 0 .6rem">Request two: the dashboard asks for your total</h3>
+
+<p>The dashboard actually fires <strong>five requests at once</strong> — the headline totals, the split by category, the day-by-day figures, the list of entries, and your categories. They go in parallel rather than one after another, so the page fills in as fast as the slowest one rather than the sum of all five. Here's one of them:</p>
+
+<div class="flow">
+<pre>GET /api/expenses/summary?from=…&to=…     cookie goes along automatically
+   │
+   ▼  1. check the token's signature is real
+   ▼  2. tell Postgres "for this conversation, I am user 7"
+   ▼  3. NOW read the session row
+   │
+   ▼  expenses router → service → repository
+   ▼  SQL:  SELECT SUM(amount_paise) … WHERE user_id = 7      ← LOCK 1
+   │
+   ▼  Postgres checks its own rule on the row: user_id = 7 ?  ← LOCK 2
+   │
+   ▼  a whole number of paise comes back: 75810
+   ▼  React formats it at draw time:  ₹758.10</pre>
+</div>
+
+<div class="warn">
+<p><strong>Those three numbered steps are in that order for a reason, and swapping two of them breaks everything silently.</strong> If you read the session row <em>before</em> telling Postgres who you are, the database has no identity to compare against, its rule matches nothing, and the lookup returns zero rows — for every request ever made. Not an error. Just an app where nobody can ever sign in, for a reason that isn't visible anywhere.</p>
+</div>
+
+<details class="more"><summary>The two locks, named exactly</summary><div class="inner">
+<p><strong>Lock 1</strong> is in the Python: <code>app/modules/expenses/repository.py</code> adds <code>user_id = …</code> to the query — in seven separate places, one per kind of query. The id always comes from your verified token, and <strong>never</strong> from anything the browser sent. If someone hand-crafts a request with a different user id in the body, it isn't rejected — it's simply ignored, because nothing ever reads it.</p>
+<p><strong>Lock 2</strong> is in the database: <code>docs/06 DataModel/security.sql</code> line 43 declares the rule <code>user_id = current_setting('app.user_id', true)::bigint</code>. Postgres applies it to every single read and write on that table, whatever the query says.</p>
+<p>Lock 1 alone is the normal way to build this, and it's the one that fails. One forgotten <code>WHERE</code> clause in one query, written at 11pm two years from now, and the promise is gone. Lock 2 doesn't care what the query forgot.</p>
+</div></details>
+
+</div>
+</details>
+
+<!-- ============ 4 ============ -->
+<details class="sec" id="s4">
+<summary><span class="n">4</span><span class="t">The app's shape<span class="one">Router, service, repository — and why the split is worth it.</span></span><span class="chev">▶</span></summary>
+<div class="body">
+
+<p class="lead">Every request walks the same short road, through three files that each know one thing.</p>
+
+<div class="scroll">
+<table>
+<tr><th>Layer</th><th>Knows about</th><th>Never</th></tr>
+<tr><td><code>router.py</code></td><td>URLs, status codes, what the browser sent</td><td>writes a database query</td></tr>
+<tr><td><code>service.py</code></td><td>the rules — is this allowed, does it add up</td><td>—</td></tr>
+<tr><td><code>repository.py</code></td><td>SQL, and nothing else</td><td>knows it's being used by a website</td></tr>
+</table>
+</div>
+
+<p>Why bother? Because when all three live in one file, you end up with a query written inside a web handler, and then a second slightly-different copy of it somewhere else, and after two months you can't change how expenses are read without reading the whole app. Keeping SQL in exactly one place per module means there's exactly one thing to change.</p>
+
+<p>There are six modules — <code>auth</code>, <code>users</code>, <code>expenses</code>, <code>categories</code>, <code>receipts</code>, <code>admin</code> — and a rule that <strong>a module only touches its own tables</strong>.</p>
+
+<details class="more"><summary>The one sanctioned exception, and why it exists</summary><div class="inner">
+<p>The expense list needs category <em>names</em>, and those live in the categories module. The rule would say "don't join to their table" — but the client asked for the page to load in one request, not two.</p>
+<p>So: the expenses repository returns category <em>ids</em> and totals only. The expenses <em>service</em> then asks the categories service for the names — one lookup for the whole page, not one per row. The browser still gets its single request. The rule is still intact. It's written down as a decision (<code>SW-ADR-017</code>) rather than left as a thing someone did.</p>
+</div></details>
+
+<details class="more"><summary>Four small traps that are load-bearing</summary><div class="inner">
+<p><strong>Order of routes matters.</strong> <code>/api/expenses/summary</code> is declared <em>before</em> <code>/api/expenses/{id}</code>. Otherwise the word "summary" gets captured as an id, which isn't a number, and the endpoint rejects it.</p>
+<p><strong>The web-page catch-all is registered last.</strong> Registered earlier, it would answer <code>/api/anything</code> with the HTML page and a success code — so a typo'd endpoint would look like a broken response rather than a clear 404.</p>
+<p><strong>One database conversation per request.</strong> Asking for a second one deliberately raises an error, because "who am I" is set per conversation — a second one would silently see nothing.</p>
+<p><strong>Settings load before the server starts.</strong> A missing setting stops the program with exit code 78 <em>before</em> it opens the port, rather than failing on the first request that needs it.</p>
+</div></details>
+
+</div>
+</details>
+
+<!-- ============ 5 ============ -->
+<details class="sec" id="s5">
+<summary><span class="n">5</span><span class="t">The database, and the two-locks trick<span class="one">Seven tables, and a database that refuses on its own.</span></span><span class="chev">▶</span></summary>
+<div class="body">
+
+<p class="lead">Seven tables: <code>users</code>, <code>sessions</code>, <code>password_resets</code>, <code>categories</code>, <code>expenses</code>, <code>admin_audit_log</code>, <code>app_meta</code>.</p>
+
+<p>Three of them — <code>sessions</code>, <code>categories</code>, <code>expenses</code> — carry the thing this whole project rests on: <strong>Row Level Security</strong>.</p>
+
+<h3 style="font-size:1rem;margin:1.25rem 0 .6rem">What Row Level Security actually is</h3>
+<p>Normally a database hands over whatever the query asks for, and it's the app's job to ask only for your rows. Row Level Security flips that: you attach a rule to the table, and Postgres applies it to every read and write, no matter what the query said. Here the rule is: <em>the row's <code>user_id</code> must match whoever this conversation says it is.</em></p>
+
+<p>So a query that forgets its <code>WHERE user_id = …</code> doesn't leak everything. It returns nothing.</p>
+
+<div class="warn">
+<p><strong>The trap that makes two database logins necessary.</strong> In PostgreSQL, the owner of a table can switch off that table's own security rules — one line, and the protection is gone. So if the running app connected as the owner, the promise would be one command away from deletion, by a bug or a bad migration or anyone who got the password.</p>
+</div>
+
+<div class="scroll">
+<table>
+<tr><th>Login</th><th>Job</th><th>Owns tables?</th></tr>
+<tr><td><code>spendwise_owner</code></td><td>creates tables, runs migrations, never serves a request</td><td>yes</td></tr>
+<tr><td><code>spendwise_app</code></td><td>what the running app connects as</td><td><strong>no</strong> — and no superuser, no bypass</td></tr>
+</table>
+</div>
+
+<p>There's also <code>FORCE ROW LEVEL SECURITY</code>, which closes the same hole from the other side: without it, the owner is exempt from the rules even while they're switched on.</p>
+
+<details class="more"><summary>The app checks all this at startup, and refuses to run if it's wrong</summary><div class="inner">
+<p>On boot the app asks Postgres's own catalogue: is the runtime login a superuser? can it bypass row security? does it own any table? is FORCE missing anywhere? Any yes, and the program stops rather than starting up insecure.</p>
+<p>There's a detail here worth stealing. The first version of that check only asked what the login <em>couldn't</em> do — and printed all-green against a login with no privileges whatsoever, which would also have been useless. It now also checks the positive direction: the login must actually be able to read the tables. A check that passes when everything is broken is worse than no check.</p>
+</div></details>
+
+<details class="more"><summary>Why <code>users</code> deliberately has no such rule</summary><div class="inner">
+<p>Signing in has to find your account by email <em>before</em> anyone knows who you are. A rule keyed on "who is this request" could never match, because at that moment the answer is "nobody". So <code>users</code> sits outside row security on purpose, and it's recorded as a written-down exception rather than left as a gap someone might later mistake for an oversight. Same for <code>password_resets</code> — redeeming a reset code is by definition something you do when you can't sign in.</p>
+</div></details>
+
+<details class="more"><summary>Two number traps this schema is shaped around</summary><div class="inner">
+<p><strong>Sums come back as the wrong type.</strong> Postgres returns the sum of a big-integer column as a <code>numeric</code>, which arrives in Python as a <code>Decimal</code> — which is exactly the decimal type the whole project banned. So every sum in the code is explicitly cast back to a whole number.</p>
+<p><strong>The cap is on the cast, not the sum.</strong> Amounts are limited to 10¹² paise. That isn't because a sum could overflow — it can't — but because converting the result <em>back</em> to a bounded whole number can.</p>
+</div></details>
+
+<details class="more"><summary>What a "migration" is, and the lock around it</summary><div class="inner">
+<p>A migration is a numbered file that changes the database's shape — add a table, add a column. They run in order, so any copy of the database can be brought to the current shape by replaying them. This project has two: the whole original schema, and one adding soft account deletion.</p>
+<p>They're run with a lock taken first, because two containers starting at the same moment would otherwise both try to change the schema at once. The migration tool does not do this on its own.</p>
+<p>There's also a guard that refuses to run migrations if the two database logins are the same — which actually caught a real mistake in the build pipeline.</p>
+</div></details>
+
+</div>
+</details>
+
+<!-- ============ 6 ============ -->
+<details class="sec" id="s6">
+<summary><span class="n">6</span><span class="t">The web page<span class="one">React, compiled to plain files, served by the same program.</span></span><span class="chev">▶</span></summary>
+<div class="body">
+
+<p class="lead">React is a way of writing web pages as small reusable pieces. Vite is the tool that turns that source code into plain files a browser understands.</p>
+
+<p>"Building" the frontend means: JSX and CSS go in, and a <code>dist/</code> folder comes out containing one <code>index.html</code> and some JavaScript and CSS files with scrambled names like <code>index-COdXl4UR.js</code>. The scrambling is deliberate — the name changes whenever the content changes, so a browser can cache them forever without ever serving a stale one.</p>
+
+<p>The Python program then serves that folder. Anything under <code>/assets/</code> is handed over directly; anything else that isn't an API path gets <code>index.html</code>.</p>
+
+<div class="note">
+<p><strong>That last bit is why refreshing the page works.</strong> If you're on <code>/expenses</code> and hit reload, the browser asks the server for <code>/expenses</code> — a path that doesn't exist as a file. The catch-all hands back <code>index.html</code>, React starts up, sees the address, and draws the right screen. Without it, refreshing anywhere except the home page would 404.</p>
+</div>
+
+<details class="more"><summary>Deliberately small: two dependencies, no router</summary><div class="inner">
+<p>The frontend has exactly two things it ships to your browser: React and React-DOM. No routing library, no data-fetching library, no state library, no CSS framework.</p>
+<p>There's no router because the app is a dashboard and a sign-in screen — the sections are panes, not addresses. A variable holds which pane is showing. The one thing that genuinely <em>is</em> navigable, the date range, is kept in the URL by hand so the Back button returns to the previous period instead of leaving the app.</p>
+</div></details>
+
+<details class="more"><summary>Nothing in the frontend knows where the API is</summary><div class="inner">
+<p>Every call is a relative path — <code>/api/expenses</code>, never <code>https://something/api/expenses</code>. There is no configurable address anywhere, and a grep confirms there's no environment variable for one.</p>
+<p>That's not laziness; it's the one-container decision showing through. There is nowhere else the API could be, so making it configurable would only create a way to get it wrong.</p>
+</div></details>
+
+<details class="more"><summary>The one file allowed to do money</summary><div class="inner">
+<p><code>rupees(758100)</code> → <code>₹7,581.00</code>, done by splitting the whole number — never dividing. Indian digit grouping (lakh, crore) comes from the browser's own formatter.</p>
+<p>A lint script fails the build if any other file mentions the formatter or divides paise by 100. The rule is enforced by a program, not by remembering.</p>
+</div></details>
+
+</div>
+</details>
+
+<!-- ============ 7 ============ -->
+<details class="sec" id="s7">
+<summary><span class="n">7</span><span class="t">The container<span class="one">What Docker actually is, and what this image does on boot.</span></span><span class="chev">▶</span></summary>
+<div class="body">
+
+<p class="lead">A container is your whole program sealed in a box: the right Python, your code, the built web page, every library, all together. The box runs the same on any machine — which is the entire point.</p>
+
+<p>An <strong>image</strong> is the sealed box. A <strong>container</strong> is a running copy of it. You build the image once and run it anywhere.</p>
+
+<h3 style="font-size:1rem;margin:1.25rem 0 .6rem">Two stages, and why</h3>
+<div class="flow">
+<pre>STAGE 1   node:20-alpine
+          npm ci  →  npm run build  →  produces client/dist
+             │
+             │  only this folder crosses over
+             ▼
+STAGE 2   python:3.12.10-slim
+          install Python libraries from requirements.lock
+          copy app/, alembic/, the entrypoint
+          copy client/dist from stage 1
+          →  the final image</pre>
+</div>
+
+<p>Node is needed to <em>build</em> the web page and never to run it. Keeping it in a throwaway first stage means the shipped image has no Node, no npm, no <code>node_modules</code> — smaller, and less in it that could have a security hole.</p>
+
+<div class="note">
+<p><strong>The version is pinned to the patch: <code>python:3.12.10-slim</code>, not <code>python:3.12</code>.</strong> A floating tag means two builds of the exact same commit can differ, weeks apart, for reasons nobody can reconstruct.</p>
+</div>
+
+<h3 style="font-size:1rem;margin:1.5rem 0 .6rem">What happens when the container starts</h3>
+<div class="flow">
+<pre>set -e                     stop at the first failure, don't limp on
+   │
+   ▼
+alembic upgrade head       bring the database to the current shape
+   │                       (with a lock, so two containers can't race)
+   ▼
+exec uvicorn …:8000        only now does anything listen on a port</pre>
+</div>
+
+<p>Migrations run <em>before</em> the port opens. So a container that can't migrate never accepts a request at all — rather than serving traffic against a half-built database, which is the failure that's genuinely hard to recover from.</p>
+
+<details class="more"><summary>Small choices with reasons</summary><div class="inner">
+<p><strong>Runs as a non-root user</strong>, created after the libraries are installed — so the installed libraries are owned by root and the running app can't rewrite its own dependencies.</p>
+<p><strong>No <code>COPY . .</code> anywhere.</strong> Only named folders are copied in, so nothing can ride along by accident.</p>
+<p><strong><code>curl</code> is installed on purpose</strong>, because the health check is written as a curl command and the slim base image doesn't ship one.</p>
+<p><strong>The health check points at <code>/healthz</code>, not <code>/readyz</code>.</strong> <code>/healthz</code> answers without touching the database. If it checked the database, a two-second blip at RDS would restart a perfectly healthy container.</p>
+<p><strong>A 120-second grace period</strong> before health checks start counting, because migrations run first and take time on a cold database.</p>
+</div></details>
+
+<h3 style="font-size:1rem;margin:1.5rem 0 .6rem">Which processor the image is for</h3>
+
+<p>A container image is built for one kind of processor. An image built on an Apple Silicon Mac will not run on an ordinary x86 server — it fails with <code>exec format error</code>.</p>
+
+<p>That failure is unusually nasty, because it arrives late. The push works. The server accepts the job. The container is placed. <em>Then</em> it dies. Everything up to the last step looks like a successful deploy — and until log collection exists, nothing anywhere records the reason.</p>
+
+<p>So the Dockerfile now says which one it wants, and the two stages say different things:</p>
+
+<div class="flow">
+<pre>FROM --platform=$BUILDPLATFORM  node:20-alpine      ← whatever you're on
+FROM --platform=linux/amd64     python:3.12.10-slim ← must match the server</pre>
+</div>
+
+<p>The first stage runs on your own machine's processor, at full speed, because what it produces is JavaScript — and JavaScript has no processor. The second stage is pinned, because that one ships compiled things: Python itself, and the machine code behind the database driver and the password hasher.</p>
+
+<details class="more"><summary>The test that keeps it that way — and how it was proved real</summary><div class="inner">
+<p>A pin in a file is only as good as the thing stopping someone quietly removing it. So there's a test that reads the Dockerfile as text and fails if the runtime stage isn't pinned.</p>
+<p>Adding it broke three existing tests, which matched those same <code>FROM</code> lines with exact patterns — a fair warning that the file is watched more closely than it looks. They were widened to allow a platform prefix, without weakening what they check.</p>
+<p>Then the new test was <strong>red-proofed</strong>, the way section 9 describes: the pin was removed on purpose, the test was watched failing, the pin was put back, and the suite went green again — 17 passing. A test that has never been seen to fail is decoration.</p>
+</div></details>
+
+<h3 style="font-size:1rem;margin:1.5rem 0 .6rem">What the built image actually contains</h3>
+
+<p>Built and inspected on 12 September 2026. Not "it should contain" — this is what was found inside it.</p>
+
+<div class="scroll">
+<table>
+<tr><th>Checked</th><th>Found</th><th>Why it matters</th></tr>
+<tr><td>Processor</td><td><code>amd64/linux</code></td><td>the pin worked</td></tr>
+<tr><td>Size</td><td>563 MB, 14 layers</td><td>most of it is Python and its libraries</td></tr>
+<tr><td>Runs as</td><td><code>spendwise</code></td><td>not root — it can't rewrite its own libraries</td></tr>
+<tr><td>Node / npm</td><td><strong>neither present</strong></td><td>the two-stage split worked; the build tools didn't ship</td></tr>
+<tr><td>Libraries</td><td>fastapi 0.141.1, sqlalchemy 2.0.51, asyncpg 0.31.0, pydantic 2.13.4</td><td>exactly what the version record says, not merely "something installed"</td></tr>
+<tr><td>The web page</td><td><code>/app/client/dist</code>, hashed filenames</td><td>the compiled React app really did cross over</td></tr>
+</table>
+</div>
+
+<p>Starting it without a database, just to see what it says:</p>
+<pre><code>WARNING  S3_BUCKET is unset — receipt upload is DISABLED. Everything else runs.
+app imports OK, routes: 8
+INFO     serving the built client from /app/client/dist</code></pre>
+
+<div class="note">
+<p><strong>That warning is the design working, not a problem.</strong> A missing receipt bucket switches receipts off and says so out loud, then carries on. It doesn't crash, and it doesn't quietly leave a broken upload button on the screen. Absence is supposed to be loud and survivable.</p>
+</div>
+
+</div>
+</details>
+
+<!-- ============ 8 ============ -->
+<details class="sec" id="s8">
+<summary><span class="n">8</span><span class="t">What is actually on AWS<span class="one">One database. That is genuinely all, and it costs about $20/month.</span></span><span class="chev">▶</span></summary>
+<div class="body">
+
+<p class="lead">Checked against the live account on 12 September 2026, read-only. Not from memory — from asking AWS.</p>
+
+<div class="scroll">
+<table>
+<tr><th>Thing</th><th>Value</th><th>Why that</th></tr>
+<tr><td>Instance</td><td><code>spendwise-db</code></td><td>one server running PostgreSQL</td></tr>
+<tr><td>Version</td><td>PostgreSQL 17.9</td><td>not the newest. On a first build you want the version with the most mileage behind it</td></tr>
+<tr><td>Size</td><td><code>db.t4g.micro</code></td><td>the smallest one</td></tr>
+<tr><td>Storage</td><td>20 GB, autoscaling off</td><td>autoscaling defaults to <em>on</em> and would silently grow the bill</td></tr>
+<tr><td>Region</td><td><code>ap-south-1</code> (Mumbai)</td><td>~20 ms away instead of ~200 ms. The test suite makes hundreds of round trips</td></tr>
+<tr><td>Reachable from</td><td>one IP address, port 5432</td><td>an open database port on the public internet is found by scanners within hours</td></tr>
+<tr><td>Encrypted</td><td>yes, at rest and in transit</td><td>free, so there's no reason not to</td></tr>
+</table>
+</div>
+
+<div class="warn">
+<p><strong>The free tier is not what the plan assumed.</strong> Asking AWS directly: this account has <em>no</em> 12-month free allowances for the database, the server, storage or the image registry. Usage is being paid for out of a credit balance instead. Current burn is about <strong>$0.67 a day — roughly $20 a month — with nothing running but the database.</strong> The $20 budget alarm can't warn about it, because it's set to count credits as payment, so it reads $0.00 spent.</p>
+</div>
+
+<details class="more"><summary>Three things that should be fixed on the database</summary><div class="inner">
+<p><strong>Backups are set to 1 day, not the 7 that was specified.</strong> There are three automatic snapshots and no manual ones, so there's no restore point older than about three days.</p>
+<p><strong>Deletion protection is off.</strong> Combined with the above, one command destroys the database and all of its backups together.</p>
+<p><strong>The instance was created with a starter database called <code>spendwise_dev</code></strong>, while the app uses one called <code>spendwise</code>. Harmless but confusing, and worth checking which one actually holds the data.</p>
+</div></details>
+
+<details class="more"><summary>Things in the account that no document mentions</summary><div class="inner">
+<p>A leftover test user with wide permissions granted through a group. A publicly-readable storage bucket from some earlier practice. A stopped server and its disk in a different region, quietly billing. No password rules on the account at all.</p>
+<p>None of it is SpendWise. All of it is in the same account as the database that holds people's spending.</p>
+</div></details>
+
+</div>
+</details>
+
+<!-- ============ 9 ============ -->
+<details class="sec" id="s9">
+<summary><span class="n">9</span><span class="t">How it proves it works<span class="one">One number — 75810 — and the habit of watching tests fail on purpose.</span></span><span class="chev">▶</span></summary>
+<div class="body">
+
+<p class="lead">The project's proof of life is a single number: <strong>75810</strong>.</p>
+
+<p>Four expenses are planted in an empty database — 125000 + 34050 + 210000 + 9999 paise, totalling 379049 — spread across five days. 379049 ÷ 5, rounded, is <strong>75810</strong>. If a real browser talking to a real server talking to real Postgres shows ₹758.10, the whole chain works.</p>
+
+<p>Two wrong answers are also checked for by name: <strong>75809</strong> means the rounding was done by chopping instead of rounding up, and <strong>94762</strong> means someone divided by the four <em>entries</em> instead of the five <em>days</em>. Naming the near-misses is what makes the test meaningful — a test that only knows the right answer can pass for the wrong reason.</p>
+
+<h3 style="font-size:1rem;margin:1.5rem 0 .6rem">Red-proofing</h3>
+<p>Here's the habit worth taking away from this project. <strong>A test that has never been seen to fail proves nothing.</strong> It might be passing because it's correct, or because it's broken and never actually checks anything.</p>
+
+<div class="flow">
+<pre>1  run the isolation test          → green
+2  switch OFF the database rule    → deliberately
+3  confirm it's really off         → by asking Postgres, not assuming
+4  run the test again              → it MUST go red
+5  switch the rule back on
+6  confirm it's really back on
+7  run the test again              → green</pre>
+</div>
+
+<p>If step 4 stays green, the test was decoration. The project's own constitution puts it plainly: <em>"A gate nobody has watched fail is decoration."</em></p>
+
+<details class="more"><summary>A real bug this caught</summary><div class="inner">
+<p>The first version of the red-proof used the wrong switch — it turned off the "applies to the owner too" setting rather than the rule itself. The test refused to go red, because the running app doesn't connect as the owner, so that setting was irrelevant to it. The red-proof caught its own weakness before it could certify anything false.</p>
+</div></details>
+
+<details class="more"><summary>The test database is a separate database, and the seeder enforces it</summary><div class="inner">
+<p>Tests wipe their database clean between runs. Pointed at the real one, they'd delete whatever you were working on. So there are two databases on the same server: <code>spendwise</code> and <code>spendwise_test</code>.</p>
+<p>The seeding script refuses to run unless the word <code>spendwise_test</code> appears in the address it was given — and there's a test that hands it the wrong address and checks that it refuses.</p>
+</div></details>
+
+<details class="more"><summary>Where the counts stand</summary><div class="inner">
+<p>As of 1 September 2026: <strong>473 tests pass</strong>, including 55 that drive a real Chrome browser. The browser suite had never been green before that date — it turned out the test setup was hitting the app's own rate limits, and 34 setups were dying on "too many requests" before they asserted anything.</p>
+<p>Milestones: M0 nearly done (9 of 10 — the last one needs a human to sign an observation), M1–M4 complete, M5 (receipts) blocked on storage that doesn't exist, M6 (hardening) mostly still to do.</p>
+</div></details>
+
+</div>
+</details>
+
+<!-- ============ 10 ============ -->
+<details class="sec" id="s10">
+<summary><span class="n">10</span><span class="t">Where to look for things<span class="one">A map of the repo, one line per folder.</span></span><span class="chev">▶</span></summary>
+<div class="body">
+
+<p class="lead">The <code>docs/</code> folders are numbered in dependency order — each one is derived from the ones above it and cites them.</p>
+
+<div class="scroll">
+<table>
+<tr><th>Folder</th><th>What's in it</th></tr>
+<tr><td><code>00 SourceOfTruth</code></td><td>the client's actual words, frozen and checksummed</td></tr>
+<tr><td><code>01 ADR</code></td><td>154 decision records — "why is it like this?" lives here</td></tr>
+<tr><td><code>02 BRD</code></td><td>76 business requirements, no technology</td></tr>
+<tr><td><code>03 PRD</code></td><td>42 specifications — <strong>the document the code is written from</strong></td></tr>
+<tr><td><code>05 Bible</code></td><td>48 stories, 195 pass/fail criteria. Settles arguments about scope</td></tr>
+<tr><td><code>06 DataModel</code></td><td>one JSON file that <em>generates</em> the schema and security rules</td></tr>
+<tr><td><code>07 Architecture</code></td><td>diagrams, plus an honest list of the weaknesses</td></tr>
+<tr><td><code>08</code> / <code>09</code></td><td>195 positive test cases, 80 negative, 29 about one person trying to read another's data</td></tr>
+<tr><td><code>10 EngineeringLedger</code></td><td>one spreadsheet: which story is built, which isn't</td></tr>
+<tr><td><code>30 Deployment</code></td><td>the AWS to-do queue and what's actually been built</td></tr>
+</table>
+</div>
+
+<div class="scroll">
+<table>
+<tr><th>File in the root</th><th>Read it when</th></tr>
+<tr><td><code>CLAUDE.md</code></td><td>you want the whole project in one page</td></tr>
+<tr><td><code>GOTCHAS.md</code></td><td><strong>before writing code</strong> — it's the list of traps, written after being caught by them</td></tr>
+<tr><td><code>PROGRESS.md</code></td><td>you want the story of what happened, session by session</td></tr>
+<tr><td><code>handoffs/</code></td><td>you're picking up cold and need the last session's own account</td></tr>
+</table>
+</div>
+
+<details class="more"><summary>Why so many generated files</summary><div class="inner">
+<p><code>datamodel.json</code> is the one file a human edits. The table definitions, the security rules, the bootstrap script and the traceability sheet are all <em>generated</em> from it. Hand-editing any of those is silently erased by the next build.</p>
+<p>The reason is drift: when the same fact is written in four places, three of them eventually become lies, and there's no way to tell which one is current. Generating them means there's only ever one place to change.</p>
+</div></details>
+
+</div>
+</details>
+
+<!-- ============ 11 ============ -->
+<details class="sec" id="s11">
+<summary><span class="n">11</span><span class="t">What does not exist yet<span class="one">The honest gaps — so future-you isn't misled by this page.</span></span><span class="chev">▶</span></summary>
+<div class="body">
+
+<p class="lead">Everything above is real and checked. This is the other half, and it matters just as much.</p>
+
+<div class="scroll">
+<table>
+<tr><th>Missing</th><th>What it would do</th><th>Blocks</th></tr>
+<tr><td>Container registry (ECR)</td><td>somewhere to keep the built image so a server can fetch it</td><td>any deploy</td></tr>
+<tr><td>A server (EC2 + ECS)</td><td>somewhere for the container to actually run</td><td>any deploy</td></tr>
+<tr><td>Three stored secrets (SSM)</td><td>how the running container would learn the database password</td><td>any deploy</td></tr>
+<tr><td>A log collector</td><td>somewhere crash messages survive the crash</td><td>debugging the first deploy</td></tr>
+<tr><td>An alarm</td><td>the only thing that would notice the app had died</td><td>trusting it unattended</td></tr>
+<tr><td>Storage bucket (S3)</td><td>where receipt photos would live</td><td>receipts, and only receipts</td></tr>
+<tr><td>A domain name or certificate</td><td>a stable address, and HTTPS</td><td>the address changing on every restart</td></tr>
+</table>
+</div>
+
+<p><strong>Nothing is deployed.</strong> The app runs on a laptop, against a database in Mumbai. That's the honest state.</p>
+
+<p>As of today the container image <em>does</em> exist and has been checked — but only on that laptop. There is nowhere to put it yet, so it can't travel. That's the very next thing: a registry, which is step two of fourteen.</p>
+
+<div class="warn">
+<p><strong>Two security items outstanding at the time of writing.</strong> An AWS key with full account access was pasted into a chat window on 25 August and is <em>still active</em> — two keys, in fact. And the account has no CloudTrail set up, so the record of what happened with that key only reaches back 90 days and will expire in late November.</p>
+<p>Also missing: HTTPS. The planned deployment has no load balancer, which means no TLS, which is why the session cookie's "only send me over HTTPS" flag is switched off. That's recorded as a known weakness, not a thing to copy.</p>
+</div>
+
+<details class="more"><summary>What's left in the product itself</summary><div class="inner">
+<p>Receipts (M5) — blocked on storage. Hardening (M6) — the log deny-list, secret rotation, the full negative suite. And one item in M0 that no program can finish: a human has to run the project from a fresh clone and sign a four-line record saying they watched it work.</p>
+</div></details>
+
+</div>
+</details>
+
+<footer>
+Version 1 · written 12 September 2026 · repo <code>D:/Project/SpendWise</code> · branch <code>main</code><br>
+AWS facts read live from account <code>944483082287</code>, region <code>ap-south-1</code>, read-only, on 12 September 2026.
+Code facts carry file-and-line citations in the repo's own notes.<br>
+No password, key or connection string appears in this file, and none ever will.
+</footer>
+
+</div>
+
+<script>
+(function () {
+  var secs = Array.prototype.slice.call(document.querySelectorAll('details.sec'));
+
+  document.getElementById('all').addEventListener('click', function () {
+    secs.forEach(function (d) { d.open = true; });
+  });
+  document.getElementById('none').addEventListener('click', function () {
+    secs.forEach(function (d) { d.open = false; });
+    document.querySelectorAll('details.more').forEach(function (d) { d.open = false; });
+  });
+
+  function reveal(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.open = true;
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // clicking a box on the map opens its section
+  document.querySelectorAll('.map a[href^="#"]').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      e.preventDefault();
+      var id = a.getAttribute('href').slice(1);
+      history.replaceState(null, '', '#' + id);
+      reveal(id);
+    });
+  });
+
+  // deep link straight to a section
+  if (location.hash.length > 1) reveal(location.hash.slice(1));
+  window.addEventListener('hashchange', function () {
+    if (location.hash.length > 1) reveal(location.hash.slice(1));
+  });
+})();
+</script>
+</body>
+</html>

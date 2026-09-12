@@ -36,6 +36,16 @@ client/dist/
 .git/
 .github/
 docs/
+# ...with ONE exception. `app/core/errors.py` and `app/modules/categories/
+# service.py` read `contract.json` at RUNTIME, not at build time — the error
+# code table and the seeded category list are loaded from the spec of record
+# rather than transcribed into Python. Excluding it ships an image whose every
+# error path raises FileNotFoundError, including the handler that reports
+# errors. Found on the first real deploy, 2026-09-13; /healthz does not touch
+# this code, so the CI smoke test passed against a broken image.
+!docs/03 PRD/
+!docs/03 PRD/api/
+!docs/03 PRD/api/contract.json
 evidence/
 goals/
 handoffs/
