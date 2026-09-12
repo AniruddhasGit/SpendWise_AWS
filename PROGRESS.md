@@ -658,3 +658,46 @@ toward it, not the story · nothing deployed · `rds_bootstrap.sql` still cannot
 `E5-S3`.
 
 - **Session closed 2026-09-01_1302 by Aniruddha Jathar** → handoff: handoffs/HANDOFF_2026-09-01_1302_aniruddha-jathar.md
+
+---
+
+## Session 2026-09-12 — an OPS session that found it was looking at the wrong server
+
+**No application code, no test run, no AWS resource changed.** The ledger is untouched.
+
+**The checkout was five weeks stale.** `D:/Project/SpendWise` sat at `5847ec0` while
+`aniruddhasgit/main` was 16 commits ahead at `3140094`. The `SessionStart` hook truthfully reported
+the newest handoff *in this checkout* — `2026-08-06` — which is not the newest that exists. Every
+conclusion the session drew about the frontier was wrong as a result: it reported the Dockerfile as
+unwritten (it exists, `0a1572e`), `E1-S6` rate limits as Backlog (Done, `58165bc`, M1 is 8/8) and
+`range.required` as unimplemented (fixed, `18bc0b6`). Corrected in the handoff rather than dropped.
+Rebased onto upstream at close; the `PROGRESS.md` conflict was resolved by taking upstream whole.
+
+**Also found:** `origin` → `AniruddhaDynpro/SpendWise` returns *Repository not found*; the live
+remote is `aniruddhasgit`. And the previous handoff's repo path is `D:/SpendWise` where this one is
+`D:/Project/SpendWise` — **two checkouts on one machine, out of sync.**
+
+**The audit hit the wrong database.** The session audited RDS thoroughly and the instance was not
+this project's. `AS BUILT` records `spendwise-db` · PostgreSQL **17.9** · account `944483082287`.
+The session queried `spend-wise-dev-db` · PostgreSQL **18.3** · account **`545620235339`** — the
+orphan from 2026-08-05, superseded when the project moved accounts. **It still exists, with storage
+autoscaling enabled to 1000 GB, a manual snapshot, Performance Insights and Enhanced Monitoring, in
+an account no document mentions.** Local `.env` and `rds.txt` still point at it.
+
+**Genuinely delivered:** this machine can now build and run containers — WSL2, Docker engine
+**29.6.2** on `linux/amd64` proven by an actually-executed `hello-world`, AWS CLI **2.36.17**.
+
+**Recorded and unfixed:** `RUNTIME_VERSIONS.md:7` still claims the build session does not write the
+Dockerfile, contradicting `SW-ADR-011` *and* the repo's own contents; `:83` still claims no frontend
+exists; its Database table records local 18.3 against an `AS BUILT` RDS of 17.9 — the exact
+disagreement that file warns about; `AWS_PREP_QUEUE.md` item 8 still says `spendwise_dev` at line
+140 while its own `AS BUILT` section corrects it at line 263.
+
+**In progress:** nothing half-finished in code.
+
+**Open / next:** decide the fate of the orphaned instance and account `545620235339`; repoint or
+delete local `.env`/`rds.txt`; reconcile the two checkouts and the dead `origin`. Then the
+unchanged 2026-09-01 frontier — **rotate the exposed access key** (outstanding since 2026-08-25),
+the named-human RLS red-proof that closes `E0-S10` and makes M0 10/10, then `E6-S1`.
+
+- **Session closed 2026-09-12_1341 by ani87** → handoff: handoffs/HANDOFF_2026-09-12_1341_ani87.md
