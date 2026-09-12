@@ -1,0 +1,48 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "PullTheImage",
+      "Effect": "Allow",
+      "Action": [
+        "ecr:BatchGetImage",
+        "ecr:GetDownloadUrlForLayer"
+      ],
+      "Resource": "arn:aws:ecr:ap-south-1:944483082287:repository/spendwise"
+    },
+    {
+      "Sid": "EcrAuthTokenIsAccountWide",
+      "Effect": "Allow",
+      "Action": "ecr:GetAuthorizationToken",
+      "Resource": "*"
+    },
+    {
+      "Sid": "ReadOnlyThisEnvironmentsSecrets",
+      "Effect": "Allow",
+      "Action": [
+        "ssm:GetParameters"
+      ],
+      "Resource": "arn:aws:ssm:ap-south-1:944483082287:parameter/spendwise/uat/*"
+    },
+    {
+      "Sid": "DecryptThoseSecrets",
+      "Effect": "Allow",
+      "Action": "kms:Decrypt",
+      "Resource": "arn:aws:kms:ap-south-1:944483082287:key/dba0469e-9f64-4de4-a99f-0d5b60a5649e",
+      "Condition": {
+        "StringEquals": {
+          "kms:ViaService": "ssm.ap-south-1.amazonaws.com"
+        }
+      }
+    },
+    {
+      "Sid": "WriteLogs",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource": "arn:aws:logs:ap-south-1:944483082287:log-group:/ecs/spendwise-uat:*"
+    }
+  ]
+}

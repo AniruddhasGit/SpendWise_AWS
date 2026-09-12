@@ -1,0 +1,121 @@
+name: Deploy an image to an ECS service
+description: >-
+  Re-registers the service's existing task definition with a new image and
+  waits for the service to come back healthy. Fails loudly with the reason.
+
+inputs:
+  cluster:
+    description: ECS cluster name
+    required: true
+  service:
+    description: ECS service name
+    required: true
+  image:
+    description: Full image URI to deploy
+    required: true
+
+runs:
+  using: composite
+  steps:
+    # =========================================================================
+    # WHY THE TASK DEFINITION IS READ FROM AWS AND NOT FROM THIS REPOSITORY
+    #
+    # The live task definition holds the environment's secrets wiring - which
+    # SSM parameters this environment reads, which database it points at. If
+    # that JSON lived in git, three environments would mean three near-copies
+    # of the same file, and the day someone edits two of them and forgets the
+    # third is the day dev quietly starts writing to the production database.
+    #
+    # So: read what is running, change ONE field, register that. The pipeline
+    # is not allowed an opinion about anything except which image to run.
+    # =========================================================================
+    - name: Register a new revision with the new image
+      id: register
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        CURRENT=$(aws ecs describe-services \
+                    --cluster "${{ inputs.cluster }}" \
+                    --services "${{ inputs.service }}" \
+                    --query 'services[0].taskDefinition' --output text)
+        echo "Currently running: $CURRENT"
+
+        aws ecs describe-task-definition \
+          --task-definition "$CURRENT" \
+          --query 'taskDefinition' > current-td.json
+
+        # These fields are AWS's, not ours. register-task-definition rejects
+        # them on the way back in, so they have to come out first.
+        jq --arg img "${{ inputs.image }}" '
+          .containerDefinitions[0].image = $img
+          | del(
+              .taskDefinitionArn, .revision, .status, .requiresAttributes,
+              .compatibilities, .registeredAt, .registeredBy,
+              .deregisteredAt, .enableFaultInjection
+            )
+        ' current-td.json > new-td.json
+
+        NEW=$(aws ecs register-task-definition \
+                --cli-input-json file://new-td.json \
+                --query 'taskDefinition.taskDefinitionArn' --output text)
+        echo "Registered: $NEW"
+        echo "arn=$NEW" >> "$GITHUB_OUTPUT"
+
+    - name: Point the service at it
+      shell: bash
+      run: |
+        set -euo pipefail
+        aws ecs update-service \
+          --cluster "${{ inputs.cluster }}" \
+          --service "${{ inputs.service }}" \
+          --task-definition "${{ steps.register.outputs.arn }}" \
+          --query 'service.deployments[0].[status,desiredCount]' --output text
+
+    # =========================================================================
+    # THIS WAIT IS THE HEALTH CHECK.
+    #
+    # The task definition carries a container healthCheck (curl /healthz). ECS
+    # will not call a deployment COMPLETED until a task passes it, and this
+    # command does not return until the deployment is COMPLETED. So a container
+    # that boots, fails to reach its database, and dies can never be reported
+    # here as a successful deploy - which is the whole reason the step exists.
+    #
+    # It gives up after ten minutes. On a single t3.micro that is generous.
+    # =========================================================================
+    - name: Wait for the service to be healthy
+      shell: bash
+      run: |
+        set -euo pipefail
+        if aws ecs wait services-stable \
+             --cluster "${{ inputs.cluster }}" \
+             --services "${{ inputs.service }}"; then
+          echo "${{ inputs.service }} is stable on ${{ inputs.image }}"
+          exit 0
+        fi
+        echo "::error::${{ inputs.service }} never became stable." >&2
+        exit 1
+
+    # =========================================================================
+    # A failed deploy that prints nothing is a failed deploy you debug twice.
+    # Service events say WHY placement failed (usually memory); stopped tasks
+    # say why the container died (usually a missing secret or a bad image).
+    # =========================================================================
+    - name: Explain the failure
+      if: failure()
+      shell: bash
+      run: |
+        echo "--- last 10 service events ---"
+        aws ecs describe-services \
+          --cluster "${{ inputs.cluster }}" --services "${{ inputs.service }}" \
+          --query 'services[0].events[:10].[createdAt,message]' --output text || true
+
+        echo "--- most recently stopped tasks ---"
+        STOPPED=$(aws ecs list-tasks --cluster "${{ inputs.cluster }}" \
+                    --service-name "${{ inputs.service }}" --desired-status STOPPED \
+                    --query 'taskArns[:3]' --output text || true)
+        if [ -n "$STOPPED" ]; then
+          aws ecs describe-tasks --cluster "${{ inputs.cluster }}" --tasks $STOPPED \
+            --query 'tasks[].[stoppedReason,containers[0].reason,containers[0].exitCode]' \
+            --output text || true
+        fi

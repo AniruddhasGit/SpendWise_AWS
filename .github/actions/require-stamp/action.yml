@@ -1,0 +1,69 @@
+name: Require a promotion stamp
+description: >-
+  Refuses to continue unless the image for this commit carries the tag proving
+  it already passed the environment below this one.
+
+inputs:
+  repository:
+    description: ECR repository name
+    required: true
+  tag:
+    description: The stamp tag that must already exist, e.g. dev-ok-a1b2c3d
+    required: true
+  gate:
+    description: Human name of the environment that should have stamped it
+    required: true
+
+runs:
+  using: composite
+  steps:
+    # =========================================================================
+    # This is the gate. Everything else in the pipeline is plumbing.
+    #
+    # The check is deliberately a REGISTRY lookup, not a git check. Asking git
+    # "is this commit an ancestor of uat?" is answerable by anyone who can
+    # write to git. Asking ECR "does a tag exist that only the uat deploy role
+    # can create?" is answerable only by something that already held those
+    # credentials and watched the service come up healthy.
+    # =========================================================================
+    - name: Check the stamp
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        if aws ecr describe-images \
+             --repository-name "${{ inputs.repository }}" \
+             --image-ids imageTag="${{ inputs.tag }}" \
+             --query 'imageDetails[0].imageDigest' --output text >/dev/null 2>&1; then
+          echo "Found ${{ inputs.tag }} - this commit passed ${{ inputs.gate }}."
+          exit 0
+        fi
+
+        # Fail loudly and explain the fix. A gate that says "AccessDenied" or
+        # "ImageNotFound" teaches nobody anything at 2am.
+        cat >&2 <<MSG
+
+        ============================================================
+        REFUSING TO DEPLOY - this commit has not passed ${{ inputs.gate }}.
+        ============================================================
+
+        Looked for the tag : ${{ inputs.tag }}
+        In the repository  : ${{ inputs.repository }}
+        Did not find it.
+
+        That tag is written only after a deploy to ${{ inputs.gate }} has gone
+        out AND the service came up healthy. Its absence means one of:
+
+          - this commit skipped ${{ inputs.gate }} entirely (someone merged
+            past it), or
+          - the deploy to ${{ inputs.gate }} ran and did not finish healthy, or
+          - the branch was squash-merged or rebased, so the commit here is a
+            NEW commit that no environment has ever seen. Promotion must
+            fast-forward; a rewritten commit is, correctly, a stranger.
+
+        The fix is the same in all three cases: take it through
+        ${{ inputs.gate }} first.
+
+        ============================================================
+        MSG
+        exit 1

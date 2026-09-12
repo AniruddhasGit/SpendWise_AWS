@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# =============================================================================
+# Creates the GitHub Actions OIDC trust and the three deploy roles.
+#
+# WHY OIDC AND NOT ACCESS KEYS
+#   An access key in a GitHub secret is a password that lives forever and is
+#   worth stealing. OIDC issues a token that is minted per job, expires in
+#   minutes, and is bound to ONE repository and ONE environment. There is
+#   nothing left behind for anyone to find.
+#
+# THE ONE LINE THAT MATTERS is the `sub` condition in each trust-*.json:
+#
+#     repo:AniruddhasGit/SpendWise:environment:production
+#
+#   It says: only a job that GitHub has admitted into the `production`
+#   environment may assume this role. It deliberately does NOT also allow
+#   `...:ref:refs/heads/main`. That alternative looks harmless and is not —
+#   it would let ANY workflow running on main assume the production role,
+#   which is every future workflow anyone ever adds, gate or no gate.
+#
+# Idempotent. Safe to re-run.
+# =============================================================================
+set -euo pipefail
+
+ACCOUNT=944483082287
+PROVIDER="arn:aws:iam::${ACCOUNT}:oidc-provider/token.actions.githubusercontent.com"
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+say() { printf '\n== %s\n' "$*"; }
+
+say "OIDC identity provider"
+if aws iam get-open-id-connect-provider --open-id-connect-provider-arn "$PROVIDER" >/dev/null 2>&1; then
+  echo "   already present"
+else
+  aws iam create-open-id-connect-provider \
+    --url "https://token.actions.githubusercontent.com" \
+    --client-id-list "sts.amazonaws.com" \
+    --thumbprint-list "6938fd4d98bab03faadb97b34396831e3780aea1" >/dev/null
+  echo "   created"
+fi
+
+for ENV in dev uat production; do
+  ROLE="spendwise-gha-deploy-${ENV}"
+  say "role ${ROLE}"
+
+  if aws iam get-role --role-name "$ROLE" >/dev/null 2>&1; then
+    aws iam update-assume-role-policy \
+      --role-name "$ROLE" \
+      --policy-document "file://${HERE}/trust-${ENV}.json"
+    echo "   trust policy updated"
+  else
+    aws iam create-role \
+      --role-name "$ROLE" \
+      --assume-role-policy-document "file://${HERE}/trust-${ENV}.json" \
+      --max-session-duration 3600 \
+      --description "GitHub Actions deploys to the ${ENV} environment" >/dev/null
+    echo "   created"
+  fi
+
+  # Inline, not managed: this policy has exactly one consumer. A managed policy
+  # would invite a second one, and the blast radius is the whole point here.
+  aws iam put-role-policy \
+    --role-name "$ROLE" \
+    --policy-name "deploy-${ENV}" \
+    --policy-document "file://${HERE}/policy-${ENV}.json"
+  echo "   permissions attached"
+
+  aws iam get-role --role-name "$ROLE" --query 'Role.Arn' --output text
+done
+
+say "done"

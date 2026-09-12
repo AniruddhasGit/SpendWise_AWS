@@ -1,0 +1,62 @@
+name: Stamp an image
+description: >-
+  Adds a promotion tag to an image that is already in ECR, without pulling or
+  pushing a single layer.
+
+inputs:
+  repository:
+    description: ECR repository name
+    required: true
+  source-tag:
+    description: The tag that already points at the image, e.g. sha-a1b2c3d
+    required: true
+  new-tag:
+    description: The stamp to add, e.g. dev-ok-a1b2c3d
+    required: true
+
+runs:
+  using: composite
+  steps:
+    # =========================================================================
+    # put-image re-registers an EXISTING manifest under a second tag. No layer
+    # moves, so this is instant and free regardless of image size. Doing it the
+    # obvious way instead - docker pull, docker tag, docker push - would move
+    # ~500MB over the wire to achieve exactly the same thing.
+    #
+    # The tags are immutable, so a stamp can be created once and can never
+    # afterwards be pointed at different bytes. That is what makes it evidence
+    # rather than a label.
+    # =========================================================================
+    - name: Copy the manifest onto the new tag
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        IMG=$(aws ecr batch-get-image \
+                --repository-name "${{ inputs.repository }}" \
+                --image-ids imageTag="${{ inputs.source-tag }}" \
+                --output json)
+
+        MANIFEST=$(echo "$IMG" | jq -r '.images[0].imageManifest')
+        MEDIA=$(echo "$IMG" | jq -r '.images[0].imageManifestMediaType')
+
+        if [ -z "$MANIFEST" ] || [ "$MANIFEST" = "null" ]; then
+          echo "::error::${{ inputs.source-tag }} is not in ${{ inputs.repository }}." >&2
+          exit 1
+        fi
+
+        # Re-running a deploy must not fail on the stamp it already wrote.
+        # Immutable tags make a repeat PutImage an error, and that error is
+        # success in disguise - so catch that one case and only that one.
+        if OUT=$(aws ecr put-image \
+                   --repository-name "${{ inputs.repository }}" \
+                   --image-tag "${{ inputs.new-tag }}" \
+                   --image-manifest "$MANIFEST" \
+                   --image-manifest-media-type "$MEDIA" 2>&1); then
+          echo "Stamped ${{ inputs.new-tag }}"
+        elif echo "$OUT" | grep -q 'ImageAlreadyExistsException'; then
+          echo "${{ inputs.new-tag }} was already stamped - nothing to do."
+        else
+          echo "$OUT" >&2
+          exit 1
+        fi

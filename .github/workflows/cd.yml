@@ -1,0 +1,235 @@
+name: CD
+
+# =============================================================================
+# THE PROMOTION PIPELINE
+#
+#   dev branch  --auto-->  dev env      (builds the image)
+#   uat branch  --auto-->  uat env      (must carry dev-ok)
+#   main branch --manual-> production   (must carry uat-ok)
+#
+# ONE IMAGE MOVES THROUGH ALL THREE. Nothing is rebuilt on the way up. The
+# bytes running in production are the same bytes that ran in dev, which is the
+# only version of "we tested it" that means anything.
+#
+# HOW THE LINE IS HELD
+#   This repository is on a free plan, so GitHub cannot block a merge here:
+#   rulesets and required reviewers are paid features. So the gate does not
+#   live in GitHub. It lives in ECR.
+#
+#   After a commit survives dev, the dev job stamps the image with an extra
+#   tag: dev-ok-<sha>. The uat job refuses to deploy unless that tag exists.
+#   After uat, the uat job stamps uat-ok-<sha>, and production refuses without
+#   it.
+#
+#   Those tags are IMMUTABLE at the registry level, so they cannot be moved or
+#   overwritten, and the production role has no ecr:PutImage at all -
+#   production cannot stamp its own approval. Merging straight from dev into
+#   main does not help you: main would carry a commit with no uat-ok tag, and
+#   the deploy stops.
+#
+#   HONEST LIMIT: the dev role CAN call PutImage, so a hand-written workflow
+#   running in the dev environment could forge a uat-ok tag. Closing that needs
+#   one ECR repository per environment so IAM can scope by ARN. This gate stops
+#   the mistake anyone actually makes - merging to the wrong branch - not an
+#   insider who is already editing pipeline files. Recorded, not papered over.
+# =============================================================================
+
+on:
+  push:
+    branches: [dev, uat]
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: Type deploy to release the current main to production
+        required: true
+        default: ''
+
+# Two deploys to one environment would fight over the same ECS service.
+# cancel-in-progress is deliberately FALSE: killing a half-applied deploy
+# leaves the service in a worse state than letting it finish.
+concurrency:
+  group: cd-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ap-south-1
+  ECR_REGISTRY: 944483082287.dkr.ecr.ap-south-1.amazonaws.com
+  ECR_REPOSITORY: spendwise
+  ECS_CLUSTER: spendwise-cluster
+
+jobs:
+
+  # ===========================================================================
+  # GATE - the same CI that guards pull requests, called as a library
+  # ===========================================================================
+  # Calling ci.yml with `uses:` rather than triggering on its completion is
+  # deliberate. A `workflow_run` trigger reports github.ref as the DEFAULT
+  # branch no matter which branch really changed, and the deployment branch
+  # policy on each environment checks github.ref. Every deploy would be
+  # rejected for coming from the wrong branch, and the reason would be
+  # invisible in the logs. This way the ref stays true.
+  # ===========================================================================
+  ci:
+    name: CI must be green first
+    uses: ./.github/workflows/ci.yml
+
+  # ===========================================================================
+  # DEV - the only job that builds. Everything above it promotes.
+  # ===========================================================================
+  dev:
+    name: Deploy to dev
+    if: github.ref == 'refs/heads/dev'
+    needs: ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment:
+      name: dev
+      url: http://3.7.37.251:8002
+    permissions:
+      id-token: write      # required to mint the OIDC token
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Work out the image tag
+        id: tag
+        run: echo "short=$(git rev-parse --short=7 HEAD)" >> "$GITHUB_OUTPUT"
+
+      # No access key anywhere. GitHub mints a token that says "I am the dev
+      # environment of this repository"; the role's trust policy checks that
+      # sentence and nothing else. The credentials expire with the job.
+      - name: Assume the dev deploy role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::944483082287:role/spendwise-gha-deploy-dev
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Log in to ECR
+        run: |
+          aws ecr get-login-password --region "$AWS_REGION" \
+            | docker login --username AWS --password-stdin "$ECR_REGISTRY"
+
+      # --platform is not decoration. The runner is amd64 today, but a build
+      # that silently produced arm64 would push, deploy, and then fail to start
+      # on the EC2 host with "exec format error" - a bug this project has
+      # already paid for once.
+      - name: Build and push
+        env:
+          IMAGE: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:sha-${{ steps.tag.outputs.short }}
+        run: |
+          docker build --platform linux/amd64 -t "$IMAGE" .
+          docker push "$IMAGE"
+
+      - name: Deploy
+        uses: ./.github/actions/deploy-ecs
+        with:
+          cluster: ${{ env.ECS_CLUSTER }}
+          service: spendwise-dev
+          image: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:sha-${{ steps.tag.outputs.short }}
+
+      # Only now, with the service healthy, does the image earn its stamp.
+      - name: Stamp the image dev-ok
+        uses: ./.github/actions/stamp-image
+        with:
+          repository: ${{ env.ECR_REPOSITORY }}
+          source-tag: sha-${{ steps.tag.outputs.short }}
+          new-tag: dev-ok-${{ steps.tag.outputs.short }}
+
+  # ===========================================================================
+  # UAT - promotes. Builds nothing.
+  # ===========================================================================
+  uat:
+    name: Deploy to uat
+    if: github.ref == 'refs/heads/uat'
+    needs: ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: uat
+      url: http://3.7.37.251:8001
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Work out the image tag
+        id: tag
+        run: echo "short=$(git rev-parse --short=7 HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Assume the uat deploy role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::944483082287:role/spendwise-gha-deploy-uat
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Refuse anything that has not passed dev
+        uses: ./.github/actions/require-stamp
+        with:
+          repository: ${{ env.ECR_REPOSITORY }}
+          tag: dev-ok-${{ steps.tag.outputs.short }}
+          gate: dev
+
+      - name: Deploy
+        uses: ./.github/actions/deploy-ecs
+        with:
+          cluster: ${{ env.ECS_CLUSTER }}
+          service: spendwise-uat
+          image: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:sha-${{ steps.tag.outputs.short }}
+
+      - name: Stamp the image uat-ok
+        uses: ./.github/actions/stamp-image
+        with:
+          repository: ${{ env.ECR_REPOSITORY }}
+          source-tag: sha-${{ steps.tag.outputs.short }}
+          new-tag: uat-ok-${{ steps.tag.outputs.short }}
+
+  # ===========================================================================
+  # PRODUCTION - manual by design
+  # ===========================================================================
+  # Required reviewers are a paid feature on a private repository, so the human
+  # gate is the trigger itself: production deploys only when a person opens the
+  # Actions tab, selects main, runs this workflow by hand, and types the word
+  # deploy. A push to main deploys nothing.
+  # ===========================================================================
+  production:
+    name: Deploy to production
+    if: >-
+      github.event_name == 'workflow_dispatch'
+      && github.ref == 'refs/heads/main'
+      && github.event.inputs.confirm == 'deploy'
+    needs: ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: production
+      url: http://3.7.37.251:8000
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Work out the image tag
+        id: tag
+        run: echo "short=$(git rev-parse --short=7 HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Assume the production deploy role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::944483082287:role/spendwise-gha-deploy-production
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Refuse anything that has not passed uat
+        uses: ./.github/actions/require-stamp
+        with:
+          repository: ${{ env.ECR_REPOSITORY }}
+          tag: uat-ok-${{ steps.tag.outputs.short }}
+          gate: uat
+
+      - name: Deploy
+        uses: ./.github/actions/deploy-ecs
+        with:
+          cluster: ${{ env.ECS_CLUSTER }}
+          service: spendwise
+          image: ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:sha-${{ steps.tag.outputs.short }}
