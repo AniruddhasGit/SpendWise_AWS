@@ -104,6 +104,21 @@ jobs:
           role-to-assume: arn:aws:iam::944483082287:role/spendwise-gha-deploy-dev
           aws-region: ${{ env.AWS_REGION }}
 
+      # Fail in seconds rather than after a four-minute build when the
+      # environment is shut down. deploy-ecs checks this too, and THAT copy is
+      # the one that guarantees correctness - it covers uat and production as
+      # well. This one only saves time.
+      - name: Stop early if dev is scaled to zero
+        run: |
+          set -euo pipefail
+          DESIRED=$(aws ecs describe-services --cluster "$ECS_CLUSTER"                       --services spendwise-dev                       --query 'services[0].desiredCount' --output text)
+          if [ "$DESIRED" = "0" ]; then
+            echo "::error::spendwise-dev is scaled to zero. Nothing would run, so a green"
+            echo "::error::deploy would certify an environment that never executed the code."
+            echo "::error::See infra/RESTART.md."
+            exit 1
+          fi
+
       - name: Log in to ECR
         run: |
           aws ecr get-login-password --region "$AWS_REGION" \

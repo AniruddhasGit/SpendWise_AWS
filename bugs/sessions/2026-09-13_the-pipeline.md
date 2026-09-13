@@ -504,7 +504,26 @@ pass unnoticed.
 would have passed the dev gate on evidence of something that never happened, which is worse than
 having no gate: a gate you trust wrongly is how a broken thing gets waved through.
 
-`deploy-ecs` now refuses outright when `desiredCount` is 0, before building anything, and says why.
+`deploy-ecs` now refuses outright when `desiredCount` is 0 and says why.
+
+**Red-proofed, on the same shut-down environment that produced the false green.** The next push,
+identical in every other respect:
+
+```
+success  Build and push
+failure  Deploy
+skipped  Stamp the image dev-ok
+```
+
+and `describe-images --image-ids imageTag=dev-ok-94789cd` returns `ImageNotFoundException`. Nothing
+was written. The before-and-after is one commit apart on one environment, which is as close to a
+controlled comparison as this kind of thing gets.
+
+One correction found while writing this up: the guard sits *inside* the deploy action, so on the dev
+job it runs **after** the image is built and pushed — a claim of "before building anything" would
+have been wrong. It stays there anyway, because uat and production call the same action and a check
+that lived only in the caller would be missing from two of the three. `cd.yml` gained a cheap early
+copy so the common case fails in seconds instead of after a four-minute build.
 
 > **Lesson.** This is the ledger's most common shape and it caught the person who wrote the ledger
 > entry about it. The check was not broken. It answered its question correctly — *is the service

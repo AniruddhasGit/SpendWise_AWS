@@ -18,18 +18,6 @@ runs:
   using: composite
   steps:
     # =========================================================================
-    # WHY THE TASK DEFINITION IS READ FROM AWS AND NOT FROM THIS REPOSITORY
-    #
-    # The live task definition holds the environment's secrets wiring - which
-    # SSM parameters this environment reads, which database it points at. If
-    # that JSON lived in git, three environments would mean three near-copies
-    # of the same file, and the day someone edits two of them and forgets the
-    # third is the day dev quietly starts writing to the production database.
-    #
-    # So: read what is running, change ONE field, register that. The pipeline
-    # is not allowed an opinion about anything except which image to run.
-    # =========================================================================
-    # =========================================================================
     # A SERVICE SCALED TO ZERO MAKES EVERY CHECK BELOW MEANINGLESS.
     #
     # `aws ecs wait services-stable` returns as soon as runningCount equals
@@ -45,6 +33,15 @@ runs:
     #
     # Failing here is deliberate. The alternative - skipping quietly - is how
     # the false green comes back wearing a different hat.
+    #
+    # NOTE ON PLACEMENT: this guard lives inside the deploy action, so on the
+    # dev job it runs AFTER the image has already been built and pushed. That
+    # wastes a few minutes when the environment is down. It is here rather than
+    # earlier in cd.yml because CORRECTNESS belongs next to the thing it
+    # protects - uat and production call this action too, and a check that only
+    # existed in one caller would be missing from the other two. cd.yml adds a
+    # cheap early copy for dev so the common case fails fast; this one is the
+    # backstop that cannot be forgotten.
     # =========================================================================
     - name: Refuse to "deploy" to a service that is scaled to zero
       shell: bash
@@ -78,6 +75,18 @@ runs:
         fi
         echo "desiredCount is $DESIRED - a real task will have to come up."
 
+    # =========================================================================
+    # WHY THE TASK DEFINITION IS READ FROM AWS AND NOT FROM THIS REPOSITORY
+    #
+    # The live task definition holds the environment's secrets wiring - which
+    # SSM parameters this environment reads, which database it points at. If
+    # that JSON lived in git, three environments would mean three near-copies
+    # of the same file, and the day someone edits two of them and forgets the
+    # third is the day dev quietly starts writing to the production database.
+    #
+    # So: read what is running, change ONE field, register that. The pipeline
+    # is not allowed an opinion about anything except which image to run.
+    # =========================================================================
     - name: Register a new revision with the new image
       id: register
       shell: bash
