@@ -701,3 +701,56 @@ unchanged 2026-09-01 frontier — **rotate the exposed access key** (outstanding
 the named-human RLS red-proof that closes `E0-S10` and makes M0 10/10, then `E6-S1`.
 
 - **Session closed 2026-09-12_1341 by ani87** → handoff: handoffs/HANDOFF_2026-09-12_1341_ani87.md
+
+---
+
+## Session 2026-09-13 — three environments, a promotion gate, and two secrets leaked by the code written to hide them
+
+**What this session did.** Took SpendWise from one hand-deployed container to **three live
+environments with a CI/CD pipeline**, then rotated every credential in it.
+
+- `:8000` production · `:8001` uat · `:8002` dev, on one t3.micro, one RDS instance, a database
+  and its own login per environment.
+- `cd.yml` plus three composite actions. CI became a **reusable workflow** that CD calls —
+  `workflow_run` would have reported `github.ref` as the default branch and every environment's
+  branch binding would have rejected the deploy.
+- **The promotion rule lives in ECR, not GitHub**, because rulesets and required reviewers are paid
+  features on a private repo. Each stage stamps the image `dev-ok-<sha>` / `uat-ok-<sha>` only
+  after its service is healthy; the next stage refuses without it. Tags are immutable and the
+  production role has no `ecr:PutImage`, so production cannot approve itself.
+- **Red-proofed.** `cc90b35` was released to production having never been through uat: CI green,
+  production role assumed, `Refuse anything that has not passed uat` → **failure**, `Deploy` →
+  **skipped**. Taken through properly afterwards, the same command succeeded. All three then ran the
+  identical image `sha-cc90b35`.
+- OIDC only — no access keys anywhere. Three deploy roles, each locked to one GitHub environment.
+- Six per-environment database logins, `NOINHERIT` + `SET role`. Proven: the dev login is refused by
+  the production database with `permission denied for database "spendwise"`.
+- `SW-ADR-155` supersedes `SW-ADR-005`. The build session builds AWS now.
+
+**Defects found in existing work, not introduced here.**
+
+- **CI had been red on `main` for four commits.** Migration `0002` reads
+  `docs/06 DataModel/security.sql` at migration time and `.dockerignore` excluded it. Production
+  never noticed because its database was already at head. The test that should have caught this
+  hard-coded `app/` as its scan root; it now derives roots from the Dockerfile's own COPY lines.
+- **The secret scan had never read the repository's history.** `gitleaks-action` scans only the push
+  range on a `push` event; `fetch-depth: 0` controls the checkout, not the scan. Green for weeks
+  while answering a narrower question than its own comment claimed. Its first full-history pass was
+  this session.
+- **`rds.txt` pointed at an orphaned instance in account `545620235339`.** Every connection from it
+  had been dialling a host that is not there. Repointed; master password now in SSM.
+
+**Two secrets were leaked into the session transcript, by code written to prevent exactly that.**
+A `sed` redaction that passes input through on a non-match, and a PowerShell helper named `H` that
+collided with `Get-History` and had the secret quoted back in a binding error. Both rotated, both
+verified dead. Neither ever reached git — checked.
+
+**Gates.** `tools/consistency_check.py` PASS · 18 container tests pass · all three environments
+`/healthz` 200 on rotated credentials.
+
+**Open / next.** The prose around 15 `SW-ADR-005` citations still describes the old arrangement
+(markers added, wording not rewritten) · TLS on all three environments · the isolation gate is still
+the only thing proved by hand · dev-role `ecr:PutImage` could forge a `uat-ok` stamp · `27.107.64.142/32`
+revoked, so any future database work needs a temporary security-group rule.
+
+- **Session closed 2026-09-13_0707 by ani87** → handoff: handoffs/HANDOFF_2026-09-13_0707_ani87.md

@@ -1,7 +1,8 @@
 # SpendWise — Claude Code Project Guide
 
 > A personal expense tracker, built end to end from documents, by LLMs.
-> **The build session writes application code. The client builds all AWS by hand.**
+> **The build session writes application code AND builds AWS** (`SW-ADR-155`, superseding
+> `SW-ADR-005` on 2026-09-13). Three environments are live; see `infra/README.md`.
 >
 > Gate: `CONSTITUTION.md` · Frozen sources: `docs/00 SourceOfTruth/` ·
 > Decisions: `docs/01 ADR/ADR_DECISION_RELEASE_LEDGER.tsv` ·
@@ -12,12 +13,14 @@
 1. **`GOTCHAS.md`** — the trap ledger. Before writing code, not after debugging.
 2. **`PROGRESS.md`** — the last session block. What was done, what is half-done.
 3. **`handoffs/`** — the newest `HANDOFF_<stamp>_<user>.md`. The previous session's own account.
-4. **`bugs/README.md`** — **the mistake ledger, and your obligation to it.** 160 recorded defects,
-   grouped by shape rather than by component. Two thirds are failures of *detection*, not of code:
-   something was broken and nothing said so. Read `bugs/README.md` to understand the format, skim
-   the shape that matches what you are about to touch, and **when you cause or find a bug, write it
-   up there before you move on** — while you still remember what you wrongly believed. That field
-   is the point of the whole folder and it is the first thing you forget.
+4. **`bugs/README.md`** — **the mistake ledger, and your obligation to it.** 160 recorded defects
+   in `BUG_LEDGER.md`, grouped by shape rather than by component, plus per-session write-ups in
+   `bugs/sessions/` — 9 from the first deployment, 13 from building the pipeline. Two thirds are
+   failures of *detection*, not of code: something was broken and nothing said so. Read
+   `bugs/README.md` to understand the format, skim the shape that matches what you are about to
+   touch, and **when you cause or find a bug, write it up there before you move on** — while you
+   still remember what you wrongly believed. That field is the point of the whole folder and it is
+   the first thing you forget.
 5. **`COORDINATION.md`** — only if the DevOps session is running in parallel.
 
 `/ss` does all four and reconciles them against git. **Start every session with `/ss`. End every

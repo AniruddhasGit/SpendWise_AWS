@@ -580,15 +580,21 @@ Did not find it.</code></pre>
 <tr><td>Marks can be forged by the dev copy</td><td>Described honestly in section 4. Needs a separate image store per copy.</td></tr>
 <tr><td>No named approver for releases</td><td>A paid feature on this plan. The stand-in is that a person must start the release by hand.</td></tr>
 <tr><td>The biggest test is still not automated</td><td>The one proving that one person cannot see another's money still needs a real database to run against. Everything else about this project exists to support that guarantee, and it is still checked by hand.</td></tr>
-<tr><td>An old, stale address can still reach the database</td><td>A home internet address from weeks ago is still on the permitted list. Those get reassigned to other people. It should be removed.</td></tr>
+<tr><td><s>An old, stale address can still reach the database</s> — <strong>fixed</strong></td><td>A home internet address from weeks ago was still on the permitted list, and those get reassigned to other people. Removed. The database now accepts connections from the app's own server and from nowhere else — not even from the laptop this was built on.</td></tr>
 </table>
 </div>
 
+<div class="note">
+<p><strong>One decision needed a person, and got one.</strong> Worth reading as an example of how this project handles a rule that has stopped being true.</p>
+<p>There was a written record stating that the automated build process would never touch the cloud account — the owner wanted to do that part by hand, to learn it. That stopped being what happens: it was reversed out loud, under time pressure, and everything on this page was built.</p>
+<p>The proper way to change such a record is to write a new one that supersedes it, never to edit the old one. That was attempted and it failed. The project has a checking tool that refuses to let any live document rest on a cancelled decision, and seventeen documents referred to this one — two of them being the original frozen requirements, sealed with a checksum, which by design can <em>never</em> be edited to say "superseded".</p>
+<p>So the record could not be superseded at all while the tool worked that way: the only route back to a green check was to leave it marked as current after it had stopped being true. A check that can only be satisfied by lying is worse than no check.</p>
+<p><strong>The owner approved a narrow exemption</strong> for documents that are sealed and therefore unupdatable — which is a loosening of a safety check, and loosening a safety check is on the short list of things no automated process may decide alone. It was then tested in both directions, because an exemption that quietly disables the whole check would also look like success: superseding the record dropped the failures from seventeen to fifteen (the two that vanished being the two sealed documents), and adding a deliberately unmarked reference elsewhere still failed the check.</p>
+<p>The remaining fifteen were real, and each now carries a pointer to the record that replaced it.</p>
+</div>
 <div class="warn">
-<p><strong>One decision is waiting on a person, and deliberately has not been made.</strong></p>
-<p>There is a written record from earlier in the project stating that the automated build process would never touch the cloud account — the owner wanted to do that part by hand, to learn it. That is no longer what happens; it was reversed out loud, under time pressure, and all of this was built.</p>
-<p>The proper way to change such a record is to write a new one that supersedes it. That was attempted, and it cannot be done: the project has a checking tool that refuses to let any live document rest on a cancelled decision, and seventeen documents refer to this one. Two of those seventeen are the original frozen requirements, sealed with a checksum, which by design can never be edited to say "superseded".</p>
-<p>So superseding this particular record is impossible as the checking tool is currently written. The fix is a small exemption for documents that are frozen and therefore cannot be updated — which is a reasonable change, and is also a loosening of a safety check. Loosening a safety check is on this project's short list of things no automated process may decide. So it waits for a person, and in the meantime the contradiction is written down plainly rather than papered over.</p>
+<p><strong>Still outstanding from that:</strong> the <em>wording</em> around those fifteen pointers has not been rewritten. Several documents still describe the old arrangement in their prose — that the build process touches nothing in the cloud, that nobody ever watches it run — with a "superseded" marker beside it. A reader following the marker gets the right answer; a reader skimming the paragraph does not.</p>
+<p>That is editorial work across eleven documents, and it is named here rather than quietly left.</p>
 </div>
 
 </div>
