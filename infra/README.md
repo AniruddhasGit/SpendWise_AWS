@@ -56,6 +56,37 @@ branch — not someone who is already editing pipeline files.
 
 ---
 
+## The gate, watched failing
+
+A gate nobody has seen fail is decoration. On 2026-09-13 commit `cc90b35` was pushed to `main` and
+released to production by hand — `workflow_dispatch`, confirm `deploy` — having never been through
+uat. CI passed all four jobs. The production deploy role was assumed successfully. Then:
+
+```
+success  Assume the production deploy role
+failure  Refuse anything that has not passed uat
+skipped  Deploy
+```
+
+with:
+
+```
+REFUSING TO DEPLOY - this commit has not passed uat.
+Looked for the tag : uat-ok-cc90b35
+In the repository  : spendwise
+Did not find it.
+```
+
+The important part is the middle line of the step list. The job held **valid production
+credentials** and was refused anyway, because the refusal does not depend on who is asking — it
+depends on whether an earlier environment left a mark that only it could leave. The `Deploy` step
+never ran.
+
+The same commit was then promoted properly: dev, then uat, then production. Same bytes, same tag,
+three environments, one build.
+
+---
+
 ## One image, not three builds
 
 The image is built **once**, on `dev`. uat and production re-tag and redeploy that same image.
