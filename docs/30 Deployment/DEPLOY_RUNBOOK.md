@@ -1,6 +1,6 @@
 # DEPLOY_RUNBOOK.md — SpendWise on ECS-on-EC2
 
-> **Owner: the client.** Everything here is executed by hand (`SW-ADR-005`). The build session
+> **Owner: the client.** Everything here is executed by hand (`SW-ADR-005` (superseded by `SW-ADR-155`, 2026-09-13)). The build session
 > authored and reviewed these artifacts and created nothing in AWS.
 >
 > ```
@@ -976,7 +976,7 @@ The order is not cosmetic. The log group must exist before the first task ever r
 
 VERIFIED AGAINST THE LIVE ACCOUNT TODAY, read-only: zero SSM parameters exist (describe-parameters returned []). Zero CloudWatch log groups exist (describe-log-groups returned []). The AWS-managed KMS key alias/aws/ssm already exists and is Enabled — arn:aws:kms:ap-south-1:944483082287:key/dba0469e-9f64-4de4-a99f-0d5b60a5649e — so there is no chicken-and-egg problem writing an IAM policy that names it. The RDS endpoint is spendwise-db.c9y6yemgc4pn.ap-south-1.rds.amazonaws.com:5432, PostgreSQL 17.9.
 
-This session creates nothing in AWS (SW-ADR-005). Everything below is for you to run or paste. No secret value appears anywhere in this bundle, and none was read.
+This session creates nothing in AWS (SW-ADR-005 (superseded by SW-ADR-155, 2026-09-13)). Everything below is for you to run or paste. No secret value appears anywhere in this bundle, and none was read.
 
 ## ⚠ Reviewer findings on this bundle
 

@@ -188,10 +188,10 @@ a stated product value, not an oversight (`R-PRV-02`).
 | ID | Requirement | Source | Status |
 |---|---|---|---|
 | `R-OPS-01` | The product ships as one thing and deploys in one step. | `SRC-001 §2.4`, `SW-ADR-020` | RULED |
-| `R-OPS-02` | The client builds and operates all infrastructure by hand, deliberately, to learn it. The build session creates nothing in AWS and gives advance notice of everything the client will need. | `SW-ADR-005`, `SRC-002 §6` | RULED |
+| `R-OPS-02` | The client builds and operates all infrastructure by hand, deliberately, to learn it. The build session creates nothing in AWS and gives advance notice of everything the client will need. | `SW-ADR-005` (superseded by `SW-ADR-155`, 2026-09-13), `SRC-002 §6` | RULED |
 | `R-OPS-03` | **Nothing paid.** The product runs inside the AWS free tier or it does not run. | `SW-ADR-014`, `SRC-002 §15` | RULED |
 | `R-OPS-04` | The code does not become one giant file after two months. Its structure is a stated requirement, not a preference. | `SRC-001 §1`, `§3.4` | RULED |
-| `R-OPS-05` | **When schema changes are applied relative to start-up.** `SW-ADR-005` and `SW-ADR-019` are both APPROVED and say opposite things; the authority order cannot separate two same-rank records. | `SRC-001 §11.6` | **RULED** — `OPEN-MIGRATE-01` closed by `SW-ADR-093` |
+| `R-OPS-05` | **When schema changes are applied relative to start-up.** `SW-ADR-005` (superseded by `SW-ADR-155`, 2026-09-13) and `SW-ADR-019` are both APPROVED and say opposite things; the authority order cannot separate two same-rank records. | `SRC-001 §11.6` | **RULED** — `OPEN-MIGRATE-01` closed by `SW-ADR-093` |
 | `R-OPS-06` | **Whether anyone can tell the product is down.** The health endpoint exists because a load balancer would call it — and `SW-ADR-014` removed the load balancer. Nothing calls it now. | `SRC-001 §7.7` | **RULED** — `OPEN-MONITOR-01` closed by `SW-ADR-127`, `OPEN-LOGS-01` by `SW-ADR-126` |
 
 ---
@@ -208,7 +208,7 @@ a stated product value, not an oversight (`R-PRV-02`).
 | `N-SEC-02` | A person's session can be ended by someone else, immediately, and that must actually take effect. | `SRC-001 §5.4` | RULED |
 | `N-SEC-03` | **The deployed environment has no TLS.** `SW-ADR-014` removed the load balancer that would have terminated it, so credentials cross the network unprotected. That environment is **never called production in any document**, and this is an accepted, recorded weakness — not a default. | `SW-ADR-014` | RULED |
 | `N-SEC-04` | Sign-in and password reset are rate-limited harder than everything else. **The numbers are unsettled**, and without numbers no acceptance criterion here can be binary. | `SRC-001 §10.9` | **RULED** — `OPEN-RATE-01` closed by `SW-ADR-128` |
-| `N-AVL-01` | **Every deploy is a visible outage.** *(Reasoned, not observed — the build session has never run this.)* | `SW-ADR-005` | **RULED** — `OPEN-DEPLOY-01` closed by `SW-ADR-120` |
+| `N-AVL-01` | **Every deploy is a visible outage.** *(Reasoned, not observed — the build session has never run this.)* | `SW-ADR-005` (superseded by `SW-ADR-155`, 2026-09-13) | **RULED** — `OPEN-DEPLOY-01` closed by `SW-ADR-120` |
 | `N-OPS-01` | A missing required setting stops the product from starting. It never starts degraded and silent. | `CONSTITUTION.md` Art VIII.6 | **PROVISIONAL** — `CONSTITUTION.md` is UNADOPTED pending `OPEN-NAME-01` (a client signature) |
 | `N-UX-01` | **The product works down to phone width.** `SRC-001 §12.1` excludes a native app, so the phone-width web experience *is* the entire mobile product. | `SRC-001 §9.4` | RULED |
 | `N-UX-02` | The product has a deliberate visual identity — paper and pine green, a serif for display, a sans for body, a monospace for every number, with figures that align in columns. Not the default blue dashboard. | `SRC-001 §9.4` | RULED |
@@ -264,7 +264,7 @@ certified its own defects out of existence.**
 - **Three requirements rest on `CONSTITUTION.md`, which is UNADOPTED** — `N-ISO-02` and `N-OPS-01`
   are marked `PROVISIONAL` for that reason, and the win condition in §2 inherits the same caveat.
 - **`N-AVL-01` is reasoned, not observed.** The build session has never run a deployment and, under
-  `SW-ADR-005`, never will.
+  `SW-ADR-005` (superseded by `SW-ADR-155`, 2026-09-13), never will.
 - **Three requirements remain `PROVISIONAL` and none is `OPEN`.** `R-UND-04` depends on
   `OPEN-TZ-01`, which `SW-ADR-089` flagged for the client's digest; `N-ISO-02` and `N-OPS-01`
   rest on `CONSTITUTION.md`, which is UNADOPTED pending a signature. That is not incompleteness — it is the

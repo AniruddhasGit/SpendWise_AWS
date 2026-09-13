@@ -14,7 +14,7 @@ When only one session is running, this file is informational.
 | **BUILD** | the application session | `app/**` · `client/**` · `alembic/**` · `docs/**` · `tests/**` | anything in AWS · `.github/workflows/**` · any Dockerfile until `SW-ADR-011` releases it |
 | **OPS** | the client's separate DevOps session | AWS console and CLI · `.github/workflows/**` · `docs/30 Deployment/AWS_PREP_QUEUE.md` tick-offs | `app/**` · `client/**` · `alembic/**` |
 
-**The lanes are disjoint by design** (`SW-ADR-005`). The build session creates nothing in AWS; the DevOps
+**The lanes are disjoint by design** (`SW-ADR-005` (superseded by `SW-ADR-155`, 2026-09-13)). The build session creates nothing in AWS; the DevOps
 session writes no application code. Where they meet is exactly two files:
 
 - **`docs/30 Deployment/AWS_PREP_QUEUE.md`** — BUILD writes the requests, OPS marks them done and records what was

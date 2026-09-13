@@ -264,7 +264,8 @@ wrong, the subject is wrong, the provider is missing, or the thumbprint is stale
 
 **Believed.** `SW-ADR-005` ("the build session touches no AWS") had been overtaken by events, so the
 method's own procedure applies: write a superseding record, mark the old one SUPERSEDED, update the
-ledger.
+ledger. (It is now genuinely superseded, by `SW-ADR-155` — see the resolution at the end of this
+entry.)
 
 **Actually.** `tools/consistency_check.py` gates on no live document resting authority on a
 non-APPROVED record - correctly, since an earlier review found the constitution resting the
@@ -273,7 +274,8 @@ product's central security promise on a withdrawn ADR. Marking `SW-ADR-005` supe
 
 Fifteen are ordinary documents that can be annotated. Two are `SRC-001` and `SRC-002`, which are
 frozen and SHA-256-fingerprinted; changing a byte invalidates every artifact derived from them. They
-carry `Carried into: SW-ADR-005` provenance pointers that can never be updated.
+carry `Carried into: SW-ADR-005` provenance pointers that can never be updated to say superseded —
+which is the whole difficulty, since that is the one word the check is looking for.
 
 So superseding this particular ADR cannot pass the gate - not because anything is wrong, but because
 the check has no exemption for documents that are definitionally unupdatable. It already exempts
@@ -288,6 +290,14 @@ the check has no exemption for documents that are definitionally unupdatable. It
 > client, with the draft record kept outside the repository rather than half-applied. A gate that
 > blocks something legitimate is a design question, not a thing to route around at the moment it
 > becomes inconvenient.
+
+**Resolved.** The client approved the narrowing the same day, so the change was made deliberately
+and is recorded as such - in the code comment, in `SW-ADR-155`, and here. The exemption keys off
+`fingerprints.json` rather than a hardcoded path, so it covers exactly the files that are
+cryptographically sealed and therefore cannot be edited, and nothing else. It was red-proofed the
+only way that means anything: superseding `SW-ADR-005` afterwards dropped the failure count from
+seventeen to fifteen, the two that disappeared being the two frozen sources. The other fifteen were
+real and were annotated one by one.
 
 ---
 

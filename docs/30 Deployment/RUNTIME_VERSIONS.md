@@ -4,7 +4,7 @@
      requirements.lock. Do not hand-edit — regenerate.
      Verify:  py tools/record_runtime.py --check                              -->
 
-**The build session does not write the Dockerfile** (`SW-ADR-005`). This is what it
+**The build session does not write the Dockerfile** (`SW-ADR-005` (superseded by `SW-ADR-155`, 2026-09-13)). This is what it
 owes instead: the exact facts that Dockerfile has to reproduce, taken from the
 interpreter and lockfile actually installed rather than typed from memory.
 

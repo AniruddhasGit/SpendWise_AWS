@@ -1,7 +1,7 @@
 # Failure modes
 
 > **UNVERIFIED — reasoned, not observed.** The build session creates nothing in AWS and
-> never watches this run (`SW-ADR-005`). Only the client can turn any AWS claim below into
+> never watches this run (`SW-ADR-005` (superseded by `SW-ADR-155`, 2026-09-13)). Only the client can turn any AWS claim below into
 > evidence.
 
 | What breaks | The person sees | The log says | Detected by |

@@ -340,9 +340,31 @@ def check_all(root: str) -> Report:
         r"was ruled|no longer|replac|former|previous|used to|"
         r"not current authority|keeps its (?:original )?text|worked example",
         re.I)
+    # A FROZEN source is exempt, for the same reason all-ADRs/ and the ledger
+    # are: its mention of a record is provenance, not reliance.
+    #
+    # SRC-001 and SRC-002 carry "Carried into: SW-ADR-nnn" lines, which record
+    # what was derived from that clause AT THE TIME. They are also sealed with a
+    # SHA-256 in fingerprints.json, and check 7 fails the whole run if a single
+    # byte changes - so they can never be annotated to say "superseded", now or
+    # ever. That is by design and is not going to change.
+    #
+    # Without this exemption, superseding ANY ADR that a frozen source names is
+    # impossible: the gate fails permanently, and the only way back to green is
+    # to leave the ADR marked APPROVED after it has stopped being true. A check
+    # that can only be satisfied by lying is worse than no check.
+    #
+    # Found on 2026-09-13 trying to supersede SW-ADR-005, which two frozen
+    # sources name. Narrowed deliberately and with the client's approval, since
+    # loosening a quality check is a reserved decision - never silently.
+    frozen = set()
+    if os.path.isfile(fp_p):
+        for fn in json.loads(read(fp_p)).get("sources", {}):
+            frozen.add("docs/00 SourceOfTruth/" + fn)
+
     stale = 0
     for f, t in corpus.items():
-        if f.startswith("docs/01 ADR/all-ADRs/") or "LEDGER" in f:
+        if f.startswith("docs/01 ADR/all-ADRs/") or "LEDGER" in f or f in frozen:
             continue
         row_scoped = f.endswith((".tsv", ".csv"))
         for m in re.finditer(r"\bSW-ADR-(\d{3})\b", t):

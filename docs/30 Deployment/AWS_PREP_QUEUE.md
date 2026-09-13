@@ -1,7 +1,7 @@
 # AWS_PREP_QUEUE.md — the client's advance-notice queue
 
 **Owner: the client.** Everything here is built by hand, in the AWS console, deliberately, to
-practise the DevOps role (`SW-ADR-005`). The build session creates nothing in AWS and writes no
+practise the DevOps role (`SW-ADR-005` (superseded by `SW-ADR-155`, 2026-09-13)). The build session creates nothing in AWS and writes no
 pipeline or infrastructure code. Its job is to say what is coming **before** it is needed.
 
 ```
@@ -116,7 +116,7 @@ combined) · Secrets Manager (~$0.40/secret/month where SSM is free).
 
 ## ADDED 2026-08-05 — four items owed as advance notice, found by the GOAL_02 review
 
-These were promised by an ADR and never written down. That is the obligation `SW-ADR-005`
+These were promised by an ADR and never written down. That is the obligation `SW-ADR-005` (superseded by `SW-ADR-155`, 2026-09-13)
 trades for the code-only boundary, so the lapse is recorded rather than quietly corrected.
 
 ### 6. A CORS rule on the S3 bucket  (`SW-ADR-069`, `SRC-001` erratum E-8)

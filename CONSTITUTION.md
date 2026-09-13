@@ -172,7 +172,7 @@ Every session, human or model, is bound by these. They are the honesty floor.
 ## Article VIII — Operations & Deployment
 
 1. **The build session writes application code only.** No pipeline files, no infrastructure-as-code,
-   nothing created in AWS (`SW-ADR-005`). The client builds DEV, UAT and PROD by hand.
+   nothing created in AWS (`SW-ADR-005` (superseded by `SW-ADR-155`, 2026-09-13)). The client builds DEV, UAT and PROD by hand.
 2. In exchange the build session MUST give **advance notice** of every AWS dependency, early enough
    to be prepared while code is still being written.
 3. **The build session never observes the app running in AWS.** Every claim it makes about AWS
@@ -224,7 +224,7 @@ they are irreversible, or they collide with a decision the client already made.
 |---|---|---|---|
 | `OPEN-NAME-01` | **RULED — see `SW-ADR-091`.**  The client's exact full name for the ratification block, and a backup decider (`NONE — accepted` is valid). **Until this lands this Constitution is UNADOPTED and all 70 ADRs carry a "recorded while ungoverned" caveat.** | reserved: governance | — |
 | `OPEN-CAT-01` | **RULED — see `SW-ADR-092`.**  **Which eight categories are seeded on account creation, and what colour each gets.** `SRC-001 §6.5` says "eight sensible ones" and names none. Inventing them is the build session inventing product content, which Art VII.3 forbids. Not cosmetic: they drive the ribbon, the breakdown and the day-one fixture, and changing the list later does not retro-fit existing accounts. | reserved: product identity | None offered — this is content, and content is the client's. It is also a one-message question. |
-| `OPEN-MIGRATE-01` | **RULED — see `SW-ADR-093`.**  **Two APPROVED ADRs contradict each other.** `SW-ADR-005` says migrations are "a separate runnable step, **never done on boot**". `SW-ADR-019` says "migrations remain at container start". Art II.1's authority order cannot separate two same-rank APPROVED records. | reserved: amending a ruling | None offered. The build session may not choose which of the client's own decisions loses. A superseding ADR is required either way. |
+| `OPEN-MIGRATE-01` | **RULED — see `SW-ADR-093`.**  **Two APPROVED ADRs contradict each other.** `SW-ADR-005` (superseded by `SW-ADR-155`, 2026-09-13) says migrations are "a separate runnable step, **never done on boot**". `SW-ADR-019` says "migrations remain at container start". Art II.1's authority order cannot separate two same-rank APPROVED records. | reserved: amending a ruling | None offered. The build session may not choose which of the client's own decisions loses. A superseding ADR is required either way. |
 | `OPEN-CREDS-01` | **RULED — see `SW-ADR-094`.**  Where local database credentials live. `SW-ADR-014` replaced Secrets Manager with SSM for AWS; local development still needs an answer. | reserved: secrets | Git-ignored `.env`, with `.env.example` committed (`SW-ADR-060`). |
 | `OPEN-MODEL-01` | **RULED — see `SW-ADR-095`.**  What code and data may enter an AI model, and which vendors become sub-processors once real user data exists. | reserved: legal | — |
 

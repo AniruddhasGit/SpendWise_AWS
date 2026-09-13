@@ -20,7 +20,7 @@ Every `P-` row carries **two** references: a `[SRC:]` tag (where the requirement
 a **BRD row** (which business requirement it satisfies). A row missing either is a defect:
 no `[SRC:]` means invented, no BRD row means scope creep.
 
-Citations resolve against **currently APPROVED** records only. 22 of the 154 ADRs are
+Citations resolve against **currently APPROVED** records only. 23 of the 155 ADRs are
 superseded or withdrawn and are not authority.
 
 **Status:** `RULED` (decided, cited) · `PROVISIONAL` (buildable, a dependency outstanding) ·
@@ -38,7 +38,7 @@ Carried unchanged from `02 BRD` §2. Nothing is added here. The hard exclusions,
 and the win condition all stand as written there.
 
 **Out of scope for this document specifically:** database schema (that is `06 DataModel`), the
-build order (that is `05 Bible`), and infrastructure (that is the client's, per `SW-ADR-005`).
+build order (that is `05 Bible`), and infrastructure (that is the client's, per `SW-ADR-005` (superseded by `SW-ADR-155`, 2026-09-13)).
 
 ---
 

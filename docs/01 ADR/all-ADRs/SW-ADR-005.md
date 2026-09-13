@@ -5,13 +5,14 @@
 | ADR | `SW-ADR-005` |
 | Pack | `SPENDWISE_V1` |
 | Type | DELIVERY_MODEL |
-| Decision status | **APPROVED** |
+| Decision status | **SUPERSEDED** |
 | Decision outcome | APPROVED_FOR_IMPLEMENTATION |
 | Decided by | CLIENT |
 | Decision date | 2026-08-05 |
 | Release decision | RELEASE |
 | Release status | RELEASED |
 | Sources | `SRC-002 §1` · `SRC-002 §6` · `SRC-001 E-5` |
+| Superseded by | `SW-ADR-155` (2026-09-13) |
 
 ## Context
 

@@ -39,7 +39,7 @@ Numbered in dependency order. Each is derived from the ones above it and **cites
 | Folder | What it holds | State |
 |---|---|---|
 | `00 SourceOfTruth/` | `SRC-001` the client's requirements + `SRC-002` their rulings — **frozen and hashed**. **10 errata.** | **written** |
-| `01 ADR/` | **154 decision records** (132 live, 22 superseded or withdrawn) + the fail-closed ledger. | **written** |
+| `01 ADR/` | **155 decision records** (132 live, 23 superseded or withdrawn) + the fail-closed ledger. | **written** |
 | `02 BRD/` | 76 business requirements, each citing a source. | **written** |
 | `03 PRD/` | **42 specifications — the document the code is written from.** Plus the API contract and the §9 coverage map. | **written** |
 | `05 Bible/` | 48 stories, **195 binary acceptance criteria**. The scope arbiter. | **written** |
@@ -182,39 +182,39 @@ fast** — a missing required key aborts startup rather than defaulting silently
 the dependent story `Blocked`, never stubbed. **Never commit a credential**; `/tt` scans the staged
 diff before every push.
 
-## AWS: what SW-ADR-005 says, and what is actually true
+## The build session builds AWS too
 
-`SW-ADR-005` rules that the build session writes application code only and creates nothing in AWS.
-**That is no longer what happens**, and the gap is recorded here rather than left for you to trip
-over.
+`SW-ADR-155` (2026-09-13, CLIENT) **supersedes `SW-ADR-005`**, which ruled that this session writes
+application code only and creates nothing in AWS. That rule reflected the client's intention to
+build DEV, UAT and PROD by hand in order to learn the DevOps role. It was reversed out loud, under
+time pressure, and the reversal is recorded rather than assumed.
 
-On 2026-09-12 and 2026-09-13 the client directed this session to deploy and then to build the
-environments and pipeline — *"build it"*, *"continue the infra build"*, *"start building the infra,
-we do not have time"*, scope confirmed as *"Everything: branches, GitHub, AWS, CD"*. What now exists:
-three environments on one EC2 host (`:8000` production, `:8001` uat, `:8002` dev), a database per
-environment on one RDS instance, and a CD pipeline. It is committed under `infra/` with the
-reasoning in comments — start at `infra/README.md`.
+**Other documents still describe the old arrangement.** `CONSTITUTION.md`, `COORDINATION.md`, the
+BRD, the PRD, the architecture notes and the deployment folder all carry `SW-ADR-005`'s framing,
+each now marked as superseded at the point of citation. Where they disagree with this section, this
+section is current. Rewriting their surrounding prose is outstanding editorial work, not a decision.
 
-**A superseding ADR is OWED and is BLOCKED.** Writing one was attempted and reverted: seventeen
-documents cite `SW-ADR-005`, and `tools/consistency_check.py` fails any live document resting on a
-non-APPROVED record. Two of the seventeen are `SRC-001` and `SRC-002`, which are frozen and
-SHA-256-fingerprinted, so they can never be annotated to say "superseded" — meaning superseding this
-particular ADR cannot pass the gate as the gate is currently written. Resolving that means either
-narrowing the check to exempt frozen sources, or accepting a permanently red gate. **Narrowing a
-quality check is RESERVED** (see below), so it waits for the client. The draft record is kept
-outside the repository rather than half-applied.
+### What exists
 
-**Until then, treat `SW-ADR-005` as historical on the AWS question and this section as current.**
+Three environments on one EC2 host — `:8000` production, `:8001` uat, `:8002` dev — one RDS
+instance with a database and its own login per environment, and a promotion pipeline. Start at
+`infra/README.md`. The promotion rule is enforced in ECR, not GitHub, and has been watched refusing
+a release.
 
-**What the old record still gets right, and what it now gets backwards:** it warned this session
-would never observe AWS, so every AWS claim was *reasoned, not observed*. It observes AWS directly
-now, which raises the bar: an AWS claim that was **not** observed is a defect, not an accepted
-limitation. Art VII is unchanged — *here is the command and here is the output*, never *the pipeline
-went green*.
+### The RISK clause is discharged and reversed
 
-**Still reserved, and not softened by any of this:** billing, anything that changes what the product
-is, waiving or narrowing a quality check, and exposing a database to the public internet — the last
-of which was declined during the session that built all this and referred to the client.
+`SW-ADR-005` warned this session would never observe AWS, so every AWS claim was *reasoned, not
+observed*. That is no longer true and the superseding record discharges it: this session observes
+AWS directly now, which raises the bar rather than lowering it: **an AWS
+claim that was not observed is a defect**, not an accepted limitation. Art VII is unchanged — *here
+is the command and here is the output*, never *the pipeline went green*.
+
+### Still reserved, and not softened by any of this
+
+Billing · anything that changes what the product is · waiving **or narrowing** a quality check ·
+exposing a database to the public internet. Narrowing `tools/consistency_check.py` to exempt
+fingerprinted sources was itself a reserved decision, taken by the client on 2026-09-13, not by a
+session that found the gate inconvenient.
 
 ## Win condition — define victory, then stop
 

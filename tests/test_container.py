@@ -63,7 +63,7 @@ def test_the_python_base_pins_its_patch_version():
 def test_the_runtime_stage_pins_its_cpu_architecture():
     """The image must declare the CPU it is for, not inherit the builder's.
 
-    `SW-ADR-005` leaves building and pushing to the client, by hand, from
+    `SW-ADR-005` (superseded by `SW-ADR-155`, 2026-09-13) leaves building and pushing to the client, by hand, from
     whatever laptop is in front of them. An unpinned runtime stage therefore
     produces an arm64 image on Apple Silicon and an amd64 image everywhere
     else, from the identical commit.
