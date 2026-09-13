@@ -180,7 +180,8 @@ is a teardown with a restore step, not a pause.
   comfortably above a working set. Before trusting one, check what is actually running:
 
   ```bash
-  AWS_PROFILE=dynpro aws ecs describe-task-definition --task-definition spendwise \n    --query 'taskDefinition.containerDefinitions[0].image' --output text
+  AWS_PROFILE=dynpro aws ecs describe-task-definition --task-definition spendwise \
+    --query 'taskDefinition.containerDefinitions[0].image' --output text
   ```
 - **There is a second AWS account, `545620235339`**, holding an orphaned RDS instance
   (`spend-wise-dev-db`) with storage autoscaling up to 1000 GB. It is not reachable from this
