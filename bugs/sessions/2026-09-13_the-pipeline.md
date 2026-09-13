@@ -1,6 +1,6 @@
 # 2026-09-13 — building the three-environment pipeline
 
-Thirteen entries. Two leaked a secret, two cost a failed deploy, and the other nine were caught
+Fourteen entries. Two leaked a secret, two cost a failed deploy, and the other ten were caught
 while reading a draft rather than while debugging a failure. That ratio is the point of this
 file: every cheap catch came from someone asking "what would this actually do?" before running
 it.
@@ -468,6 +468,60 @@ from this file had been dialling a host that is not there.
 
 ---
 
+### A deploy to a shut-down environment reported success and stamped the image
+
+**Shape:** false-green
+
+**Believed.** `deploy-ecs` proves the deploy worked by waiting: it registers the new task
+definition, points the service at it, and then runs `aws ecs wait services-stable`. The task
+definition carries a container health check, so ECS will not call a deployment COMPLETED until a
+task passes it. The step comment says so in as many words — *"THIS WAIT IS THE HEALTH CHECK"* — and
+it had been true in every run up to this point.
+
+**Actually.** `services-stable` returns when `runningCount == desiredCount`. It does not require
+either number to be greater than zero.
+
+The environments were scaled to `desiredCount 0` to stop them costing money, and the EC2 host was
+stopped. A routine push to `dev` then ran the whole pipeline:
+
+```
+success  Build and push
+success  Deploy
+success  Stamp the image dev-ok
+```
+
+Nothing ran. There was no host to run it on. `0 == 0`, so the wait returned immediately, the deploy
+reported green, and the pipeline wrote `dev-ok-adc1ba7` into ECR — a permanent, immutable mark
+certifying that a commit had passed the dev environment, for a commit no container ever executed.
+
+**Caught by.** Predicting it. The push was made knowing the host was stopped, and the question
+"what will the gate do now?" was asked before the run finished rather than after. The prediction was
+written down first and then checked against the run, which is the only reason it did not simply
+pass unnoticed.
+
+**Consequence, and what was done.** The bogus stamp was deleted from ECR — it had a second tag
+(`sha-adc1ba7`) so the image itself survived. Had it been left, promoting that commit to uat later
+would have passed the dev gate on evidence of something that never happened, which is worse than
+having no gate: a gate you trust wrongly is how a broken thing gets waved through.
+
+`deploy-ecs` now refuses outright when `desiredCount` is 0, before building anything, and says why.
+
+> **Lesson.** This is the ledger's most common shape and it caught the person who wrote the ledger
+> entry about it. The check was not broken. It answered its question correctly — *is the service
+> stable?* — and the service genuinely was stable. It was simply a narrower question than the name
+> "the health check" implies, and the gap between the two is invisible until the day the environment
+> is empty.
+>
+> The general form: **a wait-until-consistent check is vacuous when the target is zero.** Anything
+> of the shape "wait until actual equals desired" silently succeeds when both are nothing. If the
+> success of a check depends on something existing, the check has to assert that it exists.
+>
+> Worth noticing too that the green was *more* dangerous than a red would have been, because it
+> wrote a durable artifact. A failed deploy leaves a failed run. This one left a permanent mark
+> asserting a fact that was not true.
+
+---
+
 ## Shape counts for this session
 
 | Shape | Count |
@@ -476,9 +530,9 @@ from this file had been dialling a host that is not there.
 | wrong-assumption | 3 |
 | fix-caused-it | 2 (1 averted) |
 | environment | 2 |
-| false-green | 1 |
+| false-green | 2 |
 
-Nine of thirteen were found by reading a draft against the question "what does this actually do,
+Ten of fourteen were found by reading a draft against the question "what does this actually do,
 line by line?" — not by running anything. The four that were not split cleanly in two:
 
 - **The two that leaked** were both secret-handling code written specifically to avoid printing a

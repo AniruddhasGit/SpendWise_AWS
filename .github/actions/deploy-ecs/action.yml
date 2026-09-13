@@ -29,6 +29,55 @@ runs:
     # So: read what is running, change ONE field, register that. The pipeline
     # is not allowed an opinion about anything except which image to run.
     # =========================================================================
+    # =========================================================================
+    # A SERVICE SCALED TO ZERO MAKES EVERY CHECK BELOW MEANINGLESS.
+    #
+    # `aws ecs wait services-stable` returns as soon as runningCount equals
+    # desiredCount. With desiredCount 0 that is true instantly, so the wait
+    # succeeds, the deploy reports green, and the image gets stamped dev-ok or
+    # uat-ok - certifying that a commit passed an environment in which no
+    # container was ever started.
+    #
+    # That is the exact shape this project's bug ledger is full of: not a
+    # broken thing, a check that answers a narrower question than its name
+    # implies. Found on 2026-09-13, when the environments were scaled to zero
+    # to stop them costing money and a push still produced a green deploy.
+    #
+    # Failing here is deliberate. The alternative - skipping quietly - is how
+    # the false green comes back wearing a different hat.
+    # =========================================================================
+    - name: Refuse to "deploy" to a service that is scaled to zero
+      shell: bash
+      run: |
+        set -euo pipefail
+        DESIRED=$(aws ecs describe-services \
+                    --cluster "${{ inputs.cluster }}" \
+                    --services "${{ inputs.service }}" \
+                    --query 'services[0].desiredCount' --output text)
+
+        if [ "$DESIRED" = "0" ]; then
+          cat >&2 <<MSG
+
+        ============================================================
+        REFUSING TO DEPLOY - ${{ inputs.service }} is scaled to zero.
+        ============================================================
+
+        desiredCount is 0, so no task will start and nothing can be
+        verified. The deploy would pass, and the promotion stamp it
+        writes would certify an environment that never ran the code.
+
+        The environments are probably shut down to save money. See
+        infra/RESTART.md, or bring just this one back with:
+
+          aws ecs update-service --cluster ${{ inputs.cluster }} \\
+            --service ${{ inputs.service }} --desired-count 1
+
+        ============================================================
+        MSG
+          exit 1
+        fi
+        echo "desiredCount is $DESIRED - a real task will have to come up."
+
     - name: Register a new revision with the new image
       id: register
       shell: bash
