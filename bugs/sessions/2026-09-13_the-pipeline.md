@@ -1,6 +1,6 @@
 # 2026-09-13 — building the three-environment pipeline
 
-Eight entries. One ran and did damage, one cost a failed deploy, and the other six were caught
+Nine entries. One ran and did damage, two cost a failed deploy, and the other six were caught
 while reading a draft rather than while debugging a failure. That ratio is the point of this
 file: every cheap catch came from someone asking "what would this actually do?" before running
 it.
@@ -51,7 +51,7 @@ instance does not mean reachable from the internet.
 
 ---
 
-## The seven caught while reading
+## The eight found in review, or by the pipeline refusing
 
 ### The production trust policy had a second door
 
@@ -246,15 +246,62 @@ the check has no exemption for documents that are definitionally unupdatable. It
 
 ---
 
+### Splitting the execution roles left the deploy policies behind
+
+**Shape:** fix-caused-it
+
+**Believed.** Giving each environment its own ECS execution role closes a real hole: a shared one
+lets a compromised dev container read `/spendwise/ecs/DATABASE_URL` and reach the production
+database. The task definitions were updated to name `spendwise-ecs-exec-dev` and
+`spendwise-ecs-exec-uat`, the roles were created, the services came up healthy. Done.
+
+**Actually.** Registering a task definition that names an execution role requires `iam:PassRole` on
+that role. The three deploy policies still listed the two roles from *before* the split:
+
+```
+spendwise-ecs-task-execution-role
+spendwise-ecs-task-role
+```
+
+So the pipeline could deploy by hand-run script — which used admin credentials — but not through
+GitHub Actions, which uses the scoped role. The deploy died on `RegisterTaskDefinition` with
+`not authorized to perform: iam:PassRole on resource: .../spendwise-ecs-exec-dev`.
+
+**Caught by.** The third pipeline run. Not by any check — by the permission boundary itself
+refusing, which is what it is for.
+
+Worth noticing what the error was *not*: the services were already running fine on those exact
+roles, because they were created with admin credentials that had no such restriction. The gap
+existed from the moment the roles were split and was invisible until something with real least
+privilege tried to use them.
+
+> **Lesson.** A security improvement is a change, and changes have a blast radius that runs
+> downhill. Splitting an identity means finding everything that *names* the old one — not just the
+> definitions that consume it. The fix here was to scope rather than widen: each environment may
+> now pass only its own execution role. The old shared list was worse than incomplete, it was too
+> broad, because it let the dev deploy role attach production's secrets-reading role to a task.
+>
+> Also: work done with admin credentials proves the resource is correct, never that the permissions
+> are. Those are two different tests and only the pipeline runs the second one.
+
+---
+
 ## Shape counts for this session
 
 | Shape | Count |
 |---|---|
 | the-check-was-wrong | 3 |
 | wrong-assumption | 3 |
-| fix-caused-it (averted) | 1 |
+| fix-caused-it | 2 (1 averted) |
 | environment | 1 |
 
-Six of eight were found by reading a draft aloud against the question "what does this actually do,
-line by line?" — not by running anything. The one that got through was the one nobody read back
-before it executed.
+Six of nine were found by reading a draft against the question "what does this actually do, line by
+line?" — not by running anything. The three that were not split cleanly by what kind of mistake they
+were:
+
+- **The one that did damage** was a `sed` nobody read back before it executed.
+- **The two that cost a deploy** were both cases of a document being checked for whether it said the
+  right thing, and never against the thing it was compared to at runtime — a trust policy versus the
+  actual token, a PassRole list versus the roles the task definitions actually name. Reading cannot
+  catch those. Only running can, which is the argument for a pipeline that fails loudly and early
+  rather than one that is inspected carefully and then trusted.
