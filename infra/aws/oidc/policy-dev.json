@@ -63,11 +63,11 @@
       }
     },
     {
-      "Sid": "PassOnlyTheTwoEcsRolesAndOnlyToEcsTasks",
+      "Sid": "PassOnlyThisEnvironmentsRolesAndOnlyToEcsTasks",
       "Effect": "Allow",
       "Action": "iam:PassRole",
       "Resource": [
-        "arn:aws:iam::944483082287:role/spendwise-ecs-task-execution-role",
+        "arn:aws:iam::944483082287:role/spendwise-ecs-exec-dev",
         "arn:aws:iam::944483082287:role/spendwise-ecs-task-role"
       ],
       "Condition": {
