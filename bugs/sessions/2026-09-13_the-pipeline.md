@@ -314,10 +314,15 @@ The finding itself was a false positive, and a pointed one. The flagged "secret"
 on-secret variable, SPENDWISE_DOTENV=0.
 ```
 
-— the middle of an English sentence, from a paragraph explaining that `SPENDWISE_DOTENV` is *not* a
-secret. `generic-api-key` looks for `NAME=value` near a keyword and found one in prose. It is
-suppressed in `.gitleaksignore` with the matched text quoted in full, so the claim "false positive"
-can be re-checked rather than taken on trust.
+— the middle of an English sentence, from a paragraph explaining that the variable is *not* a
+secret. `generic-api-key` looks for `NAME=value` near a keyword and found one in prose.
+
+Suppressing it had a tail. The first attempt was a `.gitleaksignore` fingerprint with the matched
+text quoted in full, so the "false positive" claim could be re-checked rather than trusted. That
+worked — and produced **three new findings**, two in the ignore file itself and one in this
+paragraph, because quoting the matched text reproduces the pattern that matched. The fix is a
+`.gitleaks.toml` allowlist on the token rather than fingerprints on the lines: fingerprints also go
+stale the moment a line moves, so every edit to this file would have needed a new one.
 
 > **Lesson.** The false positive cost twenty minutes. The false GREEN is the finding: a scan whose
 > scope silently differs from its stated purpose, that had been passing for weeks without once doing

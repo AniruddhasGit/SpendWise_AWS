@@ -1,0 +1,32 @@
+# Gitleaks configuration.
+#
+# The default ruleset is kept in full. This file only adds a narrow allowlist,
+# and every entry has to earn its place: an allowlist is where a real credential
+# can hide behind the phrase "false positive", so each one names exactly what it
+# permits and why that thing cannot be a secret.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Verified non-secrets"
+regexTarget = "line"
+regexes = [
+  # ---------------------------------------------------------------------
+  # SPENDWISE_DOTENV is a boolean that decides whether the app reads a .env
+  # file at startup. Its only legal values are 0 and 1. The `generic-api-key`
+  # rule matches NAME=value near a keyword, and fires on ordinary English
+  # sentences that mention it - the original hit was the phrase
+  #
+  #     on-secret variable, SPENDWISE_DOTENV=0.
+  #
+  # in the middle of a paragraph explaining that the variable is NOT a secret.
+  # Documenting that false positive then produced three more, because quoting
+  # the matched text reproduces the pattern. Hence a rule about the token
+  # rather than fingerprints about the lines: fingerprints go stale the moment
+  # a line moves, and would have to be re-added every time the text is edited.
+  #
+  # This allowlists lines mentioning a variable with two possible values. It
+  # cannot conceal a credential.
+  '''SPENDWISE_DOTENV''',
+]
