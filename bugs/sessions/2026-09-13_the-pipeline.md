@@ -1,6 +1,6 @@
 # 2026-09-13 — building the three-environment pipeline
 
-Ten entries. One ran and did damage, two cost a failed deploy, and the other seven were caught
+Eleven entries. One ran and did damage, two cost a failed deploy, and the other eight were caught
 while reading a draft rather than while debugging a failure. That ratio is the point of this
 file: every cheap catch came from someone asking "what would this actually do?" before running
 it.
@@ -51,7 +51,7 @@ instance does not mean reachable from the internet.
 
 ---
 
-## The nine found in review, or by the pipeline refusing
+## The ten found in review, or by the pipeline refusing
 
 ### The production trust policy had a second door
 
@@ -335,17 +335,58 @@ stale the moment a line moves, so every edit to this file would have needed a ne
 
 ---
 
+### The promotion stamps landed on a different manifest than the deploy uses
+
+**Shape:** the-check-was-wrong
+
+**Believed.** The gate works by tagging an image that already exists: fetch the manifest for
+`sha-<sha>`, re-register it under `dev-ok-<sha>`, and the stamp is now on the artifact. No layers
+move, the tags are immutable, and every stage checks the stamp below it. It was exercised against
+the live registry before use — an existing stamp passed, a missing one was refused, a repeated one
+was handled — and all three behaved correctly.
+
+**Actually.** `batch-get-image --image-ids imageTag=X` performs content negotiation. A `buildx`
+push creates an image **index** plus a platform-specific child manifest, and ECR hands back the
+child unless told otherwise. So:
+
+```
+sha-cc90b35      sha256:989b5f...   <- what the deploy references
+dev-ok-cc90b35   sha256:1638bd...   <- what got stamped
+uat-ok-cc90b35   sha256:1638bd...
+```
+
+The stamps were real, immutable, and attached to the wrong object.
+
+**Caught by.** Reading `describe-images` output for the finished promotion, rather than reading the
+pass/fail of the gate. The gate said what it always says — the tag exists.
+
+> **Lesson.** Note precisely what survived and what did not. The ORDERING guarantee was never
+> affected: a stamp exists only if the environment below it deployed and came up healthy, whichever
+> manifest it hangs on. What broke was the stronger claim — that the stamp is *on the artifact* —
+> and that claim was written into the README as though it had been checked.
+>
+> The earlier self-test proved the mechanism worked. It never asked whether it worked on the right
+> object, because "did put-image succeed?" and "did it stamp the thing that ships?" are different
+> questions and only the first one has an exit code.
+>
+> Now fixed by resolving the tag to a digest, fetching by digest with the index media types named,
+> and — the part that makes it a check rather than a hope — hashing the returned manifest and
+> refusing to stamp unless it equals the digest that was asked for. A manifest's digest is the
+> sha256 of its exact bytes, so that comparison is complete rather than indicative.
+
+---
+
 ## Shape counts for this session
 
 | Shape | Count |
 |---|---|
-| the-check-was-wrong | 3 |
+| the-check-was-wrong | 4 |
 | wrong-assumption | 3 |
 | fix-caused-it | 2 (1 averted) |
 | environment | 1 |
 | false-green | 1 |
 
-Seven of ten were found by reading a draft against the question "what does this actually do, line by
+Eight of eleven were found by reading a draft against the question "what does this actually do, line by
 line?" — not by running anything. The three that were not split cleanly by what kind of mistake they
 were:
 

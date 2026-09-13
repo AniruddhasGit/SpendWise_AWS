@@ -1,7 +1,7 @@
 name: Stamp an image
 description: >-
   Adds a promotion tag to an image that is already in ECR, without pulling or
-  pushing a single layer.
+  pushing a single layer, and proves the tag landed on the right manifest.
 
 inputs:
   repository:
@@ -23,33 +23,69 @@ runs:
     # obvious way instead - docker pull, docker tag, docker push - would move
     # ~500MB over the wire to achieve exactly the same thing.
     #
-    # The tags are immutable, so a stamp can be created once and can never
-    # afterwards be pointed at different bytes. That is what makes it evidence
-    # rather than a label.
+    # WHY THIS ASKS FOR A DIGEST AND NOT A TAG
+    #   `batch-get-image --image-ids imageTag=X` content-negotiates. A buildx
+    #   push creates an image INDEX (a manifest list) plus a platform-specific
+    #   child, and ECR will hand back the child unless told otherwise. Stamping
+    #   that child produces tags that exist - so the gate passes - but which sit
+    #   on a different digest from the one the deploy references:
+    #
+    #       sha-cc90b35      sha256:989b5f...   <- what gets deployed
+    #       uat-ok-cc90b35   sha256:1638bd...   <- what got stamped
+    #
+    #   Observed on 2026-09-13. The ordering guarantee survived that, because a
+    #   stamp still only exists if the environment below succeeded. What did not
+    #   survive is the stronger claim - that the stamp is ON the artifact. So:
+    #   resolve the tag to its digest, fetch THAT, and verify.
     # =========================================================================
     - name: Copy the manifest onto the new tag
       shell: bash
       run: |
         set -euo pipefail
 
-        IMG=$(aws ecr batch-get-image \
-                --repository-name "${{ inputs.repository }}" \
-                --image-ids imageTag="${{ inputs.source-tag }}" \
-                --output json)
+        DIGEST=$(aws ecr describe-images \
+                   --repository-name "${{ inputs.repository }}" \
+                   --image-ids imageTag="${{ inputs.source-tag }}" \
+                   --query 'imageDetails[0].imageDigest' --output text)
 
-        # The manifest goes to a FILE, not through an argument. It is ~850
-        # bytes of JSON full of quotes and colons; handing it to the CLI as a
-        # string means every shell between here and the API gets an opinion
-        # about it. Verified on Windows, where exactly that produced
-        # "Invalid parameter at 'ImageManifest': Invalid JSON syntax" from a
-        # manifest that was perfectly valid. file:// has no such argument.
-        echo "$IMG" | jq -r '.images[0].imageManifest' > manifest.json
-        MEDIA=$(echo "$IMG" | jq -r '.images[0].imageManifestMediaType')
-
-        if [ ! -s manifest.json ] || [ "$(cat manifest.json)" = "null" ]; then
+        if [ -z "$DIGEST" ] || [ "$DIGEST" = "None" ]; then
           echo "::error::${{ inputs.source-tag }} is not in ${{ inputs.repository }}." >&2
           exit 1
         fi
+        echo "${{ inputs.source-tag }} -> $DIGEST"
+
+        # Index types first. Asking by digest already pins WHICH object we want;
+        # naming the index media types stops ECR substituting a child for it.
+        aws ecr batch-get-image \
+          --repository-name "${{ inputs.repository }}" \
+          --image-ids imageDigest="$DIGEST" \
+          --accepted-media-types \
+            "application/vnd.oci.image.index.v1+json" \
+            "application/vnd.docker.distribution.manifest.list.v2+json" \
+            "application/vnd.oci.image.manifest.v1+json" \
+            "application/vnd.docker.distribution.manifest.v2+json" \
+          --output json > img.json
+
+        # -j, not -r: a trailing newline changes the bytes, and the bytes ARE
+        # the digest. That one character would break the check below.
+        jq -j '.images[0].imageManifest' img.json > manifest.json
+        MEDIA=$(jq -r '.images[0].imageManifestMediaType' img.json)
+
+        if [ ! -s manifest.json ]; then
+          echo "::error::ECR returned no manifest for $DIGEST." >&2
+          exit 1
+        fi
+
+        # A manifest's digest is the sha256 of its exact bytes, so this is a
+        # complete check rather than a plausible one: if it matches, the thing
+        # about to be stamped is byte-for-byte the thing that gets deployed.
+        ACTUAL="sha256:$(sha256sum manifest.json | cut -d' ' -f1)"
+        if [ "$ACTUAL" != "$DIGEST" ]; then
+          echo "::error::Refusing to stamp. Asked ECR for $DIGEST and it returned $ACTUAL." >&2
+          echo "A stamp on the wrong manifest vouches for something other than what ships." >&2
+          exit 1
+        fi
+        echo "verified: manifest hashes to $DIGEST"
 
         # Re-running a deploy must not fail on the stamp it already wrote.
         # Immutable tags make a repeat PutImage an error, and that error is
@@ -59,7 +95,7 @@ runs:
                    --image-tag "${{ inputs.new-tag }}" \
                    --image-manifest file://manifest.json \
                    --image-manifest-media-type "$MEDIA" 2>&1); then
-          echo "Stamped ${{ inputs.new-tag }}"
+          echo "Stamped ${{ inputs.new-tag }} onto $DIGEST"
         elif echo "$OUT" | grep -q 'ImageAlreadyExistsException'; then
           echo "${{ inputs.new-tag }} was already stamped - nothing to do."
         else

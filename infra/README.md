@@ -41,6 +41,12 @@ Those tags are immutable in ECR — once written they cannot be moved to differe
 production deploy role has no `ecr:PutImage` permission at all, so production cannot stamp its own
 approval.
 
+The stamp is applied to the **same manifest digest** the deploy references, and the stamping step
+verifies that before writing: it resolves the tag to a digest, fetches by digest, hashes the
+returned manifest, and refuses unless the hash equals the digest it asked for. That check exists
+because the first version did not have it and stamped a platform child manifest instead of the
+image index — real tags, immutable, on the wrong object.
+
 Merging straight from `dev` into `main` does not get you anything: the commit arrives with no
 `uat-ok` tag and the deploy stops.
 
