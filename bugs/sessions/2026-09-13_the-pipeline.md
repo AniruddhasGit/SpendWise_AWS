@@ -1,6 +1,6 @@
 # 2026-09-13 — building the three-environment pipeline
 
-Eleven entries. One ran and did damage, two cost a failed deploy, and the other eight were caught
+Thirteen entries. Two leaked a secret, two cost a failed deploy, and the other nine were caught
 while reading a draft rather than while debugging a failure. That ratio is the point of this
 file: every cheap catch came from someone asking "what would this actually do?" before running
 it.
@@ -10,7 +10,7 @@ be jumped. GitHub Actions, OIDC, ECS, and per-environment database credentials.
 
 ---
 
-## The one that ran
+## The two that leaked a secret
 
 ### A redaction that printed the secret it was redacting
 
@@ -44,14 +44,59 @@ shipping the whole line. Better still, never route a secret through a terminal a
 one process and write it to its destination in the same process, as `phase_a_roles.py` does.
 
 **Where.** This session, while preparing to copy `.env` values into SSM Parameter Store.
-Consequence: both shared database passwords are in the session transcript and must be rotated.
-Mitigating fact, established afterwards and not before: the RDS security group admits port 5432
-from one `/32` address and the ECS host's security group only, so `PubliclyAccessible: true` on the
+Mitigating fact, established afterwards and not before: the RDS security group admits port 5432 from
+one `/32` address and the ECS host's security group only, so `PubliclyAccessible: true` on the
 instance does not mean reachable from the internet.
+
+**Resolved the same day.** Both passwords were replaced by six per-environment logins, and the
+shared roles they belonged to were set `NOLOGIN`. The leaked pair now returns
+`InvalidAuthorizationSpecificationError` against the production database — verified, not assumed.
+Neither password ever reached git: zero commits and zero tracked files contain either.
 
 ---
 
-## The ten found in review, or by the pipeline refusing
+### A helper named `H` printed every JWT secret it was given
+
+**Shape:** the-check-was-wrong
+
+**Believed.** Before overwriting `JWT_SECRET` in SSM it was worth checking whether the value in
+`.env` already matched, because rewriting production's signing key logs every user out for no
+reason. Comparing hashes rather than values is the careful way to do that — you learn whether they
+are equal and nothing else. A small PowerShell helper was written for it:
+
+```powershell
+function H($s){ ...ComputeHash... }
+```
+
+**Actually.** `H` is a built-in PowerShell alias for `Get-History`. The function definition did not
+replace it in the call, so `H $ssmv` invoked `Get-History` with the secret as its `-Id` parameter.
+`Get-History` wanted an `Int64`, failed to bind, and printed the standard message:
+
+```
+Get-History : Cannot bind parameter 'Id'. Cannot convert value "<the secret>" to type "System.Int64"
+```
+
+once per environment, twice per call site. The command never ran. All three signing keys were
+printed anyway — by the error handler of a function that was never supposed to execute.
+
+**Caught by.** Reading the output.
+
+**Where.** Same session as the `sed` leak, six hours later. Both were secret-handling code written
+to avoid printing a secret; both printed it on a path that was never considered. All three keys were
+rotated immediately, which invalidated every session in all three environments.
+
+> **Lesson.** A single-letter helper name in PowerShell is a collision waiting to happen — the
+> built-in aliases are one and two characters and there are hundreds of them. But the name is the
+> trigger, not the defect. The defect is that a secret was passed as an *argument* to something that
+> could fail, and argument values appear in binding errors. Nothing about the happy path was wrong.
+>
+> The rule that would have prevented both leaks today is the same one: a secret should be read and
+> consumed inside one process and never become an argument, a pipeline element, or a shell
+> variable. `rotate_jwt.py` does it that way and prints a hash prefix; the two leaks did not.
+
+---
+
+## The rest, found in review or by the pipeline refusing
 
 ### The production trust policy had a second door
 
@@ -376,21 +421,60 @@ pass/fail of the gate. The gate said what it always says — the tag exists.
 
 ---
 
+### rds.txt pointed at an orphaned database in a different AWS account
+
+**Shape:** environment
+
+**Believed.** The credential rotation could not run because the developer's egress IP was hidden
+behind Cloudflare WARP and therefore absent from the RDS security group. The connection attempt
+timed out, WARP was on, and the security group listed one unrelated `/32`. That story was coherent,
+and a temporary security-group rule was opened on the strength of it.
+
+**Actually.** With WARP off and the current IP explicitly allowed, it still timed out — while
+`Test-NetConnection` to the same host and port succeeded from the same machine, seconds apart. Those
+two facts cannot both be true of the same host, which is what finally made someone read the config:
+
+```
+ENDPOINT=spend-wise-dev-db.c3gs428gmex7.ap-south-1.rds.amazonaws.com
+```
+
+That is an **orphaned instance in a different AWS account** (545620235339), identified as such in an
+earlier audit. The real database is `spendwise-db.c9y6yemgc4pn...` in 944483082287. Every connection
+from this file had been dialling a host that is not there.
+
+**Caught by.** A contradiction between two measurements, not by any check.
+
+> **Lesson.** A TCP timeout says "nothing answered", which is equally consistent with a firewall, a
+> dead host, and a hostname that was never right. The firewall was the available explanation because
+> a firewall change had just been made — and a plausible cause that is already on your mind will be
+> preferred over reading the config. The cheap diagnostic was free and skipped: print the address
+> before connecting to it.
+>
+> `rds.txt` is gitignored, so nothing checked it and nothing ever would have. It has been repointed,
+> and the master password it now holds is also in SSM at `/spendwise/rds/MASTER_PASSWORD` — the
+> previous one was reset to "a value never printed" and was therefore lost, which is what forced a
+> live `modify-db-instance` on the production database to get back in. A password stored in exactly
+> one person's session is not protected, it is mislaid.
+
+---
+
 ## Shape counts for this session
 
 | Shape | Count |
 |---|---|
-| the-check-was-wrong | 4 |
+| the-check-was-wrong | 5 |
 | wrong-assumption | 3 |
 | fix-caused-it | 2 (1 averted) |
-| environment | 1 |
+| environment | 2 |
 | false-green | 1 |
 
-Eight of eleven were found by reading a draft against the question "what does this actually do, line by
-line?" — not by running anything. The three that were not split cleanly by what kind of mistake they
-were:
+Nine of thirteen were found by reading a draft against the question "what does this actually do,
+line by line?" — not by running anything. The four that were not split cleanly in two:
 
-- **The one that did damage** was a `sed` nobody read back before it executed.
+- **The two that leaked** were both secret-handling code written specifically to avoid printing a
+  secret, and both printed it on a path nobody considered — a `sed` that passes input through when
+  it does not match, and an error handler quoting an argument it could not bind. Neither happy path
+  was wrong.
 - **The two that cost a deploy** were both cases of a document being checked for whether it said the
   right thing, and never against the thing it was compared to at runtime — a trust policy versus the
   actual token, a PassRole list versus the roles the task definitions actually name. Reading cannot
