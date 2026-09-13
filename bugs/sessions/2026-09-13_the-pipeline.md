@@ -1,6 +1,6 @@
 # 2026-09-13 — building the three-environment pipeline
 
-Nine entries. One ran and did damage, two cost a failed deploy, and the other six were caught
+Ten entries. One ran and did damage, two cost a failed deploy, and the other seven were caught
 while reading a draft rather than while debugging a failure. That ratio is the point of this
 file: every cheap catch came from someone asking "what would this actually do?" before running
 it.
@@ -51,7 +51,7 @@ instance does not mean reachable from the internet.
 
 ---
 
-## The eight found in review, or by the pipeline refusing
+## The nine found in review, or by the pipeline refusing
 
 ### The production trust policy had a second door
 
@@ -286,6 +286,50 @@ privilege tried to use them.
 
 ---
 
+### The secret scan had never read the repository's history
+
+**Shape:** false-green
+
+**Believed.** CI runs `gitleaks/gitleaks-action@v2` with `fetch-depth: 0`, and the step is
+commented: *"a secret committed three months ago and 'removed' last week is still in history, still
+clonable, still live."* The intent is explicit and the checkout is correct. It had been green on
+every run for weeks.
+
+**Actually.** `fetch-depth: 0` controls what the CHECKOUT fetches, not what gitleaks scans. On a
+`push` event the action scans only the commit range in the push payload — the new commits, nothing
+else. The full history is sitting on disk and never gets read.
+
+So the check had been answering "is there a secret in the commits you just pushed?" while its
+comment, its name, and everyone reading it believed it answered "is there a secret in this
+repository?" Anything committed before CI existed was never examined by it, not once.
+
+**Caught by.** Triggering the pipeline with `workflow_dispatch` instead of a push, for an unrelated
+reason — proving the production gate. A dispatch has no commit range, so the action falls back to
+scanning everything, and a finding appeared in a commit from a previous session that had already
+passed CI.
+
+The finding itself was a false positive, and a pointed one. The flagged "secret" was:
+
+```
+on-secret variable, SPENDWISE_DOTENV=0.
+```
+
+— the middle of an English sentence, from a paragraph explaining that `SPENDWISE_DOTENV` is *not* a
+secret. `generic-api-key` looks for `NAME=value` near a keyword and found one in prose. It is
+suppressed in `.gitleaksignore` with the matched text quoted in full, so the claim "false positive"
+can be re-checked rather than taken on trust.
+
+> **Lesson.** The false positive cost twenty minutes. The false GREEN is the finding: a scan whose
+> scope silently differs from its stated purpose, that had been passing for weeks without once doing
+> the thing its own comment describes. `fetch-depth: 0` *looked* like the fix for exactly this
+> problem, which is why nobody looked further — the presence of a mitigation is not evidence that
+> the mitigation is connected to anything.
+>
+> Two thirds of the entries in `BUG_LEDGER.md` are failures of detection rather than of code. This
+> is one: nothing was broken, and nothing would have told you.
+
+---
+
 ## Shape counts for this session
 
 | Shape | Count |
@@ -294,8 +338,9 @@ privilege tried to use them.
 | wrong-assumption | 3 |
 | fix-caused-it | 2 (1 averted) |
 | environment | 1 |
+| false-green | 1 |
 
-Six of nine were found by reading a draft against the question "what does this actually do, line by
+Seven of ten were found by reading a draft against the question "what does this actually do, line by
 line?" — not by running anything. The three that were not split cleanly by what kind of mistake they
 were:
 
