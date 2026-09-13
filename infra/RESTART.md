@@ -158,7 +158,7 @@ Stopping is not the same as deleting. These continue:
 | EBS volume `vol-01713a0ff8263d68f` | 30 GB gp3 | The host's disk exists whether or not the host runs |
 | RDS storage for `spendwise-db` | 20 GB | Same — the data is still there |
 | RDS snapshot `spendwise-db-manual-2026-09-13` | 20 GB | A manual snapshot, kept deliberately |
-| ECR images | ~2.1 GB | Free tier is 500 MB, so roughly 1.6 GB is chargeable |
+| ECR images | **1,042 MB** | Free tier is 500 MB, so ~542 MB is chargeable - about $0.05/month |
 | Five S3 buckets | unmeasured | `ani-application-logs-2026`, `private-application-storage`, `spendwise-cloudtrail-944483082287`, `static-bucket-for-practice`, `user-uploads-2026` |
 | CloudTrail `spendwise-trail` | — | Management events are free; the S3 storage under them is not |
 
@@ -167,12 +167,20 @@ is a teardown with a restore step, not a pause.
 
 ### Two things worth a look when you next have time
 
-- **ECR holds 19 image manifests, about 2.1 GB.** Four times the free tier. Anything not referenced
-  by a live task definition can go — but check first, because deleting the image a service points at
-  means it cannot start:
+- **ECR stores 1,042 MB, not the 2.4 GB `describe-images` appears to show.** That command reports a
+  per-image total, and layers are shared between images built from the same Dockerfile - adding the
+  per-image figures counts every shared layer once per image that references it. ECR bills for
+  unique blobs. About $0.05/month over the free tier, so not worth pruning for cost.
+
+  **The lifecycle policy was a different matter, and it has been fixed.** It kept only the 5 most
+  recently pushed images, and `sha-cc90b35` - the image production AND uat both run - had already
+  fallen to position 9. It was queued for deletion, and the restart above would have failed with
+  nothing to pull. `infra/aws/ecr-lifecycle.json` now keeps 30 and expires untagged build
+  by-products after a day. A count rule cannot know what is deployed, so the count has to stay
+  comfortably above a working set. Before trusting one, check what is actually running:
+
   ```bash
-  AWS_PROFILE=dynpro aws ecs describe-task-definition --task-definition spendwise \
-    --query 'taskDefinition.containerDefinitions[0].image' --output text
+  AWS_PROFILE=dynpro aws ecs describe-task-definition --task-definition spendwise \n    --query 'taskDefinition.containerDefinitions[0].image' --output text
   ```
 - **There is a second AWS account, `545620235339`**, holding an orphaned RDS instance
   (`spend-wise-dev-db`) with storage autoscaling up to 1000 GB. It is not reachable from this
