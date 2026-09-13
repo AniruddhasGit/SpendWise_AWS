@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SpendWise v2 — three environments, and how a change reaches the real site</title>
+<style>
+  :root{
+    --bg:#fbfaf7; --card:#ffffff; --ink:#1c1b18; --muted:#6b6862;
+    --line:#e3e0d8; --accent:#5b6f3f; --accent-soft:#eef1e6;
+    --warn:#8a5a2b; --warn-soft:#fdf3e7; --code:#f4f2ec;
+    --ghost:#b4b0a6;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#16171a; --card:#1e2024; --ink:#e8e6e1; --muted:#9a978f;
+      --line:#2e3238; --accent:#a3bd77; --accent-soft:#242a1e;
+      --warn:#d9a066; --warn-soft:#2a2118; --code:#24262b;
+      --ghost:#5a5850;
+    }
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; padding:2.5rem 1.25rem 5rem;
+    background:var(--bg); color:var(--ink);
+    font:16px/1.65 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  .wrap{max-width:52rem;margin:0 auto}
+  h1{font-size:1.9rem;line-height:1.2;margin:0 0 .4rem;letter-spacing:-.02em}
+  .sub{color:var(--muted);margin:0 0 2rem;font-size:1.02rem}
+  p{margin:0 0 1rem}
+  code{
+    background:var(--code);padding:.12em .38em;border-radius:4px;
+    font:0.87em ui-monospace,SFMono-Regular,Consolas,monospace;
+  }
+  pre{
+    background:var(--code);border:1px solid var(--line);border-radius:8px;
+    padding:.9rem 1rem;overflow-x:auto;margin:0 0 1rem;
+    font:0.84rem/1.55 ui-monospace,SFMono-Regular,Consolas,monospace;
+  }
+  pre code{background:none;padding:0;font-size:1em}
+  table{width:100%;border-collapse:collapse;margin:0 0 1.25rem;font-size:.94rem}
+  th,td{text-align:left;padding:.55rem .7rem;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:600;font-size:.82rem;text-transform:uppercase;letter-spacing:.04em}
+  .scroll{overflow-x:auto}
+  .note{
+    background:var(--accent-soft);border-left:3px solid var(--accent);
+    padding:.85rem 1rem;border-radius:0 8px 8px 0;margin:0 0 1.25rem;
+  }
+  .warn{
+    background:var(--warn-soft);border-left:3px solid var(--warn);
+    padding:.85rem 1rem;border-radius:0 8px 8px 0;margin:0 0 1.25rem;
+  }
+  .note p:last-child,.warn p:last-child{margin-bottom:0}
+  .lead{font-size:1.05rem}
+  strong{font-weight:650}
+
+  /* ---- the map ---- */
+  figure.map{margin:0 0 .6rem;padding:1.25rem 1rem;background:var(--card);
+    border:1px solid var(--line);border-radius:12px;overflow-x:auto}
+  figure.map svg{display:block;width:100%;min-width:36rem;max-width:100%;height:auto;color:var(--ink)}
+  figcaption{color:var(--muted);font-size:.88rem;margin-top:.9rem;text-align:center}
+  .map a rect{transition:fill .12s ease}
+  .map a:hover rect.hit{fill:var(--accent-soft)}
+  .map a:focus-visible rect.hit{fill:var(--accent-soft);outline:2px solid var(--accent)}
+  .maphint{color:var(--muted);font-size:.87rem;text-align:center;margin:0 0 2.25rem}
+
+  /* ---- toolbar ---- */
+  .bar{display:flex;gap:.5rem;align-items:center;margin:0 0 1rem;flex-wrap:wrap}
+  .bar button{
+    font:inherit;font-size:.85rem;color:var(--ink);background:var(--card);
+    border:1px solid var(--line);border-radius:7px;padding:.35rem .7rem;cursor:pointer;
+  }
+  .bar button:hover{background:var(--accent-soft);border-color:var(--accent)}
+  .bar span{color:var(--muted);font-size:.85rem;margin-left:auto}
+
+  /* ---- collapsible sections ---- */
+  details.sec{
+    background:var(--card);border:1px solid var(--line);border-radius:10px;
+    margin:0 0 .6rem;overflow:hidden;
+  }
+  details.sec[open]{border-color:var(--accent)}
+  details.sec > summary{
+    list-style:none;cursor:pointer;padding:.85rem 1rem;display:flex;
+    gap:.75rem;align-items:baseline;
+  }
+  details.sec > summary::-webkit-details-marker{display:none}
+  details.sec > summary:hover{background:var(--accent-soft)}
+  .n{color:var(--accent);font-variant-numeric:tabular-nums;font-weight:650;
+     font-size:.95rem;min-width:1.4rem}
+  .t{font-weight:650;letter-spacing:-.01em}
+  .one{color:var(--muted);font-size:.9rem;display:block;margin-top:.15rem;font-weight:400}
+  .chev{margin-left:auto;color:var(--muted);transition:transform .15s ease;font-size:.8rem}
+  details.sec[open] > summary .chev{transform:rotate(90deg)}
+  .body{padding:.25rem 1.15rem 1.15rem}
+  .body > :last-child{margin-bottom:0}
+  h3{font-size:1rem;margin:1.5rem 0 .6rem}
+
+  /* ---- nested detail ---- */
+  details.more{
+    border:1px solid var(--line);border-radius:8px;margin:0 0 .75rem;background:var(--bg);
+  }
+  details.more > summary{
+    cursor:pointer;padding:.55rem .8rem;font-size:.9rem;color:var(--accent);
+    font-weight:600;list-style:none;
+  }
+  details.more > summary::-webkit-details-marker{display:none}
+  details.more > summary::before{content:"▸ ";font-size:.8em}
+  details.more[open] > summary::before{content:"▾ "}
+  details.more .inner{padding:0 .8rem .7rem;font-size:.95rem}
+  details.more .inner > :last-child{margin-bottom:0}
+
+  footer{
+    margin-top:3rem;padding-top:1.25rem;border-top:1px solid var(--line);
+    color:var(--muted);font-size:.87rem;
+  }
+  @media (max-width:34rem){
+    .one{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>SpendWise — three environments, and how a change reaches the real site</h1>
+<p class="sub">Version 2 · 13 September 2026. Version 1 explained what the app <em>is</em>. This one explains how it now gets <em>deployed</em>: three separate copies of the site, and a rule that stops a change reaching the real one until it has survived the other two. Start with the map. Click any box.</p>
+
+<figure class="map">
+<svg viewBox="0 0 780 620" role="img"
+     aria-label="A change starts on the dev branch, passes tests, deploys to the dev site on port 8002 and gets stamped dev-ok in the image registry. To reach uat on port 8001 the registry must already hold that dev-ok stamp. To reach production on port 8000 the registry must hold a uat-ok stamp, and a human must press Run. All three sites run on one small server and one database server holding three separate databases.">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+    </marker>
+    <marker id="arg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--accent)"/>
+    </marker>
+  </defs>
+
+  <!-- ============ left column: the journey ============ -->
+  <a href="#s2">
+    <rect class="hit" x="40" y="14" width="330" height="48" rx="8" fill="none" stroke="currentColor" stroke-width="1.5"/>
+    <text x="205" y="36" text-anchor="middle" font-size="13" font-weight="650" fill="currentColor">YOU, ON THE dev BRANCH</text>
+    <text x="205" y="53" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".65">the only branch you normally touch</text>
+  </a>
+  <line x1="205" y1="62" x2="205" y2="86" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+  <text x="215" y="79" font-size="10" fill="currentColor" opacity=".65">git push</text>
+
+  <a href="#s3">
+    <rect class="hit" x="40" y="88" width="330" height="40" rx="7" fill="none" stroke="currentColor" stroke-width="1.2"/>
+    <text x="205" y="106" text-anchor="middle" font-size="11.5" fill="currentColor">tests · builds the image · scans for leaked passwords</text>
+    <text x="205" y="121" text-anchor="middle" font-size="10" fill="currentColor" opacity=".6">any red here and everything below stops</text>
+  </a>
+  <line x1="205" y1="128" x2="205" y2="150" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+
+  <a href="#s2">
+    <rect class="hit" x="40" y="152" width="330" height="44" rx="7" fill="none" stroke="currentColor" stroke-width="1.4"/>
+    <text x="205" y="172" text-anchor="middle" font-size="12" font-weight="650" fill="currentColor">DEV SITE — port 8002</text>
+    <text x="205" y="188" text-anchor="middle" font-size="10" fill="currentColor" opacity=".6">its own database · its own login</text>
+  </a>
+  <line x1="205" y1="196" x2="205" y2="218" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+  <text x="215" y="211" font-size="10" fill="currentColor" opacity=".65">came up healthy</text>
+
+  <a href="#s4">
+    <rect class="hit" x="40" y="220" width="330" height="32" rx="6" fill="none" stroke="var(--accent)" stroke-width="1.2"/>
+    <text x="205" y="240" text-anchor="middle" font-size="11" fill="var(--accent)">write the mark: dev-ok</text>
+  </a>
+
+  <!-- gate 1 -->
+  <line x1="205" y1="252" x2="205" y2="276" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+  <a href="#s4">
+    <rect class="hit" x="40" y="278" width="330" height="38" rx="7" fill="none" stroke="var(--accent)" stroke-width="1.8"/>
+    <text x="205" y="302" text-anchor="middle" font-size="11.5" font-weight="650" fill="var(--accent)">GATE · is there a dev-ok mark for this change?</text>
+  </a>
+  <line x1="205" y1="316" x2="205" y2="338" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+  <text x="215" y="331" font-size="10" fill="currentColor" opacity=".65">yes</text>
+
+  <a href="#s2">
+    <rect class="hit" x="40" y="340" width="330" height="44" rx="7" fill="none" stroke="currentColor" stroke-width="1.4"/>
+    <text x="205" y="360" text-anchor="middle" font-size="12" font-weight="650" fill="currentColor">UAT SITE — port 8001</text>
+    <text x="205" y="376" text-anchor="middle" font-size="10" fill="currentColor" opacity=".6">the rehearsal · a different database again</text>
+  </a>
+  <line x1="205" y1="384" x2="205" y2="404" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+
+  <a href="#s4">
+    <rect class="hit" x="40" y="406" width="330" height="32" rx="6" fill="none" stroke="var(--accent)" stroke-width="1.2"/>
+    <text x="205" y="426" text-anchor="middle" font-size="11" fill="var(--accent)">write the mark: uat-ok</text>
+  </a>
+
+  <!-- gate 2 -->
+  <line x1="205" y1="438" x2="205" y2="462" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+  <a href="#s5">
+    <rect class="hit" x="40" y="464" width="330" height="38" rx="7" fill="none" stroke="var(--accent)" stroke-width="1.8"/>
+    <text x="205" y="488" text-anchor="middle" font-size="11.5" font-weight="650" fill="var(--accent)">GATE · is there a uat-ok mark for this change?</text>
+  </a>
+  <line x1="205" y1="502" x2="205" y2="524" stroke="currentColor" stroke-width="1.5" marker-end="url(#ar)"/>
+  <text x="215" y="517" font-size="10" fill="currentColor" opacity=".65">yes, and a person pressed Run</text>
+
+  <a href="#s2">
+    <rect class="hit" x="40" y="526" width="330" height="46" rx="7" fill="none" stroke="currentColor" stroke-width="2"/>
+    <text x="205" y="547" text-anchor="middle" font-size="12.5" font-weight="650" fill="currentColor">THE REAL SITE — port 8000</text>
+    <text x="205" y="563" text-anchor="middle" font-size="10" fill="currentColor" opacity=".6">never deploys on its own</text>
+  </a>
+
+  <!-- ============ right column: the registry ============ -->
+  <a href="#s4">
+    <rect class="hit" x="440" y="88" width="300" height="350" rx="10" fill="none" stroke="currentColor" stroke-width="1.5"/>
+    <text x="590" y="114" text-anchor="middle" font-size="12.5" font-weight="650" fill="currentColor">THE IMAGE STORE</text>
+    <text x="590" y="131" text-anchor="middle" font-size="10" fill="currentColor" opacity=".6">built once, on dev, and never rebuilt</text>
+
+    <rect x="466" y="150" width="248" height="60" rx="7" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".8"/>
+    <text x="590" y="173" text-anchor="middle" font-size="11" fill="currentColor">the finished app, packed up</text>
+    <text x="590" y="191" text-anchor="middle" font-size="10" fill="currentColor" opacity=".6">named after the change it was built from</text>
+
+    <text x="466" y="243" font-size="10.5" fill="currentColor" opacity=".7">marks that can be added, never moved:</text>
+    <rect x="466" y="254" width="248" height="30" rx="6" fill="none" stroke="var(--accent)" stroke-width="1.1"/>
+    <text x="590" y="274" text-anchor="middle" font-size="11" fill="var(--accent)">dev-ok</text>
+    <rect x="466" y="292" width="248" height="30" rx="6" fill="none" stroke="var(--accent)" stroke-width="1.1"/>
+    <text x="590" y="312" text-anchor="middle" font-size="11" fill="var(--accent)">uat-ok</text>
+
+    <text x="590" y="352" text-anchor="middle" font-size="10" fill="currentColor" opacity=".62">the real site is not allowed to write</text>
+    <text x="590" y="367" text-anchor="middle" font-size="10" fill="currentColor" opacity=".62">either of these — so it cannot</text>
+    <text x="590" y="382" text-anchor="middle" font-size="10" fill="currentColor" opacity=".62">approve itself</text>
+    <text x="590" y="412" text-anchor="middle" font-size="10" fill="currentColor" opacity=".62">a mark, once written, can never</text>
+    <text x="590" y="427" text-anchor="middle" font-size="10" fill="currentColor" opacity=".62">be pointed at anything else</text>
+  </a>
+
+  <!-- writes -->
+  <line x1="370" y1="236" x2="462" y2="269" stroke="var(--accent)" stroke-width="1.2" marker-end="url(#arg)"/>
+  <line x1="370" y1="422" x2="462" y2="307" stroke="var(--accent)" stroke-width="1.2" marker-end="url(#arg)"/>
+  <!-- reads -->
+  <line x1="462" y1="276" x2="374" y2="295" stroke="currentColor" stroke-width="1.1" stroke-dasharray="4 3" marker-end="url(#ar)"/>
+  <line x1="462" y1="314" x2="374" y2="481" stroke="currentColor" stroke-width="1.1" stroke-dasharray="4 3" marker-end="url(#ar)"/>
+  <text x="384" y="258" font-size="9.5" fill="var(--accent)">writes</text>
+  <text x="392" y="352" font-size="9.5" fill="currentColor" opacity=".6">asks</text>
+
+  <!-- ============ bottom: the hardware ============ -->
+  <a href="#s7">
+    <rect class="hit" x="440" y="466" width="300" height="106" rx="10" fill="none" stroke="currentColor" stroke-width="1.3"/>
+    <text x="590" y="490" text-anchor="middle" font-size="11.5" font-weight="650" fill="currentColor">ONE SMALL SERVER · ONE DATABASE SERVER</text>
+    <text x="590" y="510" text-anchor="middle" font-size="10" fill="currentColor" opacity=".65">all three sites share the computer</text>
+    <text x="590" y="526" text-anchor="middle" font-size="10" fill="currentColor" opacity=".65">but each has its own database</text>
+    <text x="590" y="546" text-anchor="middle" font-size="10" fill="currentColor" opacity=".65">and its own database password, which</text>
+    <text x="590" y="561" text-anchor="middle" font-size="10" fill="currentColor" opacity=".65">the other two are refused at the door</text>
+  </a>
+</svg>
+<figcaption>The same packed-up app moves down the left. Nothing is rebuilt on the way — the thing running on the real site is the identical thing that ran on the other two.</figcaption>
+</figure>
+<p class="maphint">Every box is a link. Click one to open the section that explains it.</p>
+
+<div class="bar">
+  <button type="button" id="all">Expand all</button>
+  <button type="button" id="none">Collapse all</button>
+  <span>10 sections · everything starts closed</span>
+</div>
+
+<!-- ============ 1 ============ -->
+<details class="sec" id="s1">
+<summary><span class="n">1</span><span class="t">What changed since version 1<span class="one">The app was on one laptop. Now there are three live copies on the internet.</span></span><span class="chev">▶</span></summary>
+<div class="body">
+
+<p class="lead">Version 1 of this folder described an app that ran on a laptop, with only its database in the cloud. Everything below is what happened next.</p>
+
+<div class="scroll">
+<table>
+<tr><th>Then (v1)</th><th>Now (v2)</th></tr>
+<tr><td>Ran on a laptop</td><td>Three copies running on a rented server, reachable from anywhere</td></tr>
+<tr><td>One database</td><td>Three databases, one per copy, on the same database server</td></tr>
+<tr><td>Deployed by hand</td><td>Deployed by pushing code; the real site still needs a person to press a button</td></tr>
+<tr><td>One set of database passwords</td><td>Six — a separate pair per copy, and the old shared ones have been switched off</td></tr>
+<tr><td>No way to stop a bad change</td><td>A change cannot reach the real site without passing the other two first</td></tr>
+</table>
+</div>
+
+<p>The three copies are the standard industry arrangement, and they exist for one reason: <strong>so that mistakes happen somewhere that does not matter.</strong> You try things on the first copy. When it seems right you move it to the second and look again properly. Only then does it go to the one real people use.</p>
+
+<details class="more"><summary>Why the app itself barely changed</summary><div class="inner">
+<p>Almost none of this work touched the application. The app already read its settings from its surroundings rather than from a file baked into it — so the same packed-up app, handed different settings, becomes the dev copy or the real one without a single line differing.</p>
+<p>That is not an accident. It was decided long before there was anywhere to deploy to, precisely so that this step would be boring when it arrived.</p>
+</div></details>
+
+<div class="warn">
+<p><strong>One real bug was found and fixed along the way.</strong> The packed-up app was missing a file it needs when it sets up a brand-new database. The real site never noticed, because its database was already set up and so the code that reads that file never ran. The automated tests noticed immediately — they build an empty database every single time — and they had been failing for four changes in a row before anyone looked.</p>
+<p>It is a good illustration of something this project says a lot: <em>the real site working is not evidence that the thing you shipped is correct.</em> It only proves the parts it happened to use.</p>
+</div>
+
+</div>
+</details>
+
+<!-- ============ 2 ============ -->
+<details class="sec" id="s2">
+<summary><span class="n">2</span><span class="t">The three copies<span class="one">dev to experiment, uat to rehearse, and the real one.</span></span><span class="chev">▶</span></summary>
+<div class="body">
+
+<p class="lead">Three separate running copies of exactly the same app, each with its own data.</p>
+
+<div class="scroll">
+<table>
+<tr><th>Copy</th><th>Where</th><th>What it is for</th></tr>
+<tr><td><strong>dev</strong></td><td>port <code>8002</code></td><td>Where you work. Break it freely; nobody is watching.</td></tr>
+<tr><td><strong>uat</strong></td><td>port <code>8001</code></td><td>The rehearsal. Identical to the real site, so you can check a change properly before anyone sees it.</td></tr>
+<tr><td><strong>production</strong></td><td>port <code>8000</code></td><td>The real one. The only one with real people's data in it.</td></tr>
+</table>
+</div>
+
+<p>"uat" stands for <em>user acceptance testing</em>, which is a heavy name for a simple idea: the place where someone checks the thing actually does what was asked, before it goes live.</p>
+
+<p>On your own computer there are three folders with the same names, each holding the same project pointed at a different one of these. That is why each folder has its own settings file.</p>
+
+<details class="more"><summary>Why three folders and not three downloads of the project</summary><div class="inner">
+<p>They are three <em>views</em> of one project, not three copies. Git can check out several versions of the same repository side by side, sharing one underlying history.</p>
+<p>The difference matters: with three real copies you would have three separate histories that slowly drift apart, and you would have to remember to upload changes three times. With this arrangement a change made in one folder is immediately visible from the others, and travels between them by being promoted rather than by being copied.</p>
+</div></details>
+
+<details class="more"><summary>What "its own database" actually means here</summary><div class="inner">
+<p>There is one rented database server, and on it three completely separate databases — <code>spendwise</code>, <code>spendwise_uat</code>, <code>spendwise_dev</code>. A row written in one is invisible in the others; they share nothing but the machine they sit on.</p>
+<p>Three separate database <em>servers</em> would be cleaner still, and would cost three times as much. For a project like this, separate databases on one server is the right trade — and it is worth knowing that it is a trade, rather than assuming it is free.</p>
+</div></details>
+
+</div>
+</details>
+
+<!-- ============ 3 ============ -->
+<details class="sec" id="s3">
+<summary><span class="n">3</span><span class="t">How a change travels<span class="one">Push to dev. Everything after that is a promotion, not a rebuild.</span></span><span class="chev">▶</span></summary>
+<div class="body">
+
+<p class="lead">You work on the <code>dev</code> branch. You push. Everything else follows from that.</p>
+
+<p><strong>1 — The checks run.</strong> The tests run, the app is packed up, and the whole history of the project is scanned for passwords that should not be there. If any of that is red, nothing below happens at all.</p>
+
+<p><strong>2 — The dev copy updates itself.</strong> The newly packed app is uploaded and the dev site is switched over to it. Then the system waits — not for the upload to finish, but for the new copy to actually answer as healthy. A copy that starts and immediately falls over can never be reported as a success.</p>
+
+<p><strong>3 — It gets a mark.</strong> Only once dev is healthy does the packed-up app get labelled <code>dev-ok</code>. That mark is the entire basis of the rule in the next section.</p>
+
+<p><strong>4 — You promote it when you are ready.</strong> Moving the change onto the <code>uat</code> branch makes the same thing happen there, and then onto <code>main</code> for the real site. Nothing gets rebuilt at either step. The packed-up app that runs on the real site is byte-for-byte the one that ran on dev.</p>
+
+<div class="note">
+<p><strong>Why never rebuild?</strong> If you rebuild for each copy you have three different packed-up apps that <em>ought</em> to be identical. Something as small as a library releasing a new version between two builds makes them differ, and then "we tested it" is no longer true of the thing you shipped. Building once removes the question.</p>
+</div>
+
+<h3>The real site never deploys by itself</h3>
+<p>Pushing to <code>main</code> deploys nothing. A person has to open the project's web page, choose to run the release, and type the word <code>deploy</code> to confirm. That is the human checkpoint.</p>
+
+<details class="more"><summary>Why a typed word instead of a proper approval button</summary><div class="inner">
+<p>The hosting service does have a real feature for this — a named person has to approve before a release proceeds. It is a paid feature for private projects, and this project is on the free plan.</p>
+<p>So the human checkpoint is the trigger itself: nothing reaches the real site unless somebody deliberately goes and starts it. Weaker than a named approver, but real — and the rule in the next section, which is the part that actually prevents accidents, does not depend on it at all.</p>
+</div></details>
+
+<details class="more"><summary>What happens if you rewrite history instead of promoting cleanly</summary><div class="inner">
+<p>The gate refuses it, which is correct and worth understanding.</p>
+<p>The marks are attached to a specific change, identified by its unique fingerprint. Some ways of merging work produce a <em>new</em> change with a <em>new</em> fingerprint — the same content, a different identity. No copy has ever seen that new thing, so it carries no marks, so it is refused.</p>
+<p>That feels annoying the first time. But the thing being promoted is a <em>tested item</em>, and rewriting it makes it a different item that nothing has tested. The gate is right and the instinct is wrong.</p>
+</div></details>
+
+</div>
+</details>
+
+<!-- ============ 4 ============ -->
+<details class="sec" id="s4">
+<summary><span class="n">4</span><span class="t">The rule that cannot be talked around<span class="one">Each copy leaves a mark only it can leave. The next one refuses to run without it.</span></span><span class="chev">▶</span></summary>
+<div class="body">
+
+<p class="lead">This is the most important idea in the whole setup, and it is simpler than it sounds.</p>
+
+<p>When a copy of the site deploys successfully, it writes a small label onto the packed-up app: <code>dev-ok</code>, then later <code>uat-ok</code>. Before uat will deploy, it checks that <code>dev-ok</code> is there. Before the real site will deploy, it checks that <code>uat-ok</code> is there. No mark, no deploy.</p>
+
+<p>So if you skip a step — take something straight from dev to the real site — the change arrives carrying no <code>uat-ok</code> mark, and the release stops before it does anything.</p>
+
+<h3>Three things make it hold up</h3>
+
+<div class="scroll">
+<table>
+<tr><th>Property</th><th>Why it matters</th></tr>
+<tr><td>A mark can be added but never moved</td><td>Nobody can take the mark off an approved item and stick it on a different one. Once written it is permanently attached to those exact bytes.</td></tr>
+<tr><td>The real site cannot write marks at all</td><td>Its permissions do not include writing them. It can only read. So it is physically unable to approve itself.</td></tr>
+<tr><td>The mark is only written after the copy is healthy</td><td>Not after the upload. After the running site answers. A deploy that starts and dies leaves no mark behind.</td></tr>
+</table>
+</div>
+
+<div class="note">
+<p><strong>Why this lives in the image store and not in the code-hosting service.</strong> The obvious place to enforce "you can't skip a step" is the service that holds the code — refuse the merge. On this project's plan that is a paid feature, so it is not available.</p>
+<p>Putting the rule in the image store turns out to be <em>stronger</em> anyway. Rules in the code-hosting service can be adjusted by whoever administers it. The mark is a fact: either those bytes carry it or they do not, and no setting changes that.</p>
+</div>
+
+<div class="warn">
+<p><strong>Said honestly: this is not burglar-proof.</strong> The dev copy is allowed to write marks, because it writes <code>dev-ok</code>. Which means someone who can already edit the deployment instructions could make dev write a fake <code>uat-ok</code>.</p>
+<p>Closing that properly needs a separate image store per copy, so permissions can be drawn tighter. It has not been done, because this gate is aimed at the mistake people actually make — merging into the wrong branch in a hurry — and not at someone who already has the keys and is deliberately misusing them.</p>
+</div>
+
+<details class="more"><summary>A subtle bug in this that was found and fixed</summary><div class="inner">
+<p>The first version of the marking step looked like it worked. The marks appeared, the gate passed and failed in the right circumstances, and a deliberate test of all three behaviours came back correct.</p>
+<p>It was still wrong. A packed-up app is really a small index pointing at the actual contents, and when asked for "the thing called X" the store will politely hand back the contents rather than the index. So the marks were being attached to the contents while the deploy referred to the index — real marks, permanently attached, to a neighbouring object.</p>
+<p>The ordering rule was never affected: a mark still only existed if the copy below had genuinely succeeded. What was wrong was the stronger claim that the mark sits on the very thing that ships — a claim that had already been written down as if it had been checked.</p>
+<p>It now asks for the item by fingerprint rather than by name, and then re-computes the fingerprint of what came back and refuses to mark anything unless the two match. The earlier test proved the marking <em>worked</em>; it never asked whether it worked on the <em>right object</em>, and only one of those two questions produces an error message.</p>
+</div></details>
+
+</div>
+</details>
+
+<!-- ============ 5 ============ -->
+<details class="sec" id="s5">
+<summary><span class="n">5</span><span class="t">The gate, watched failing<span class="one">A rule nobody has seen refuse anything is decoration.</span></span><span class="chev">▶</span></summary>
+<div class="body">
+
+<p class="lead">This project has a standing rule: a safety check that has never been watched working is not evidence of anything. So the gate was deliberately provoked.</p>
+
+<p>A change was taken to the <code>main</code> branch and released to the real site by hand, having <strong>never been through uat</strong>. All the tests passed. The release process successfully proved who it was and got its permissions. Then:</p>
+
+<pre><code>success  prove who we are
+failure  refuse anything that has not passed uat
+skipped  deploy</code></pre>
+
+<p>with this printed out:</p>
+
+<pre><code>REFUSING TO DEPLOY - this commit has not passed uat.
+
+Looked for the mark : uat-ok-cc90b35
+Did not find it.</code></pre>
+
+<p>The middle line is the whole point. The release <strong>held valid credentials for the real site</strong> and was refused anyway — because the refusal does not depend on who is asking. It depends on whether an earlier copy left a mark that only that earlier copy could leave.</p>
+
+<p>The same change was then taken through properly — dev, then uat, then the real site. Same command, same permissions, and this time it went through. The only thing that had changed was that uat had run and left its mark.</p>
+
+<details class="more"><summary>Why "it passed the test" is not the same as "the test works"</summary><div class="inner">
+<p>A check that always says yes passes every time too. You cannot tell the two apart by watching them succeed — only by giving them something that ought to fail and seeing whether they catch it.</p>
+<p>This is the same reasoning behind something the project did much earlier: the database rule that stops one person seeing another's money was tested by <em>deliberately switching the rule off</em> and confirming the app broke, then switching it back on and confirming it worked again. Watching something go green proves nothing until you have also watched it go red.</p>
+</div></details>
+
+</div>
+</details>
+
+<!-- ============ 6 ============ -->
+<details class="sec" id="s6">
+<summary><span class="n">6</span><span class="t">There are no passwords in the deployment<span class="one">The deploy process proves who it is instead of knowing a secret.</span></span><span class="chev">▶</span></summary>
+<div class="body">
+
+<p class="lead">The usual way to let an automated process touch your cloud account is to give it a permanent key and store it somewhere. This does not do that, and there is no key to steal.</p>
+
+<p>Instead, when a deploy starts, the code-hosting service issues a short-lived signed statement: <em>"this is a job running in the production part of this specific project."</em> The cloud account has been told to trust statements from that service, and to allow exactly one such sentence to unlock each set of permissions. The statement expires when the job ends.</p>
+
+<div class="scroll">
+<table>
+<tr><th>Permanent key</th><th>What is used here</th></tr>
+<tr><td>Works forever until someone revokes it</td><td>Expires in minutes</td></tr>
+<tr><td>Works from anywhere</td><td>Only from this one project, in this one copy</td></tr>
+<tr><td>Has to be stored somewhere</td><td>Nothing is stored; it is generated per job</td></tr>
+<tr><td>Worth stealing</td><td>Worth nothing five minutes later</td></tr>
+</table>
+</div>
+
+<p>Each of the three copies gets its own identity, and each is allowed to touch only its own site. The dev deploy cannot deploy the real site even by accident — not because it is polite, but because it has never been granted that.</p>
+
+<details class="more"><summary>The one line that carries all of this, and how it was nearly wrong</summary><div class="inner">
+<p>The whole boundary rests on the sentence the cloud account is told to accept. A draft version accepted <em>either</em> "a job in the production copy" <em>or</em> "a job on the main branch".</p>
+<p>Those look like the same thing and are not. The second one would have granted the real site's permissions to <strong>any</strong> automated job running on the main branch — including every job anyone adds in future, none of which pass through the human checkpoint. The human checkpoint was the entire point, and accepting the branch as a substitute quietly discards it. Caught by reading it before switching it on.</p>
+<p>A second, subtler one cost a failed deploy. The sentence has a documented format, used in every tutorial — and this project happens to have a stricter setting switched on that changes the format, replacing names with permanent numeric identifiers. The written-down format simply never matches, and the error message says only "not allowed", naming nothing. Worth keeping rather than switching off: a name can be given up and claimed by somebody else later; a number cannot.</p>
+</div></details>
+
+</div>
+</details>
+
+<!-- ============ 7 ============ -->
+<details class="sec" id="s7">
+<summary><span class="n">7</span><span class="t">Three ways the copies are kept apart<span class="one">Different data, different sign-ins, different keys to the safe.</span></span><span class="chev">▶</span></summary>
+<div class="body">
+
+<p class="lead">"Separate environments" is easy to say and easy to fake. Here is what it actually means in this setup, on three independent axes.</p>
+
+<h3>1 — Different data</h3>
+<p>Three separate databases. Nothing written in one appears in another.</p>
+
+<h3>2 — Different sign-ins</h3>
+<p>Each copy signs its "you are logged in" tokens with its own secret key. A session created on the dev site is meaningless to the real site — not rejected as a matter of policy, but genuinely unreadable, because it was signed with a different key.</p>
+
+<h3>3 — Different keys to the safe</h3>
+<p>Passwords and connection details live in a locked store in the cloud, filed under three separate paths. Each copy is permitted to read only its own path. A dev copy that has been broken into holds nothing that opens the real database — it cannot even read the address.</p>
+
+<div class="note">
+<p><strong>The third one was not true until today,</strong> and the gap is worth describing because it is such an easy one to have.</p>
+<p>All three copies were using the <em>same</em> database username and password. Only the database <em>name</em> in the connection string differed. So anything holding the dev credentials could reach the real database by editing one word. That is not separation, it is a naming convention — and it also meant a single leaked password exposed all three at once.</p>
+<p>Fixed by giving each copy its own database login, permitted to open one database and refused by the other two. Proved rather than asserted: the dev login was pointed at the real database and the answer was <code>permission denied for database "spendwise"</code>.</p>
+</div>
+
+<details class="more"><summary>The trap inside that fix</summary><div class="inner">
+<p>The obvious way to do it is to make each new login a <em>member</em> of the original shared account, so that all the existing permissions carry over and nothing else has to change.</p>
+<p>That would have been theatre. Membership passes down <em>everything</em>, including the right to open the other databases — so all three logins would have reached all three databases and the check would have reported success on the part that worked.</p>
+<p>The fix is a setting that says "hold only what you were granted directly, inherit nothing". Each login then gets permission to open exactly one database, and picks up the shared permissions afterwards, once it is already inside. The order matters: the database checks who may come in <em>before</em> any of that happens.</p>
+<p>General lesson, worth keeping: whenever separation is built on top of a hierarchy, the question to ask is what the hierarchy hands down for free.</p>
+</div></details>
+
+<details class="more"><summary>What is still shared, honestly</summary><div class="inner">
+<p>One physical server runs all three sites, and one database server holds all three databases. If the server fails, all three go down together. If the database server runs out of space, all three notice.</p>
+<p>This is the deliberate cost of not paying for three of everything. It is a reasonable trade for a project of this size, as long as nobody mistakes "separate databases" for "separate machines".</p>
+</div></details>
+
+</div>
+</details>
+
+<!-- ============ 8 ============ -->
+<details class="sec" id="s8">
+<summary><span class="n">8</span><span class="t">Three sites on one small computer<span class="one">It fits because somebody measured instead of guessing.</span></span><span class="chev">▶</span></summary>
+<div class="body">
+
+<p class="lead">The rented server is small — about 916 MB of usable memory. Three copies of the site have to fit in that.</p>
+
+<p>Originally the real site had reserved 512 MB for itself. Measuring what it actually used gave a very different number: <strong>148 to 171 MB</strong>. It had reserved roughly three times what it needed, which left only 20 MB spare once the other two copies were added — not enough slack to be comfortable.</p>
+
+<div class="scroll">
+<table>
+<tr><th>Copy</th><th>Reserved</th><th>Ceiling</th></tr>
+<tr><td>production</td><td>384 MB</td><td>768 MB</td></tr>
+<tr><td>uat</td><td>192 MB</td><td>384 MB</td></tr>
+<tr><td>dev</td><td>192 MB</td><td>384 MB</td></tr>
+<tr><td></td><td><strong>768 of 916</strong></td><td>148 MB spare</td></tr>
+</table>
+</div>
+
+<p>Lowering the real site's reservation to 384 MB — still more than twice what it uses — freed enough room for the other two to live comfortably.</p>
+
+<details class="more"><summary>Reserved versus ceiling, and why only one of them matters here</summary><div class="inner">
+<p>The <em>reserved</em> figure is what gets set aside up front, and it is the number used when deciding whether a copy fits on the machine at all. The <em>ceiling</em> is the point at which the system kills the copy for using too much.</p>
+<p>Only the reserved figure was lowered. The ceiling stays high on purpose: lowering it too would shrink the safety margin before a crash while freeing nothing at all, since it was never the number being counted.</p>
+</div></details>
+
+<details class="more"><summary>Why each deploy has a few seconds of downtime, deliberately</summary><div class="inner">
+<p>Normally a deploy starts the replacement before stopping the old one, so there is no gap. That needs room for two copies at once — room this machine does not have.</p>
+<p>So it is set to stop the old one first. The cost is a few seconds where the site is not there. The alternative is worse than it sounds: with the usual setting the deploy would not fail, it would <em>hang</em>, waiting forever for memory that is never going to appear.</p>
+<p>Behind a proper load balancer with room to spare this would be the wrong choice. On one small machine it is the right one.</p>
+</div></details>
+
+</div>
+</details>
+
+<!-- ============ 9 ============ -->
+<details class="sec" id="s9">
+<summary><span class="n">9</span><span class="t">What went wrong building this<span class="one">Thirteen mistakes in one day, written down on purpose.</span></span><span class="chev">▶</span></summary>
+<div class="body">
+
+<p class="lead">This project keeps a folder of its own mistakes. Not a changelog — a record of what somebody <em>believed</em> at the time, and what was actually true. Thirteen went in from this work alone.</p>
+
+<p>Nine of thirteen were caught by reading something back and asking "what would this actually do, line by line?" before running it. The four that were not are the interesting ones.</p>
+
+<h3>Two of them leaked a password</h3>
+<p>Both were code written <em>specifically to avoid</em> printing a secret. Both printed it anyway, on a path nobody had thought about.</p>
+<p>The first tried to strip the password out of a connection string and show only the harmless parts. The pattern did not match, and the tool it used passes anything it does not match through <em>unchanged</em> — so "keep only the safe part" failed into "print everything".</p>
+<p>The second was a tiny helper function whose name collided with a built-in command. The real command was called instead, could not understand the argument it was given, and printed it inside the error message. The helper never ran at all. The secret came out regardless.</p>
+<div class="note">
+<p><strong>The rule that would have prevented both:</strong> a secret should be read and used inside one program and never become an argument, a pipeline step, or a variable in a terminal. Anything that can fail can quote what you handed it.</p>
+<p>All of them were changed immediately afterwards, and the old ones now genuinely do not work — checked, not assumed.</p>
+</div>
+
+<h3>Two cost a failed deploy</h3>
+<p>Both were documents that had been carefully checked for whether they said the right thing, and never checked against the thing they are compared to when they actually run. Reading cannot catch that class of mistake. Only running can — which is the argument for a deployment process that fails loudly and early rather than one that is inspected and then trusted.</p>
+
+<h3>The one that had been quietly wrong for weeks</h3>
+<p>The automated password scan had never once read the project's history. It was set up to — the setting that fetches the full history was there, correctly, and commented as being for exactly that purpose. But that setting controls what gets <em>downloaded</em>, not what the scanner <em>reads</em>, and the scanner had been looking only at each new change as it arrived.</p>
+<p>So for weeks it had been answering "is there a password in what you just pushed?" while its own comment, its name, and everyone reading it believed it answered "is there a password in this project?" Anything from before the scan existed had never been examined once.</p>
+<p>It was found by accident — triggering the process a different way, which happens to make the scanner read everything. The thing it found was harmless. The fact it had never looked was not.</p>
+
+<div class="warn">
+<p><strong>Why keep a list like this at all.</strong> Roughly two thirds of the mistakes recorded across this whole project are failures of <em>noticing</em> rather than failures of code: something was broken and nothing said so. Those are invisible in a list of fixes, because there was never a bug report — just a green tick that meant less than it appeared to.</p>
+</div>
+
+</div>
+</details>
+
+<!-- ============ 10 ============ -->
+<details class="sec" id="s10">
+<summary><span class="n">10</span><span class="t">What is still not done<span class="one">The honest list, including one decision that is not a machine's to make.</span></span><span class="chev">▶</span></summary>
+<div class="body">
+
+<p class="lead">Gaps stay gaps until they are closed. Here is the current list.</p>
+
+<div class="scroll">
+<table>
+<tr><th>Not done</th><th>Why it matters</th></tr>
+<tr><td>No encryption on the connection to the sites</td><td>All three are plain <code>http</code>. Traffic to them can be read in transit. This is a known, recorded weakness, not an oversight — proper certificates need a load balancer or a domain name, and neither exists yet.</td></tr>
+<tr><td>One server, one database server</td><td>Everything shares hardware. One failure takes all three down.</td></tr>
+<tr><td>Marks can be forged by the dev copy</td><td>Described honestly in section 4. Needs a separate image store per copy.</td></tr>
+<tr><td>No named approver for releases</td><td>A paid feature on this plan. The stand-in is that a person must start the release by hand.</td></tr>
+<tr><td>The biggest test is still not automated</td><td>The one proving that one person cannot see another's money still needs a real database to run against. Everything else about this project exists to support that guarantee, and it is still checked by hand.</td></tr>
+<tr><td>An old, stale address can still reach the database</td><td>A home internet address from weeks ago is still on the permitted list. Those get reassigned to other people. It should be removed.</td></tr>
+</table>
+</div>
+
+<div class="warn">
+<p><strong>One decision is waiting on a person, and deliberately has not been made.</strong></p>
+<p>There is a written record from earlier in the project stating that the automated build process would never touch the cloud account — the owner wanted to do that part by hand, to learn it. That is no longer what happens; it was reversed out loud, under time pressure, and all of this was built.</p>
+<p>The proper way to change such a record is to write a new one that supersedes it. That was attempted, and it cannot be done: the project has a checking tool that refuses to let any live document rest on a cancelled decision, and seventeen documents refer to this one. Two of those seventeen are the original frozen requirements, sealed with a checksum, which by design can never be edited to say "superseded".</p>
+<p>So superseding this particular record is impossible as the checking tool is currently written. The fix is a small exemption for documents that are frozen and therefore cannot be updated — which is a reasonable change, and is also a loosening of a safety check. Loosening a safety check is on this project's short list of things no automated process may decide. So it waits for a person, and in the meantime the contradiction is written down plainly rather than papered over.</p>
+</div>
+
+</div>
+</details>
+
+<footer>
+<p>Version 2 · 13 September 2026 · written to be read cold, a year from now.<br>
+Version 1 covers what the app is and how it works inside. This one covers how it gets deployed.<br>
+The mistakes behind this document are in <code>bugs/</code>. The scripts and permissions are in <code>infra/</code>.</p>
+</footer>
+
+</div>
+
+<script>
+(function () {
+  var secs = Array.prototype.slice.call(document.querySelectorAll('details.sec'));
+
+  document.getElementById('all').addEventListener('click', function () {
+    secs.forEach(function (d) { d.open = true; });
+  });
+  document.getElementById('none').addEventListener('click', function () {
+    secs.forEach(function (d) { d.open = false; });
+    document.querySelectorAll('details.more').forEach(function (d) { d.open = false; });
+  });
+
+  function reveal(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.open = true;
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  document.querySelectorAll('.map a[href^="#"]').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      e.preventDefault();
+      var id = a.getAttribute('href').slice(1);
+      history.replaceState(null, '', '#' + id);
+      reveal(id);
+    });
+  });
+
+  if (location.hash.length > 1) reveal(location.hash.slice(1));
+  window.addEventListener('hashchange', function () {
+    if (location.hash.length > 1) reveal(location.hash.slice(1));
+  });
+})();
+</script>
+</body>
+</html>
