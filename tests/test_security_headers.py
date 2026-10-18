@@ -38,10 +38,41 @@ async def test_server_banner_is_not_advertised():
 
 
 async def test_api_json_is_not_cacheable():
-    # /api/auth/me is unauthenticated-safe (returns 401) but still an /api route;
-    # whatever the status, it must not be cacheable.
-    r = await _get("/api/auth/me")
-    assert r.headers.get("cache-control") == "no-store"
+    # Unit-test the middleware directly: an /api/ response must be no-store.
+    # Hitting a real /api route would open a DB connection in its dependency,
+    # which the no-database CI job cannot provide, so test the rule itself.
+    from starlette.requests import Request
+    from starlette.responses import JSONResponse
+
+    from app.core.headers import security_headers_middleware
+
+    scope = {"type": "http", "method": "GET", "path": "/api/auth/me",
+             "headers": [], "query_string": b""}
+
+    async def call_next(_req):
+        return JSONResponse({"ok": True})
+
+    resp = await security_headers_middleware(Request(scope), call_next)
+    assert resp.headers.get("cache-control") == "no-store"
+    assert "content-security-policy" in resp.headers
+
+
+async def test_non_api_response_is_not_forced_no_store():
+    # The no-store rule is scoped to /api/; a static/SPA path keeps its own
+    # caching decision.
+    from starlette.requests import Request
+    from starlette.responses import JSONResponse
+
+    from app.core.headers import security_headers_middleware
+
+    scope = {"type": "http", "method": "GET", "path": "/assets/app.js",
+             "headers": [], "query_string": b""}
+
+    async def call_next(_req):
+        return JSONResponse({"ok": True}, headers={"Cache-Control": "max-age=31536000"})
+
+    resp = await security_headers_middleware(Request(scope), call_next)
+    assert resp.headers.get("cache-control") == "max-age=31536000"
 
 
 async def test_openapi_is_not_public_by_default():
