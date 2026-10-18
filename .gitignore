@@ -29,6 +29,10 @@ Thumbs.db
 # your RDS master password - never committed
 rds.txt
 
+# local login notes (app accounts + passwords) - never committed, anywhere in the tree
+passwords.txt
+**/passwords.txt
+
 # ── the other two environments, as nested git worktrees ──────────────────────
 # `dev/` and `uat/` are working directories for the dev and uat branches, living
 # inside this one so all three environments sit together. They are NOT copies of
