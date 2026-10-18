@@ -1,0 +1,683 @@
+/* screens/expenses.css — owned by the expenses screen agent. Builds on tokens.css + glass.css + motion.css;
+   see the contract in docs/05 B DesignSystem/DESIGN-SYSTEM.md §9. No raw hex, no :focus-visible rule.
+
+   Covers three things, all money-in:
+     1. the LEDGER: EntryList, the day-grouped list of expenses (dashboard)
+     2. the SHEET:  ExpensePanel, the add / edit dialog
+     3. CATEGORIES: the add form, the coin swatch picker, the category list
+
+   Surfaces stay with glass.css (.entries / .card are opaque paper-raised,
+   .panel is glass). This sheet sets geometry, type and state only.
+
+   Contrast, computed from tokens.css (light / dark), every pair used here:
+     ink        on paper-raised  16.80 / 14.71    ink-muted on paper-raised 7.19 / 8.13
+     ink        on pine-soft     14.25 / 11.83    ink-muted on pine-soft    6.10 / 6.53
+     gold       on paper-raised   6.39 / 10.29    gold      on paper-sunken 5.41 / 11.88
+     gold       on gold-soft      5.38 /  9.47    pine      on paper-raised 6.42 / 9.31
+     danger     on paper-raised   6.43 /  7.37    danger    on danger-soft  5.23 / 6.95
+     border-strong (rims, leaders, inputs) on paper-raised 4.49 / 5.09  (>= 3:1 UI)
+
+   Motion (animate skill, gate first):
+     - ledger / category rows: occasional (on mount) -> .sw-enter, 40ms stagger
+       capped at 8 (staggerStyle in the JSX). Hover is TONAL only: the rows
+       hold figures a person is reading, so they never move under the cursor.
+     - the sheet: occasional -> slides from its own edge (right on desktop,
+       bottom on a phone), transform only, --sw-ease-drawer, --sw-dur-enter.
+     - swatches, icon buttons: press feedback via transitions (interruptible).
+     - reduced motion: tokens.css collapses durations; entrances are switched
+       off by motion.css and by the block at the bottom of this file. */
+
+
+/* ── 1. THE LEDGER ───────────────────────────────────────────────────────── */
+/* `.entries` is the opaque content surface (glass.css). Not clipped, so the
+   focus ring of the first and last row is never cut. */
+.entries.ledger {
+  padding: var(--sw-space-2) 0 var(--sw-space-2);
+  overflow: visible;
+}
+
+.ledger-day + .ledger-day { margin-top: var(--sw-space-1); }
+
+/* The day line of a receipt: date, dotted leader, the day's subtotal.
+   `.sw-leader` (glass.css) draws the leader and puts the figure last. */
+.ledger .day-head {
+  margin: 0;
+  padding: var(--sw-space-4) var(--sw-space-5) var(--sw-space-1);
+  background: none;
+  border: 0;
+  font-family: var(--sw-font-body);
+  font-size: var(--sw-text-sm);
+  font-weight: var(--sw-weight-semibold);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--sw-ink);
+}
+.ledger .day-subtotal {
+  color: var(--sw-gold);
+  font-weight: var(--sw-weight-semibold);
+}
+
+.ledger-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0 var(--sw-space-2);
+}
+
+/* One row. Grid areas are named here so the legacy phone template in app.css
+   (a different arrangement) is replaced by cascade order, not fought. */
+.ledger .entry {
+  position: relative;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto auto;
+  grid-template-areas: "dot main amt actions";
+  align-items: center;
+  column-gap: var(--sw-space-3);
+  row-gap: 0;
+  min-height: 60px;
+  padding: var(--sw-space-2) var(--sw-space-1) var(--sw-space-2) var(--sw-space-3);
+  border: 0;
+  border-radius: var(--sw-radius-md);
+  background: transparent;
+  transition:
+    background-color var(--sw-dur-hover) ease,
+    box-shadow var(--sw-dur-hover) ease;
+}
+/* Hairline rules that start after the coin, as on a printed statement, and
+   fade out around the hovered row so its tint reads as one clean shape. */
+.ledger .entry + .entry::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: calc(var(--sw-space-3) + 18px + var(--sw-space-3));
+  right: var(--sw-space-3);
+  height: 1px;
+  background: var(--sw-border);
+  transition: opacity var(--sw-dur-hover) ease;
+  pointer-events: none;
+}
+/* The legacy sheets paint a pine wash on ANY hover, touch included, and a
+   bottom rule on the last row. Both are undone with their exact selectors. */
+.entry:hover:not(.day-head) { background: transparent; }
+.entry:last-child { border-bottom: 0; }
+
+@media (hover: hover) and (pointer: fine) {
+  .ledger .entry:hover:not(.day-head) {
+    background: var(--sw-pine-soft);
+    box-shadow: var(--sw-highlight), var(--sw-shadow-sm);
+  }
+  .ledger .entry:hover::before,
+  .ledger .entry:hover + .entry::before { opacity: 0; }
+}
+.ledger .entry:focus-within {
+  background: var(--sw-pine-soft);
+}
+.ledger .entry:focus-within::before,
+.ledger .entry:focus-within + .entry::before { opacity: 0; }
+
+.ledger .entry-dot {
+  grid-area: dot;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--sw-radius-full);
+}
+.ledger .entry-main { grid-area: main; min-width: 0; }
+.ledger .entry-desc {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--sw-ink);
+  font-size: var(--sw-text-base);
+  font-weight: var(--sw-weight-medium);
+  line-height: var(--sw-leading-snug);
+}
+/* app.swiss.css sets .entry-meta to 0.72rem (11.5px), under the 12px floor;
+   scoped here so other screens' captions are left to their owners. */
+.ledger .entry-main .entry-meta {
+  margin-top: 2px;
+  font-size: var(--sw-text-sm);
+  color: var(--sw-ink-muted);
+  letter-spacing: 0;
+}
+
+/* The figure: tabular, right-aligned on the shared edge before the actions.
+   Paise in muted ink, the way a statement sets the minor unit. */
+.ledger .entry-amount {
+  grid-area: amt;
+  justify-self: end;
+  text-align: right;
+  font-size: var(--sw-text-md);
+  font-weight: var(--sw-weight-semibold);
+  letter-spacing: var(--sw-track-tight);
+  white-space: nowrap;
+}
+.ledger .entry-amount .sw-money-frac,
+.cat-total .sw-money-frac {
+  color: var(--sw-ink-muted);
+  font-weight: var(--sw-weight-regular);
+}
+.ledger .entry-amount .sw-money-cur,
+.cat-total .sw-money-cur {
+  margin-right: 0.08em;
+  font-weight: var(--sw-weight-regular);
+  color: var(--sw-ink-muted);
+}
+
+.ledger .entry-actions {
+  grid-area: actions;
+  display: flex;
+  gap: 0;
+}
+
+/* Icon buttons in both lists: muted ink at rest (7.19 / 8.13), the delete
+   one turns coral only under a real pointer, never as a resting colour. */
+.ledger .icon-btn,
+.cat-actions .icon-btn {
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  cursor: pointer;
+}
+.ledger .icon-btn[aria-disabled='true'],
+.cat-actions .icon-btn[aria-disabled='true'] { cursor: progress; color: var(--sw-ink-faint); }
+@media (hover: hover) and (pointer: fine) {
+  .icon-btn.icon-btn-danger:hover:not([aria-disabled='true']) {
+    background: var(--sw-danger-soft);
+    color: var(--sw-danger);
+  }
+}
+
+
+/* ── 2. THE SHEET (add / edit expense) ───────────────────────────────────── */
+/* Desktop: a floating glass sheet on the right, inset from the window edge.
+   glass.css owns the scrim's tint/blur and the panel's whole surface. */
+.scrim {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: stretch;
+  padding: var(--sw-space-3);
+  animation: xp-scrim-in var(--sw-dur-small) var(--sw-ease-out) backwards;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 30rem;
+  height: auto;
+  max-height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--sw-space-6) var(--sw-space-6) var(--sw-space-5);
+  animation: xp-sheet-x var(--sw-dur-enter) var(--sw-ease-drawer) backwards;
+}
+
+/* The title, with a champagne rule beneath it: the letterhead line of a
+   statement, not the Swiss layer's full-weight ink rule. */
+.panel .panel-title {
+  position: relative;
+  margin: 0 0 var(--sw-space-6);
+  padding: 0 0 var(--sw-space-4);
+  border: 0;
+  font-family: var(--sw-font-display);
+  font-size: var(--sw-text-xl);
+  font-weight: var(--sw-weight-semibold);
+  line-height: var(--sw-leading-tight);
+  letter-spacing: var(--sw-track-display);
+  text-transform: none;
+  color: var(--sw-ink);
+}
+.panel .panel-title::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--sw-gold-deep), var(--sw-gold-fill) 35%, transparent);
+}
+
+.panel form {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+}
+
+.panel .field { margin-bottom: var(--sw-space-5); }
+.panel .field label {
+  display: block;
+  margin-bottom: var(--sw-space-2);
+}
+.panel .field label .entry-meta {
+  font-size: var(--sw-text-sm);
+  font-weight: var(--sw-weight-regular);
+  color: var(--sw-ink-muted);
+}
+
+/* Field boundaries at >= 3:1 (WCAG 1.4.11): --sw-border-strong, not the
+   decorative hairline. Focus and invalid states restated so this rule's
+   higher specificity does not mask them. */
+.panel .field input,
+.panel .field select,
+.cat-screen .field input {
+  border-color: var(--sw-border-strong);
+  border-radius: var(--sw-radius-md);
+}
+@media (hover: hover) and (pointer: fine) {
+  .panel .field input:hover:not(:focus),
+  .panel .field select:hover:not(:focus),
+  .cat-screen .field input:hover:not(:focus) { border-color: var(--sw-ink-muted); }
+}
+.panel .field input:focus,
+.panel .field select:focus,
+.cat-screen .field input:focus {
+  border-color: var(--sw-pine);
+  background: var(--sw-paper-raised);
+  box-shadow: 0 0 0 4px var(--sw-pine-soft);
+}
+.panel .field input[aria-invalid='true'],
+.panel .field select[aria-invalid='true'],
+.cat-screen .field input[aria-invalid='true'] {
+  border-color: var(--sw-danger);
+  box-shadow: 0 0 0 4px var(--sw-danger-soft);
+}
+.panel .field select { cursor: pointer; }
+
+/* The amount, written like a cheque: a large tabular figure with the rupee
+   sign set beside it in gold. The sign is aria-hidden; the field's value is
+   the plain decimal the server parses. */
+.amount-wrap { position: relative; }
+.amount-cur {
+  position: absolute;
+  top: 50%;
+  left: var(--sw-space-4);
+  transform: translateY(-50%);
+  font-family: var(--sw-font-body);
+  font-size: var(--sw-text-xl);
+  font-weight: var(--sw-weight-regular);
+  line-height: 1;
+  color: var(--sw-gold);
+  pointer-events: none;
+}
+.panel .amount-wrap input[name='amount'] {
+  min-height: 68px;
+  padding: 0 var(--sw-space-4) 0 calc(var(--sw-space-4) + 0.8em);
+  border-radius: var(--sw-radius-lg);
+  font-size: var(--sw-text-2xl);
+  font-weight: var(--sw-weight-semibold);
+  letter-spacing: var(--sw-track-tight);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+}
+.panel .amount-wrap input[name='amount']::placeholder {
+  color: var(--sw-ink-faint);
+  font-weight: var(--sw-weight-regular);
+}
+
+/* Date and category share a row when there is room for both. */
+.field-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: var(--sw-space-3);
+}
+.field-pair > .field { min-width: 0; }
+
+/* Inline validation: coral text directly under the field it names, a word
+   and a border, never colour alone. */
+.panel .field-error,
+.cat-screen .field-error {
+  display: block;
+  margin-top: var(--sw-space-2);
+  font-size: var(--sw-text-sm);
+  font-weight: var(--sw-weight-medium);
+  line-height: var(--sw-leading-snug);
+  letter-spacing: 0;
+  color: var(--sw-danger);
+}
+.panel .form-error,
+.cat-error {
+  margin: 0 0 var(--sw-space-5);
+  padding: var(--sw-space-3) var(--sw-space-4);
+  color: var(--sw-danger);
+  font-weight: var(--sw-weight-medium);
+  line-height: var(--sw-leading-snug);
+}
+
+/* Actions sit at the foot of the sheet, under a hairline. */
+.panel .panel-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sw-space-3);
+  margin-top: auto;
+  padding-top: var(--sw-space-5);
+  border-top: 1px solid var(--sw-border);
+}
+.panel .panel-actions .btn { min-width: 7.5rem; }
+
+@keyframes xp-scrim-in {
+  from { opacity: 0; }
+}
+@keyframes xp-sheet-x {
+  from { transform: translateX(calc(100% + var(--sw-space-3))); }
+}
+@keyframes xp-sheet-y {
+  from { transform: translateY(100%); }
+}
+
+/* Phone: a bottom sheet, flush to the bottom and both sides of the window
+   (the browser test measures bottom == innerHeight and x < 2). */
+@media (max-width: 900px) {
+  .scrim {
+    align-items: flex-end;
+    justify-content: stretch;
+    padding: 0;
+  }
+  .panel {
+    max-width: none;
+    width: 100%;
+    max-height: calc(100dvh - var(--sw-space-8));
+    padding: var(--sw-space-5) var(--sw-space-4) calc(var(--sw-space-4) + env(safe-area-inset-bottom, 0px));
+    animation-name: xp-sheet-y;
+  }
+  .panel .panel-title { font-size: var(--sw-text-lg); margin-bottom: var(--sw-space-5); }
+  .panel .amount-wrap input[name='amount'] { font-size: var(--sw-text-xl); min-height: 60px; }
+  .panel .panel-actions .btn { flex: 1 1 0; min-width: 0; }
+}
+@media (max-width: 420px) {
+  .field-pair { grid-template-columns: minmax(0, 1fr); }
+}
+
+
+/* ── 3. CATEGORIES ───────────────────────────────────────────────────────── */
+.cat-screen { max-width: 48rem; }
+
+.cat-screen .page-head {
+  margin-bottom: var(--sw-space-6);
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+.cat-lede {
+  margin-top: var(--sw-space-2);
+  max-width: 46ch;
+}
+
+/* The add form: name, then the coin row, then the action at the foot. */
+.cat-new { margin-bottom: var(--sw-space-8); }
+.cat-new .card-heading { margin-bottom: var(--sw-space-4); }
+.cat-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--sw-space-4);
+  align-items: start;
+}
+.cat-form .field { margin: 0; }
+.cat-form > .btn { justify-self: end; min-width: 7.5rem; }
+
+/* Swatches are COINS: round, 44px (the target floor), a minted rim at >= 3:1
+   and a soft top-left highlight. Selected = an ink ring outside a paper gap
+   AND a tick, two cues, because a ring alone is the one some people miss. */
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sw-space-2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.swatches legend {
+  margin-bottom: var(--sw-space-2);
+  padding: 0;
+}
+.swatch {
+  position: relative;
+  flex: none;
+  width: var(--sw-target-min);
+  height: var(--sw-target-min);
+  padding: 0;
+  border: 0;
+  border-radius: var(--sw-radius-full);
+  background:
+    radial-gradient(circle at 34% 28%, rgb(255 255 255 / 0.38), transparent 46%),
+    var(--coin, var(--sw-cat-uncat));
+  box-shadow:
+    0 0 0 1px var(--sw-border-strong),
+    inset 0 0 0 3px rgb(255 255 255 / 0.18),
+    inset 0 -2px 3px rgb(0 0 0 / 0.22);
+  cursor: pointer;
+  transition:
+    transform var(--sw-dur-press) var(--sw-ease-out),
+    box-shadow var(--sw-dur-hover) ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .swatch:hover { transform: scale(1.06); }
+}
+.swatch:active { transform: scale(0.92); }
+.swatch[aria-pressed='true'] {
+  border: 0;
+  box-shadow:
+    0 0 0 2px var(--sw-paper-raised),
+    0 0 0 4px var(--sw-ink),
+    inset 0 0 0 3px rgb(255 255 255 / 0.18);
+}
+.swatch::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: 7px;
+  height: 13px;
+  border-right: 2.5px solid var(--sw-paper-raised);
+  border-bottom: 2.5px solid var(--sw-paper-raised);
+  transform: translate(-50%, -50%) rotate(45deg) scale(0.6);
+  opacity: 0;
+  transition:
+    opacity var(--sw-dur-press) ease,
+    transform var(--sw-dur-small) var(--sw-ease-out);
+}
+.swatch[aria-pressed='true']::after {
+  opacity: 1;
+  transform: translate(-50%, -50%) rotate(45deg) scale(1);
+}
+
+/* The list: one opaque statement card with ledger rows inside. */
+.cat-list-title {
+  display: flex;
+  align-items: center;
+  gap: var(--sw-space-3);
+  margin: 0 0 var(--sw-space-3);
+  font-size: var(--sw-text-lg);
+}
+.cat-count {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--sw-text-sm);
+  padding: 2px var(--sw-space-3);
+}
+
+.cat-screen .card.cat-list,
+.cat-loading .card.cat-list {
+  display: block;
+  list-style: none;
+  margin: 0;
+  padding: var(--sw-space-2);
+}
+
+.cat-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto auto;
+  grid-template-areas: "dot main total actions";
+  align-items: center;
+  column-gap: var(--sw-space-4);
+  min-height: 64px;
+  padding: var(--sw-space-2) var(--sw-space-1) var(--sw-space-2) var(--sw-space-3);
+  background: transparent;
+  border: 0;
+  border-radius: var(--sw-radius-md);
+  transition:
+    background-color var(--sw-dur-hover) ease,
+    box-shadow var(--sw-dur-hover) ease;
+}
+.cat-row + .cat-row::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: calc(var(--sw-space-3) + 18px + var(--sw-space-4));
+  right: var(--sw-space-3);
+  height: 1px;
+  background: var(--sw-border);
+  transition: opacity var(--sw-dur-hover) ease;
+  pointer-events: none;
+}
+/* Legacy: a pine wash on any hover, a border box. Undone, then re-earned
+   under a real pointer as a tonal lift. */
+.cat-row:hover { background: transparent; border-color: transparent; }
+@media (hover: hover) and (pointer: fine) {
+  .cat-row:not(:has(.cat-editor)):hover {
+    background: var(--sw-pine-soft);
+    box-shadow: var(--sw-highlight), var(--sw-shadow-sm);
+  }
+  .cat-row:hover::before,
+  .cat-row:hover + .cat-row::before { opacity: 0; }
+}
+.cat-row:has(.cat-editor) {
+  background: var(--sw-paper-sunken);
+  align-items: start;
+}
+.cat-row:has(.cat-editor)::before,
+.cat-row:has(.cat-editor) + .cat-row::before { opacity: 0; }
+
+.cat-row .cat-dot {
+  grid-area: dot;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--sw-radius-full);
+}
+.cat-row:has(.cat-editor) .cat-dot { margin-top: 13px; }
+
+.cat-main {
+  grid-area: main;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+/* app.css gives .cat-name `flex: 1 1 8rem` (and .field-grow `1 1 12rem`) for
+   the old row-direction layout; in these column stacks that basis becomes a
+   HEIGHT, so it is cancelled here. */
+.cat-main > .cat-name,
+.cat-main > .cat-usage,
+.cat-editor > .field-grow { flex: none; }
+.cat-row .cat-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--sw-text-base);
+  font-weight: var(--sw-weight-semibold);
+  letter-spacing: 0;
+  color: var(--sw-ink);
+}
+.cat-main .cat-usage {
+  margin-top: 2px;
+  font-size: var(--sw-text-sm);
+  font-weight: var(--sw-weight-regular);
+  color: var(--sw-ink-muted);
+}
+.cat-total {
+  grid-area: total;
+  justify-self: end;
+  font-size: var(--sw-text-base);
+  font-weight: var(--sw-weight-semibold);
+  letter-spacing: var(--sw-track-tight);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.cat-actions {
+  grid-area: actions;
+  display: flex;
+  gap: 0;
+}
+
+/* Inline editor: takes over the row beside the coin. */
+.cat-editor {
+  grid-column: 2 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sw-space-3);
+  padding: var(--sw-space-1) var(--sw-space-2) var(--sw-space-2) 0;
+}
+.cat-editor .field { margin: 0; }
+.cat-editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sw-space-2);
+}
+
+/* Loading: the list's own shape, shimmering (skeleton is glass.css). */
+.cat-loading > .entry-meta { margin-bottom: var(--sw-space-3); }
+.cat-skel-row {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: center;
+  column-gap: var(--sw-space-4);
+  min-height: 64px;
+  padding: 0 var(--sw-space-3);
+}
+.cat-skel-coin { width: 18px; height: 18px; border-radius: var(--sw-radius-full); }
+.cat-skel-line { width: 42%; height: 12px; }
+.cat-skel-row:nth-child(2) .cat-skel-line { width: 56%; }
+.cat-skel-row:nth-child(3) .cat-skel-line { width: 34%; }
+
+
+/* ── 4. phone ────────────────────────────────────────────────────────────── */
+/* Two lines per row: the note keeps the full width on the left, the figure
+   sits above the actions on the right, both on the shared right edge. */
+@media (max-width: 640px) {
+  .ledger .entry {
+    grid-template-columns: 18px minmax(0, 1fr) auto;
+    grid-template-areas:
+      "dot main amt"
+      "dot main actions";
+    align-items: center;
+    padding: var(--sw-space-2) 0 var(--sw-space-1) var(--sw-space-3);
+  }
+  .ledger .entry-dot { align-self: center; }
+  /* A phone has the width for two lines of note, not one: wrap, then clamp. */
+  .ledger .entry-desc {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .ledger .entry-amount { align-self: end; padding-right: var(--sw-space-3); font-size: var(--sw-text-base); }
+  .ledger .entry-actions { justify-self: end; }
+  .ledger .day-head { padding-inline: var(--sw-space-4); }
+  .ledger-rows { padding: 0 var(--sw-space-1); }
+
+  .cat-row {
+    grid-template-columns: 18px minmax(0, 1fr) auto;
+    grid-template-areas:
+      "dot main total"
+      "dot main actions";
+    column-gap: var(--sw-space-3);
+    padding: var(--sw-space-2) 0 var(--sw-space-1) var(--sw-space-3);
+  }
+  .cat-total { align-self: end; padding-right: var(--sw-space-3); }
+  .cat-actions { justify-self: end; }
+  .cat-total-empty { display: none; }
+  .cat-editor { padding-right: var(--sw-space-3); min-width: 0; }
+  .cat-row + .cat-row::before { left: calc(var(--sw-space-3) + 18px + var(--sw-space-3)); }
+
+  .cat-form > .btn { justify-self: stretch; }
+  .swatches { gap: var(--sw-space-2); }
+}
+
+
+/* ── 5. reduced motion ───────────────────────────────────────────────────── */
+/* Instant, not slow: no slide, no fade-in, no press scale. Colour changes
+   (hover tint, the selected tick) remain, because they carry state. */
+@media (prefers-reduced-motion: reduce) {
+  .scrim, .panel { animation: none; }
+  .swatch, .swatch::after { transition: none; }
+  .swatch:hover, .swatch:active { transform: none; }
+}

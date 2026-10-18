@@ -1,0 +1,2014 @@
+/* GLASS — the SpendWise "new money" system. client/src/styles/glass.css
+ *
+ * Emerald + champagne gold, dark first. Frosted glass over a forest ground,
+ * banknote guilloché for texture, a molten emerald->gold orb for light.
+ *
+ * ONE file, in two parts: the BASE (reset, layout geometry and the hairline
+ * idiom — what survived of the retired app.css / app.redesign.css /
+ * app.swiss.css layers once every rule they lost to was deleted) and then the
+ * SYSTEM, which wins by cascade ORDER, never by `!important`.
+ *
+ * Two tiers (DESIGN-SYSTEM.md §2.3):
+ *   CONTENT  .card .entries .table-wrap .state .sw-bankcard-solid — OPAQUE.
+ *            `SW-ADR-154` and the browser test read the first `.card`'s
+ *            computed background and require alpha 1. Never make these
+ *            translucent.
+ *   CHROME   .glass* .rail .topbar-mobile .gate-card .panel, chips, segmented,
+ *            tabs, toasts, the decorative .sw-bankcard — translucent glass with
+ *            backdrop-filter. Text contrast on these was computed worst-case
+ *            over the gradient, the guilloché and every orb colour (§2.4).
+ *
+ * Rules kept from the old Swiss layer on purpose (they are load-bearing):
+ *   - `.periods, .filters { width: fit-content; max-width: 100% }` — without it
+ *     the chip row is 222px wider than a 375px phone.
+ *   - `.entry-meta` and `.btn` labels are NEVER text-transformed.
+ *   - The ribbon's geometry is not touched here (SW-ADR-055).
+ *
+ * No raw hex (lint-tokens). No `:focus-visible` rule (the one rule lives in
+ * tokens.css). No `outline: none`.
+ */
+
+/* ══ BASE ═══════════════════════════════════════════════════════════════════ */
+
+/* Component styles. Every colour, space, radius and duration is a token —
+ * `npm run lint:tokens` greps this tree for a raw hex and fails the build
+ * (`DESIGN-SYSTEM.md §2`: "No component ever references a raw hex").
+ *
+ * The focus rule is NOT here. It is declared exactly once, in tokens.css, and
+ * `outline: none` appears nowhere in this file (`SW-ADR-117`).
+ *
+ * Glass is `SW-ADR-147`. `backdrop-filter` is PROGRESSIVE ENHANCEMENT: where
+ * it is unsupported the surface is still opaque enough to clear every contrast
+ * floor on its own, because `tools/contrast.py` computes those figures from
+ * the alpha and never from the blur.
+ */
+
+/* ── reset, only what is needed ─────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body, #root { height: 100%; }
+
+body {
+  margin: 0;
+}
+
+h1, h2, h3, p, figure { margin: 0; }
+
+ul, ol { margin: 0; padding: 0; list-style: none; }
+
+button, input, select, textarea { font: inherit; color: inherit; }
+
+table { border-collapse: collapse; width: 100%; }
+
+/* `overflow-x: hidden` on body is the usual fix for phone width and it is the
+   WRONG one — it hides the overflow instead of removing it, so the test passes
+   and the content is still unreachable. Nothing here sets it. */
+
+.skip-link {
+  position: absolute;
+  left: var(--sw-space-2);
+  top: calc(var(--sw-space-2) * -8);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  min-height: var(--sw-target-min);
+  padding: var(--sw-space-2) var(--sw-space-4);
+  background: var(--sw-glass-strong);
+  color: var(--sw-ink);
+  border-radius: var(--sw-radius-md);
+  box-shadow: var(--sw-shadow-md);
+  text-decoration: none;
+  transition: top var(--sw-motion-fast) var(--sw-motion-ease);
+}
+
+.skip-link:focus { top: var(--sw-space-2); }
+
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── app shell ──────────────────────────────────────────────────────────── */
+
+.app { display: flex; min-height: 100%; }
+
+.rail {
+  position: sticky;
+  top: 0;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  border-width: 0 1px 0 0;
+}
+
+.rail-brand { display: flex; align-items: center; justify-content: space-between; }
+
+.rail .rail-close { display: none; }
+
+.rail-nav { display: flex; flex-direction: column; }
+
+.rail-item {
+  width: 100%;
+  text-align: left;
+}
+
+.rail-section { display: flex; flex-direction: column; }
+
+.rail-foot {
+  display: flex;
+  flex-direction: column;
+  padding-top: var(--sw-space-4);
+}
+
+.rail-scrim { display: none; }
+
+.app-main {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.content {
+  flex: 1 1 auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar-mobile { display: none; }
+
+.page-head {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--sw-space-4);
+  flex-wrap: wrap;
+}
+
+/* ── buttons ────────────────────────────────────────────────────────────── */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sw-space-2);
+  cursor: pointer;
+}
+
+.btn:hover:not([aria-disabled='true']) { background: var(--sw-pine-deep); }
+
+.btn-quiet {
+  border-color: var(--sw-border-strong);
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--sw-space-2);
+  cursor: pointer;
+}
+
+.icon-btn[aria-disabled='true'] { color: var(--sw-ink-faint); cursor: not-allowed; }
+
+.segment {
+  flex: 1 1 auto;
+}
+
+/* ── cards ──────────────────────────────────────────────────────────────── */
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+}
+
+.panels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+}
+
+.card-desc { margin-bottom: var(--sw-space-3); }
+
+.card-hero-value {
+  /* The number is mono and tabular, so it cannot reflow. A full-width row is
+     what keeps a crore-sized figure inside its card at every width; this is
+     the belt to that pair of braces. */
+  overflow-wrap: anywhere;
+}
+
+.card-danger { border-color: var(--sw-danger); }
+
+.delta.is-up { color: var(--sw-warning); }
+
+.delta.is-down { color: var(--sw-positive); }
+
+.ok { color: var(--sw-positive); font-size: var(--sw-text-sm); margin-top: var(--sw-space-2); }
+
+.notice {
+  padding: var(--sw-space-3);
+  border: 1px solid var(--sw-border);
+  word-break: break-all;
+}
+
+.chip[aria-pressed='true'] {
+  border-color: var(--sw-pine);
+}
+
+/* ── charts ─────────────────────────────────────────────────────────────── */
+
+.plot-svg { width: 100%; height: auto; display: block; }
+
+.plot-axis {
+  display: flex;
+  justify-content: space-between;
+}
+
+.donut-wrap {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.donut { position: relative; flex: none; }
+
+.donut-svg { width: 100%; height: auto; display: block; }
+
+.slice {
+  cursor: pointer;
+}
+
+/* Two cues, never colour alone (`SW-ADR-118`): the chosen slice thickens (set
+   inline, since it is geometry) AND every other slice dims. */
+
+.donut[data-filtering='true'] .slice { opacity: 0.3; }
+
+.donut[data-filtering='true'] .slice[aria-pressed='true'] { opacity: 1; }
+
+.donut-centre {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.donut-legend {
+  display: flex;
+  flex-direction: column;
+}
+
+.legend-btn {
+  display: grid;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.legend-swatch {
+  flex: none;
+}
+
+.legend-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.bars { display: flex; flex-direction: column; }
+
+.bar-row {
+  display: grid;
+  align-items: center;
+  font-size: var(--sw-text-sm);
+}
+
+.bar-fill { display: block; }
+
+/* ── the ribbon ─────────────────────────────────────────────────────────── */
+
+.ribbon-wrap { display: flex; flex-direction: column; gap: var(--sw-space-2); }
+
+.ribbon-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sw-space-3);
+}
+
+.ribbon {
+  display: flex;
+  width: 100%;
+  overflow: hidden;
+}
+
+.band {
+  position: relative;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  /* TRUE PROPORTION (`SW-ADR-055`). No min-width: a 0.4% band renders 0.4%
+     wide, stays reachable by arrow key and still announces its full name. */
+  flex-grow: 0;
+  flex-shrink: 0;
+  transition: opacity var(--sw-motion-fast) var(--sw-motion-ease);
+}
+
+.ribbon[data-filtering='true'] .band { opacity: 0.35; }
+
+.ribbon[data-filtering='true'] .band[aria-pressed='true'] {
+  opacity: 1;
+}
+
+.ribbon-legend {
+  display: flex;
+  flex-wrap: wrap;
+  font-size: var(--sw-text-sm);
+  color: var(--sw-ink-muted);
+}
+
+.legend-item { display: flex; align-items: center; gap: var(--sw-space-2); }
+
+/* ── entries ────────────────────────────────────────────────────────────── */
+
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sw-space-3);
+}
+
+.entry {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: var(--sw-space-3);
+}
+
+.day-head {
+  padding-top: var(--sw-space-2);
+  padding-bottom: var(--sw-space-2);
+}
+
+.day-head .entry-meta:nth-of-type(2) { text-align: right; }
+
+.entry-dot { flex: none; }
+
+.entry-main { min-width: 0; }
+
+.entry-desc { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.entry-actions { display: flex; gap: var(--sw-space-1); }
+
+.daybars-wrap { margin-bottom: var(--sw-space-4); }
+
+.daybars { display: flex; align-items: flex-end; height: var(--sw-space-12); }
+
+.daybar { flex: 1 1 0; min-width: 1px; }
+
+/* ── categories ─────────────────────────────────────────────────────────── */
+
+.row-form {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--sw-space-3);
+  flex-wrap: wrap;
+}
+
+.field-grow { flex: 1 1 12rem; margin-bottom: 0; }
+
+.cat-list { display: flex; flex-direction: column; }
+
+.cat-row {
+  gap: var(--sw-space-3);
+  flex-wrap: wrap;
+}
+
+.cat-dot { flex: none; }
+
+.cat-name { flex: 1 1 8rem; }
+
+.cat-usage { flex: 0 1 auto; }
+
+.cat-editor { align-items: flex-end;
+              flex-wrap: wrap; flex: 1 1 100%; }
+
+/* ── leaving (`CR-001`, `SW-ADR-150`) ───────────────────────────────────── */
+
+/* Two options, side by side and equally weighted. Deliberately NOT a primary
+   action with the other tucked underneath: "deactivate" and "delete" both mean
+   "I am done" in ordinary English, so the layout has to make a person read
+   which is which rather than reach for whichever is larger. At 375px the grid
+   collapses to one column and the reading order is unchanged. */
+
+.leaving {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+}
+
+.leaving-option {
+  display: flex;
+  flex-direction: column;
+  /* Shrink-to-fit, so a red button is only as wide as its label. Stretched, a
+     confirm button would fill its column and become the biggest target on the
+     screen — on the one card where that is the wrong incentive. */
+  align-items: flex-start;
+  gap: var(--sw-space-3);
+}
+
+/* Markers restored on purpose. The global reset strips them from every list
+   because most lists here are layout; this one is prose, and four consequences
+   run together as a paragraph are four consequences nobody reads. */
+
+.consequences {
+  list-style: disc;
+  padding-left: var(--sw-space-6);
+}
+
+.consequences li { margin-bottom: var(--sw-space-2); }
+
+.consequences li:last-child { margin-bottom: 0; }
+
+.tab[aria-selected='true'] {
+  border-color: var(--sw-glass-border);
+}
+
+/* Its OWN scroll container, so a wide table never makes the page scroll
+   sideways at phone width. */
+
+.table-wrap { padding: 0; }
+
+.table th, .table td {
+  text-align: left;
+  border-bottom: 1px solid var(--sw-border);
+  vertical-align: middle;
+}
+
+.table thead th {
+  white-space: nowrap;
+}
+
+.table .num { text-align: right; }
+
+.cell-strong { display: block; }
+
+.cell-sub { display: block; }
+
+.row-actions { display: flex; gap: var(--sw-space-1); flex-wrap: wrap; }
+
+.ok-dot, .off-dot, .gone-dot {
+  display: inline-block;
+  margin-right: var(--sw-space-2);
+}
+
+.ok-dot { background: var(--sw-positive); }
+
+.off-dot { background: var(--sw-ink-faint); }
+
+/* Deleted, not merely off. The dot is decoration — every status renders its
+   own WORD beside it, so nothing here is carried by colour alone
+   (`SW-ADR-118`), which matters most for the two greys that would otherwise
+   have to be told apart. */
+
+.gone-dot { background: var(--sw-danger); }
+
+/* ── admin: one person's spending (`CR-001`) ────────────────────────────── */
+
+/* The pane is a plain column, NOT a `.card`: the figures and the plot are
+   cards themselves, and glass inside glass reads as a rendering fault. */
+
+.detail { display: flex; flex-direction: column; gap: var(--sw-space-4); }
+
+/* Label-and-value pairs as a real `<dl>`. `auto-fit` at 8rem gives five
+   columns on a desktop and two at 375px — it never needs its own scroll
+   container because it has no fixed-width child to overflow with. */
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  /* `dl` is the one block element the reset at the top does not zero — it lists
+     h1/h2/h3/p/figure and ul/ol — so this carries a 1em UA margin that does NOT
+     collapse inside a flex column and lands as a stray gap above the card. */
+  margin: 0;
+}
+
+.facts dd { margin: 0; }
+
+.audit { display: flex; flex-direction: column; gap: var(--sw-space-1); }
+
+.audit-row {
+  display: grid;
+  grid-template-columns: 12rem 1fr;
+  gap: var(--sw-space-3);
+}
+
+.audit-row:last-child { border-bottom: 0; }
+
+.panel-title {
+  margin-bottom: var(--sw-space-4);
+}
+
+.field label {
+  display: block;
+}
+
+.field-error {
+  display: block;
+  margin-top: var(--sw-space-1);
+}
+
+.panel-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sw-space-2);
+}
+
+.state-title {
+  margin-bottom: var(--sw-space-2);
+}
+
+.state-body {
+  margin-bottom: var(--sw-space-6);
+}
+
+.banner {
+  display: flex;
+  align-items: center;
+  gap: var(--sw-space-3);
+  padding: var(--sw-space-3) var(--sw-space-4);
+  border-left: var(--sw-space-1) solid var(--sw-warning);
+  margin-bottom: var(--sw-space-4);
+}
+
+.skeleton {
+  height: var(--sw-space-8);
+}
+
+.form-error {
+  padding: var(--sw-space-3);
+  color: var(--sw-danger);
+  margin-bottom: var(--sw-space-4);
+}
+
+/* ── sign in ────────────────────────────────────────────────────────────── */
+
+.gate {
+  justify-content: center;
+}
+
+.gate-title {
+  margin-bottom: var(--sw-space-1);
+}
+
+.gate-footer {
+  margin-top: var(--sw-space-6);
+}
+
+/* ── phone width ────────────────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .rail {
+    position: fixed;
+    inset: 0 auto 0 0;
+    transform: translateX(-100%);
+  }
+  .rail.is-open { transform: none; }
+  /* Scoped `.rail .rail-close` on BOTH sides. Unscoped, the base rule
+     lost to `.icon-btn { display: inline-flex }` — same specificity,
+     declared later — and a close button appeared on the desktop rail,
+     which has nothing to close. */
+  .rail .rail-close { display: inline-flex; }
+
+  .rail-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+  }
+
+  .topbar-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sw-space-2);
+  }
+  .audit-row { grid-template-columns: 1fr; gap: 0; }
+
+  /* Two lines per entry (`DESIGN-SYSTEM.md §7`): the amount moves under the
+     description rather than being squeezed beside it. */
+  .entry {
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas:
+      'dot main actions'
+      '.   amt  actions';
+    row-gap: var(--sw-space-1);
+  }
+  .entry-dot { grid-area: dot; }
+  .entry-main { grid-area: main; }
+  .entry-amount { grid-area: amt; font-size: var(--sw-text-base); }
+  .entry-actions { grid-area: actions; }
+  .panel {
+    border-radius: var(--sw-radius-lg) var(--sw-radius-lg) 0 0;
+    padding-bottom: calc(var(--sw-space-6) + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Its own scroll container, so the page body never scrolls sideways. */
+  .ribbon-wrap { overflow-x: auto; }
+}
+
+/* ── controls: labels never wrap ────────────────────────────────────────────
+   A pill-shaped control with a two-line label reads as broken, and every one
+   of these has a `min-height` rather than a height so a second line has no
+   room to sit in. */
+
+.btn,
+.btn-link,
+.chip,
+.segment,
+.tab,
+.icon-btn,
+.pill,
+.bar-label,
+.cat-usage,
+.entry-amount {
+  white-space: nowrap;
+}
+
+.rail-item[aria-current='page'] {
+  border-color: var(--sw-border);
+}
+
+@media (max-width: 640px) {
+  /* The 44px floor is a PHONE-WIDTH requirement (`SW-ADR-117` (5)), so the
+     38px above only applies where it is not the rule. */
+  .segment { min-height: var(--sw-target-min); }
+}
+
+.tab {
+  border-width: 0 0 2px 0;
+  border-style: solid;
+  border-color: transparent;
+}
+
+.tab:hover { color: var(--sw-ink); }
+
+.entry { transition: background var(--sw-motion-fast) var(--sw-motion-ease); }
+
+/* ── categories ─────────────────────────────────────────────────────────── */
+
+.cat-row {
+  border-color: var(--sw-border);
+}
+
+/* ── the gate ───────────────────────────────────────────────────────────── */
+
+.gate-card {
+  position: relative;
+}
+
+/* ── inputs ─────────────────────────────────────────────────────────────── */
+
+.input,
+.field input,
+.field select,
+.field textarea {
+  border-radius: var(--sw-radius-md);
+  background: var(--sw-paper);
+  transition: border-color var(--sw-motion-fast) var(--sw-motion-ease);
+}
+
+.field input:hover,
+.field select:hover { border-color: var(--sw-border-strong); }
+
+/* ── 0. the page ─────────────────────────────────────────────────────────── */
+
+body {
+  background: var(--sw-paper);
+}
+
+/* ── 1. flatten every glass surface ──────────────────────────────────────── */
+
+.glass, .card, .rail, .entries, .state, .banner, .gate-card, .panel, .table-wrap {
+  background: var(--sw-paper);
+  border-radius: 0;
+}
+
+/* ── 2. the mono micro-label idiom ───────────────────────────────────────── */
+
+.card-label,
+.ribbon-title,
+.card-heading,
+.rail-heading,
+.facts dt,
+.table thead th,
+.field label,
+.swatches legend {
+  margin-bottom: var(--sw-space-3);
+}
+
+.page-head {
+  align-items: flex-end;
+  padding-bottom: var(--sw-space-6);
+}
+
+.section-head { padding-bottom: var(--sw-space-4); }
+
+/* ── 4. the hero total ───────────────────────────────────────────────────── */
+
+.card-hero { padding: var(--sw-space-6) 0 var(--sw-space-8); border-bottom: 1px solid var(--sw-border); }
+
+.card-hero-value {
+  margin-top: var(--sw-space-3);
+}
+
+.delta {
+  font-size: 0.7rem;
+  margin-top: var(--sw-space-4);
+}
+
+.card-danger { border-top: 2px solid var(--sw-danger); }
+
+/* ── 6. the rail ─────────────────────────────────────────────────────────── */
+
+.rail {
+  background: var(--sw-paper-sunken);
+  border-right: 1px solid var(--sw-border);
+}
+
+.rail-item {
+  border-bottom: 1px solid var(--sw-border);
+  border-left: 3px solid transparent;
+}
+
+.rail-item[aria-current='page'] {
+  border-left-color: var(--sw-pine);
+}
+
+/* The glyph icons become the section index. Keep them — they are in the .jsx —
+   but quiet them to a mono tick so they read as numbering, not decoration. */
+
+.rail-icon { line-height: 1; text-align: center; }
+
+/* ── 7. content column ───────────────────────────────────────────────────── */
+
+.content {
+  margin: 0;
+  gap: 0;
+}
+
+.content > * + * { margin-top: 0; }
+
+.btn:active:not([aria-disabled='true']) { transform: none; }
+
+.btn-quiet:hover:not([aria-disabled='true']) { background: var(--sw-ink); color: var(--sw-paper); }
+
+.btn-danger:hover:not([aria-disabled='true']) { filter: none; background: var(--sw-danger); color: var(--sw-on-pine); }
+
+.icon-btn:hover { background: none; color: var(--sw-pine); }
+
+.chip:hover { background: none; color: var(--sw-ink); }
+
+/* ── 10. admin tabs: an underline on a rule ─────────────────────────────── */
+
+.tabs { border-bottom: 1px solid var(--sw-ink); }
+
+.tab[aria-selected='true'] {
+  border-bottom-color: var(--sw-pine);
+}
+
+/* ── 11. charts ──────────────────────────────────────────────────────────── */
+
+.plot-axis { margin-bottom: 0; }
+
+.legend-btn:hover { background: none; color: var(--sw-pine); }
+
+.legend-swatch { width: 9px; height: 9px; border-radius: 0; }
+
+.ribbon-legend { font-family: var(--sw-font-body); text-transform: none; letter-spacing: 0; }
+
+.ribbon-legend .legend-item span:first-child { border-radius: 0 !important; }
+
+/* ── 13. entries ─────────────────────────────────────────────────────────── */
+
+.entries { overflow: visible; }
+
+.entry {
+  padding: var(--sw-space-4) 0;
+  border-bottom: 1px solid var(--sw-border);
+}
+
+.day-head {
+  background: none;
+  border-bottom: 1px solid var(--sw-border);
+  padding: var(--sw-space-2) 0;
+}
+
+.entry-dot { width: 8px; height: 8px; border-radius: 0; }
+
+.entry-desc { font-weight: var(--sw-weight-medium); }
+
+.entry-meta {
+  font-size: 0.72rem;
+  /* 0.12em was tuned for a mono uppercase micro-label. This class carries
+     sentences — chart captions, "over 26 days" — so it reads as body text at
+     normal tracking now that the transform above no longer applies to it. */
+  letter-spacing: 0.01em;
+  color: var(--sw-ink-muted);
+}
+
+.entry-amount {
+  font-size: var(--sw-text-base);
+  letter-spacing: -0.01em;
+}
+
+.entry-actions .btn-link { min-width: var(--sw-target-min); min-height: 36px; padding: 0; }
+
+/* ── 14. categories ──────────────────────────────────────────────────────── */
+
+.cat-list { gap: 0; }
+
+.cat-row {
+  border-bottom: 1px solid var(--sw-border);
+}
+
+.cat-dot { width: 11px; height: 11px; border-radius: 0; }
+
+.cat-name { font-size: 1.0625rem; font-weight: var(--sw-weight-medium); letter-spacing: -0.01em; }
+
+.swatch[aria-pressed='true'] { border-color: var(--sw-ink); }
+
+/* ── 15. inputs — a ruled line, not a box ───────────────────────────────── */
+
+.field input, .field select,
+.row-form input, .field-grow input {
+  border-bottom: 1px solid var(--sw-border-strong);
+}
+
+.field input:focus, .field select:focus { border-bottom-color: var(--sw-pine); }
+
+.field input[aria-invalid='true'] { border-bottom-color: var(--sw-danger); }
+
+.panel {
+  border-left: 1px solid var(--sw-ink);
+}
+
+.panel-title {
+  padding: var(--sw-space-6) 0;
+  margin: 0 0 var(--sw-space-4);
+  border-bottom: 1px solid var(--sw-ink);
+}
+
+.panel-actions { margin-top: var(--sw-space-8); border-top: 1px solid var(--sw-ink); padding-top: var(--sw-space-6); }
+
+.table thead th {
+  background: none;
+  border-bottom: 1px solid var(--sw-ink);
+  padding: var(--sw-space-3) var(--sw-space-4) var(--sw-space-3) 0;
+}
+
+.table th, .table td { padding: var(--sw-space-4) var(--sw-space-4) var(--sw-space-4) 0; }
+
+.table tbody tr:hover { background: var(--sw-pine-soft); }
+
+.table tbody tr:last-child td { border-bottom: 1px solid var(--sw-border); }
+
+.cell-strong { font-weight: var(--sw-weight-semibold); }
+
+.cell-sub { font-family: var(--sw-font-mono); font-size: var(--sw-text-xs); color: var(--sw-ink-muted); }
+
+.ok-dot, .off-dot, .gone-dot { width: 7px; height: 7px; }
+
+.row-actions .btn-link { min-height: 34px; padding: 0 var(--sw-space-2); font-size: 0.6rem; }
+
+.facts { gap: var(--sw-space-6); }
+
+.facts dd { font-size: var(--sw-text-xl); letter-spacing: -0.02em; }
+
+.audit-row { border-bottom: 1px solid var(--sw-border); padding: var(--sw-space-2) 0; font-family: var(--sw-font-mono); font-size: var(--sw-text-sm); }
+
+/* ── 18. leaving ─────────────────────────────────────────────────────────── */
+
+.leaving { gap: var(--sw-space-8); }
+
+.leaving-option {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+
+.leaving-title { font-family: var(--sw-font-display); font-size: 1.25rem; font-weight: var(--sw-weight-semibold); letter-spacing: -0.02em; }
+
+/* ── 19. the gate ────────────────────────────────────────────────────────── */
+
+.gate { align-items: stretch; }
+
+.gate-card {
+  animation: sw-rise var(--sw-motion-base) var(--sw-motion-ease);
+}
+
+.gate-sub {
+  margin-bottom: var(--sw-space-8);
+}
+
+/* ── 20. states, banners, skeletons ─────────────────────────────────────── */
+
+.state { border-top: 1px solid var(--sw-border); }
+
+.state-error { border-top-color: var(--sw-danger); }
+
+.consequences { font-size: var(--sw-text-sm); }
+
+/* ── 22. phone width ─────────────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .rail { background: var(--sw-paper-sunken); border-right: 1px solid var(--sw-border); }
+  .topbar-mobile { background: var(--sw-paper); border-bottom: 1px solid var(--sw-ink); }
+  .cards > .card, .panels > .card { border-bottom: 1px solid var(--sw-border); }
+  .panel { border-left: 0; border-top: 1px solid var(--sw-ink); height: auto; }
+}
+
+/* ══ SYSTEM ═════════════════════════════════════════════════════════════════ */
+
+/* ── 0. the face, and the generated guilloché ─────────────────────────────── */
+/* Geist, variable wght 100–900, the FULL file from the official release
+   (vercel/geist-font v1.8.1). One file, no unicode-range split: ₹ (U+20B9)
+   is in it, and a latin-only subset would draw every rupee sign from a
+   fallback font beside Geist digits. Licence: public/fonts/OFL-geist.txt. */
+@font-face {
+  font-family: "Geist";
+  src: url("/fonts/Geist-Variable.woff2") format("woff2-variations"),
+       url("/fonts/Geist-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ── 1. the page ─────────────────────────────────────────────────────────── */
+:root {
+
+/* Banknote guilloché, GENERATED (hypotrochoid rosette + a seamless tile of two
+   crossing amplitude-modulated sine families). Pure geometry: black strokes,
+   no colour, used ONLY as a mask over a `--sw-guilloche` fill, so the colour
+   stays a token and the pattern stays one file. Regenerate with the
+   generator recorded in DESIGN-SYSTEM.md §9.9. */
+  --sw-guilloche-rosette: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 960 960'%3E%3Cg fill='none' stroke='black' stroke-width='1.8'%3E%3Cpath d='M879,480l-2-6-4-6-8-6-10-5-14-4-16-3-19-2-21-1-23,0-25,2-27,3-29,5-29,6-30,8-31,9-31,11-32,13-30,13-31,15-29,16-28,17-27,18-26,19-23,18-22,19-20,19-17,18-15,18-13,17-10,16-8,14-5,13-3,12-1,9 2,7 4,5 5,3 8,0 9-2 11-5 11-8 13-10 14-13 14-16 15-18 15-20 14-23 15-25 14-27 13-28 12-30 12-31 10-32 9-32 8-33 6-33 5-33 4-32 2-31 0-30 0-29-2-27-3-25-4-23-5-20-6-18-6-16-7-12-7-10-7-6-6-4-7,0-5,3-5,5-4,9-3,11-2,14 0,17 1,19 3,21 5,22 6,25 8,26 10,27 12,27 13,29 15,28 17,29 18,28 19,28 21,27 21,26 22,24 23,23 22,22 23,20 23,17 22,16 21,14 20,11 19,9 18,7 16,5 13,3 12,1 9-1 7-3 5-5 1-6-1-7-4-9-7-9-10-10-12-11-16-11-18-11-20-11-23-11-25-10-27-10-29-8-30-8-32-6-33-6-33-4-34-3-33-1-34,0-33,1-32,3-31,3-30,5-28,6-26,7-24,8-22,8-19,9-17,9-14,9-11,9-8,8-5,8-2,8 1,6 4,5 6,4 9,2 12,1 14-1 16-3 19-5 20-7 21-9 23-10 24-13 24-15 25-17 26-18 25-20 25-22 24-23 24-24 23-25 21-26 20-26 19-27 16-26 16-26 13-26 11-24 10-24 7-22 6-20 3-19 2-16 0-14-1-12-3-9-4-6-6-4-6,0-7,3-8,5-8,9-8,11-8,15-8,17-7,20-7,22-7,24-5,27-4,28-3,30-2,31-1,33 1,33 2,33 4,34 5,33 6,33 8,32 8,31 10,30 10,29 11,26 12,24 12,23 12,19 12,18 12,14 12,12 11,9 10,7 8,3 8,1 6-2 4-5 3-7 0-9-1-12-4-13-6-16-8-17-10-18-13-20-15-20-17-21-19-22-21-21-23-21-25-21-26-21-27-19-28-19-29-18-29-16-30-15-29-13-29-12-29-9-27-9-27-6-24-5-23-3-22-2-18,0-17,1-14,3-11,3-8,5-6,5-2,6 1,6 4,7 7,6 10,6 12,6 16,6 18,4 21,4 23,2 26,2 27,0 28-1 30-3 31-4 32-5 32-7 33-8 32-10 32-11 31-13 31-13 29-14 27-15 26-16 24-16 21-16 20-16 17-15 15-16 12-14 10-14 6-12 5-11 2-9-1-8-3-5-5-4-8-1-9,2-11,3-13,6-14,9-15,11-16,14-17,16-17,19-18,20-17,23-17,25-17,26-16,28-15,30-15,30-13,31-11,32-11,32-9,31-7,32-6,31-5,29-3,29-1,27 0,25 1,24 2,21 4,18 4,16 5,13 6,11 6,7 6,4 6,1 6-2 6-5 5-8 4-11 3-13 3-17 1-19-1-21-1-23-4-25-4-27-7-28-8-29-10-29-11-30-13-31-15-30-15-30-17-29-18-29-19-27-19-26-20-24-20-22-20-21-20-18-19-16-19-14-18-12-16-9-15-7-14-4-11-3-10,0-7,2-5,4-2,6 0,8 3,9 6,10 8,11 11,13 14,12 17,14 19,13 21,14 24,13 25,13 28,12 29,11 31,11 31,9 33,8 33,7 33,6 33,4 33,3 32,2 32,0 30-1 28-3 27-3 25-5 23-6 20-6 18-7 14-7 12-7 9-8 7-7 3-7 0-6-4-6-5-4-9-4-12-2-14-1-16,1-19,3-21,4-22,6-24,8-26,10-26,11-27,14-27,15-28,17-27,18-27,20-27,21-25,22-25,23-23,23-22,24-20,24-18,24-16,24-15,23-12,22-10,21-8,19-6,18-4,16-2,14 0,12 2,9 3,7 5,4 6,1 8-1 8-5 9-7 9-11 10-13 10-16 10-19 10-21 9-24 9-25 7-28 7-29 6-31 5-32 3-33 2-33 1-34-1-34-2-33-3-33-5-32-6-31-7-29-7-28-9-25-9-24-10-21-10-19-10-16-10-13-9-11-9-7-8-5-8-1-6,1-5,4-3,7-2,9 0,12 2,14 4,16 6,18 8,19 10,21 12,22 15,23 16,24 18,24 20,24 22,24 23,23 25,23 25,22 27,21 27,20 27,18 28,17 27,15 27,14 26,11 26,10 24,8 22,6 21,4 19,3 16,1 14-1 12-2 9-4 5-4 4-6 0-6-3-7-7-7-9-8-12-7-14-7-18-7-20-6-23-6-25-5-27-3-28-3-30-1-32,0-32,2-33,3-33,4-33,6-33,7-33,8-31,9-31,11-29,11-28,12-25,13-24,13-21,14-19,13-17,14-14,12-11,13-8,11-6,10-3,9 0,8 2,6 5,4 7,2 10,0 11-3 14-4 15-7 16-9 18-12 19-14 19-16 20-18 20-21 20-22 20-24 19-26 19-27 18-29 17-29 15-30 15-30 13-31 11-30 10-29 8-29 7-28 4-27 4-25 1-23 1-21-1-19-3-17-3-13-4-11-5-8-6-5-6-2-6,1-6,4-6,7-6,11-5,13-4,16-4,18-2,21-1,24 0,25 1,27 3,29 5,29 6,31 7,32 9,31 11,32 11,32 13,31 15,30 15,30 16,28 17,26 17,25 17,23 18,20 17,19 17,16 16,14 15,11 14,9 13,6 11,3 9,2 8-1 5-4 3-5 1-8-2-9-5-11-6-12-10-14-12-14-15-16-17-15-20-16-21-16-24-16-26-16-27-15-29-14-31-13-31-13-32-11-32-10-33-8-32-7-32-5-31-4-30-3-28-1-27,0-26,2-23,2-21,4-18,4-16,6-12,6-10,6-7,6-4,7-1,6 2,6 6,5 8,5 11,3 14,3 17,1 18,0 22-2 23-3 24-5 27-6 27-9 29-9 29-12 29-13 30-15 29-16 29-18 28-19 27-19 26-21 25-21 23-21 21-21 19-22 17-21 15-20 13-20 10-18 8-17 6-16 4-13 1-12 0-9-3-7-4-5-6-2-8,1-8,3-10,7-11,9-12,12-12,14-12,18-12,19-12,23-12,24-11,26-10,29-10,30-8,31-8,32-6,33-5,33-4,34-2,33-1,33 1,33 2,31 3,30 4,28 5,27 7,24 7,22 7,20 8,17 8,15 8,11 8,9 8,5 7,3 6,0 6-4 4-6 3-9 1-12 0-14-2-16-3-19-6-20-7-22-10-24-11-24-13-26-16-26-16-26-19-27-20-26-21-26-23-25-24-24-24-23-25-22-25-20-26-18-25-17-24-15-24-13-23-10-21-9-20-7-19-5-16-3-14-1-12,1-9,2-6,4-4,5-1,6 2,8 5,8 8,8 11,9 14,9 17,9 19,9 22,8 24,8 26,7 28,6 30,5 31,3 32,3 33,1 34,0 33-1 34-3 33-4 33-6 32-6 30-8 29-8 27-10 25-10 23-11 20-11 18-11 16-11 12-11 10-10 7-9 4-9 1-7-1-6-5-5-7-3-9-1-12,1-13,3-16,5-18,7-19,9-20,11-21,14-22,16-23,17-23,20-22,22-23,23-22,24-21,26-21,27-19,28-18,28-17,29-15,28-13,29-12,27-10,27-8,26-6,25-5,22-3,21-1,19 0,17 2,14 3,11 4,9 5,5 5,3 7,0 6-4 7-6 7-10 7-12 6-16 6-18 5-20 4-23 3-25 2-27 0-29 0-30-2-31-4-32-5-33-6-33-8-33-9-32-10-32-12-31-12-30-13-28-14-27-15-25-14-23-15-20-15-18-14-16-14-13-13-10-11-8-11-5-9-2-8,0-5,3-4,5-2,7 1,9 3,12 5,13 8,14 10,16 13,17 15,18 17,18 20,19 22,19 23,18 26,19 27,18 28,17 29,16 31,15 30,13 32,13 31,11 31,9 30,8 29,6 29,5 27,3 25,2 23,0 21-1 19-2 16-3 14-4 10-5 8-6 4-6 2-6z'/%3E%3Cpath d='M846,462l-4-3-6-2-8-1-11-1-14,0-16,1-17,2-20,3-22,4-23,6-24,6-25,8-26,9-27,10-27,11-27,13-27,13-27,14-26,15-25,16-24,16-23,17-22,16-20,16-18,17-17,15-14,15-13,15-11,13-9,12-6,10-5,9-3,7-1,5 1,3 2,1 4-1 5-3 7-6 8-8 8-10 9-13 10-15 11-17 10-19 11-21 10-23 10-25 10-25 9-28 9-28 7-28 7-30 6-29 5-30 4-29 3-29 2-28 1-27 0-26 0-25-2-23-2-21-3-18-3-17-4-14-4-12-3-10-4-6-3-4-3-2-3,1-1,4-1,6 0,9 2,11 2,13 4,16 5,17 7,19 8,20 9,21 11,23 13,23 14,24 15,25 16,24 17,25 18,24 19,23 20,23 20,22 20,20 21,20 20,18 20,16 19,15 19,14 17,11 17,10 14,8 14,7 11,4 10,3 7,2 6,0 3-1 0-3-2-4-4-4-7-6-9-6-12-6-14-7-17-7-18-7-21-6-23-7-24-6-26-5-27-5-29-4-29-3-30-2-30-1-30-1-30,1-30,2-29,2-28,3-26,4-26,5-24,6-22,5-20,6-18,7-16,6-13,6-11,6-9,6-6,4-3,4-1,4 2,2 4,1 6-1 9-2 10-3 13-5 14-7 16-8 17-10 19-12 19-13 20-15 21-17 21-18 21-19 21-21 21-21 20-22 19-23 19-24 17-24 17-24 15-23 14-24 13-22 11-22 10-21 8-19 6-18 5-16 4-15 3-12 1-10 0-7-1-6-2-2-2,0-4,2-3,5-4,8-5,10-4,13-4,15-3,18-4,20-2,21-2,24-2,25 0,26 0,28 2,28 2,30 4,29 4,30 5,30 7,29 7,29 8,28 8,27 9,25 10,25 9,22 10,21 10,18 9,17 10,14 8,12 8,10 7,7 6,5 4,3 4,0 1-2 1-4-2-6-3-8-6-10-7-11-9-13-11-14-14-15-14-16-17-17-19-17-20-17-21-17-23-17-24-17-25-16-26-16-27-15-26-14-27-13-26-11-27-11-25-9-25-8-23-7-22-6-21-4-19-3-16-2-15-1-13,0-10,0-7,2-5,2-2,2 0,2 3,3 6,3 8,2 11,2 13,2 16,1 18,0 20,0 22-1 23-3 25-3 26-5 27-5 28-7 28-8 29-9 28-10 28-11 28-11 27-13 26-13 25-13 23-14 22-14 20-13 19-14 16-13 15-12 12-12 10-11 8-9 6-8 4-7 2-5-1-3-2-2-4,1-6,3-7,5-9,7-9,9-11,11-12,14-12,16-13,17-13,20-13,21-14,23-12,25-13,25-12,27-11,28-11,28-9,29-9,28-8,29-6,28-6,28-4,27-4,25-2,25-1,23-1,21 1,19 1,17 2,14 2,12 3,10 2,7 3,5 3,2 2-1 2-4 2-6 1-9 0-11-1-13-2-16-3-17-4-20-6-21-6-23-8-23-10-25-10-26-12-26-13-26-14-26-15-26-16-26-17-25-17-24-18-23-17-22-18-21-18-19-17-17-17-16-16-13-15-12-14-10-12-8-11-6-9-4-7-3-6,0-3,0-1,3 2,4 4,5 6,6 8,7 11,8 13,9 16,9 18,9 19,9 22,9 24,9 25,9 26,8 28,7 28,7 29,6 30,5 30,4 30,3 29,2 29,2 29,0 27-1 26-1 24-3 23-3 20-3 19-4 16-5 15-4 11-4 9-5 7-4 4-3 1-3-1-3-4-1-7,0-8,0-11,2-13,4-15,5-17,6-18,8-20,9-21,11-22,12-23,14-23,15-23,17-23,17-24,19-22,20-23,20-21,21-21,22-19,21-18,22-17,21-15,21-14,20-12,20-10,18-9,17-7,15-6,14-4,12-2,9-1,8 0,5 1,3 3,1 3-2 5-5 5-7 5-10 6-12 6-15 5-17 6-19 6-21 5-23 4-25 4-26 3-27 2-29 1-29 1-30-1-30-2-30-2-30-4-30-4-28-5-28-6-27-6-25-7-23-7-22-7-20-8-17-7-16-7-13-7-10-6-8-5-6-4-3-3-1-2,2-1,4 1,6 2,9 4,10 6,12 8,14 9,15 11,17 13,18 14,18 17,19 18,20 19,20 20,20 22,19 23,19 23,19 25,18 24,17 25,16 25,15 25,14 24,13 23,11 23,10 21,8 20,7 18,5 17,4 14,3 12,2 10,0 8,0 5-1 3-2 0-3-3-3-5-3-8-4-11-3-13-4-15-3-18-2-20-2-22-2-23,0-25,0-27,1-27,3-29,3-29,4-29,5-30,7-29,7-29,8-28,9-28,9-26,11-25,10-23,11-22,11-20,11-18,11-16,11-14,10-11,9-9,9-7,7-5,6-2,5 0,3 2,2 4,0 6-2 8-4 9-6 11-8 12-10 14-12 14-14 15-16 15-18 16-19 16-22 16-22 15-24 16-25 14-26 14-27 13-27 13-28 11-27 10-27 9-27 8-26 6-25 5-24 5-22 3-21 2-19 1-17 0-15-1-12-1-10-2-8-2-5-3-2-2,1-3,3-2,6-2,9-2,11 0,13 0,16 0,18 2,20 3,21 4,23 5,25 6,26 7,26 9,28 9,27 11,28 12,28 12,28 14,27 14,26 14,25 15,24 15,22 15,21 15,20 15,17 14,16 13,13 13,12 11,9 10,8 9,5 7,3 5,2 3-1 1-2-1-4-3-6-5-6-8-9-10-9-12-10-14-11-16-11-19-12-20-12-22-11-24-12-25-11-27-11-27-11-29-9-28-9-30-8-29-7-29-5-28-5-28-4-27-3-26-1-25-1-23,0-21,1-19,2-16,2-15,2-12,3-10,4-7,3-4,3-2,3 2,2 3,2 6,1 9,0 11,0 14-2 15-3 18-4 19-5 20-7 23-8 23-10 24-11 25-12 25-13 25-15 26-16 25-16 25-18 23-18 23-19 22-19 21-19 19-19 18-19 16-18 15-18 13-17 10-15 9-15 8-12 5-12 4-9 2-7 0-6-1-3-3-1-3,2-5,4-6,7-7,9-7,11-7,14-8,16-8,18-8,20-8,23-8,24-7,25-6,27-6,28-5,29-4,30-3,29-2,31-2,30 0,29 1,29 1,28 3,27 3,26 4,24 4,23 5,20 5,19 6,16 5,13 5,12 5,9 4,6 4,3 3,2 2-2 2-4 0-6-2-9-3-11-4-12-5-15-8-16-9-18-10-19-12-21-14-21-15-21-17-22-18-23-19-22-20-22-21-21-22-21-22-20-23-20-23-18-22-16-23-16-22-14-21-12-20-11-19-9-17-8-16-6-14-5-12-3-10-2-7,0-6,0-3,2 0,2 3,4 4,4 8,4 10,5 13,5 15,5 17,5 19,4 22,4 23,4 25,3 26,2 28,1 28,0 30,0 30-2 30-2 30-4 29-4 30-5 28-6 27-7 26-8 25-8 23-8 21-8 19-9 18-8 14-9 13-7 10-8 8-6 5-6 3-4 0-3-1-2-4-1-7,2-8,3-10,4-12,7-13,8-15,10-16,12-16,14-18,16-18,18-19,19-18,20-19,22-18,23-18,24-17,24-16,26-16,25-15,26-13,26-12,25-11,25-10,24-8,23-7,22-5,20-5,19-3,17-2,14-1,13 0,10 1,7 2,5 2,3 3,0 2-3 3-6 3-8 3-11 3-13 2-16 1-18 1-19 0-22-1-24-2-25-3-26-4-28-5-28-6-28-7-29-8-29-9-29-10-29-10-27-12-27-11-26-13-24-12-23-13-21-12-19-12-17-11-15-11-13-10-11-9-9-8-6-7-4-5-2-3,0-1,2 0,4 3,6 4,7 6,9 9,11 11,11 13,13 14,13 17,14 19,14 21,15 22,14 23,15 25,14 26,14 27,13 27,12 28,11 29,11 28,9 27,9 28,7 26,6 26,5 24,4 22,2 21,2 19,1 17,0 15-1 13-2 9-1 8-3 4-2 2-3 0-2z'/%3E%3Cpath d='M884,480l17,15-7,14-23,12-8,13 15,16 14,18-10,12-24,8-10,12 12,18 10,20-11,11-25,3-12,10 8,20 7,21-13,9-26-1-13,7 4,22 4,22-15,6-25-5-14,5 1,21-1,23-15,3-24-9-15,2-3,22-4,22-16,1-22-14-15,0-7,21-8,21-16-2-19-17-15-4-10,20-11,19-16-5-16-20-13-5-14,17-15,17-14-7-12-23-13-8-16,15-18,14-12-10-8-24-12-10-18,12-20,10-11-11-3-25-10-12-20,8-21,7-9-13 1-26-7-13-22,4-22,4-6-15 5-25-5-14-21,1-23-1-3-15 9-24-2-15-22-3-22-4-1-16 14-22 0-15-21-7-21-8 2-16 17-19 4-15-20-10-19-11 5-16 20-16 5-13-17-14-17-15 7-14 23-12 8-13-15-16-14-18 10-12 24-8 10-12-12-18-10-20 11-11 25-3 12-10-8-20-7-21 13-9 26,1 13-7-4-22-4-22 15-6 25,5 14-5-1-21 1-23 15-3 24,9 15-2 3-22 4-22 16-1 22,14 15,0 7-21 8-21 16,2 19,17 15,4 10-20 11-19 16,5 16,20 13,5 14-17 15-17 14,7 12,23 13,8 16-15 18-14 12,10 8,24 12,10 18-12 20-10 11,11 3,25 10,12 20-8 21-7 9,13-1,26 7,13 22-4 22-4 6,15-5,25 5,14 21-1 23,1 3,15-9,24 2,15 22,3 22,4 1,16-14,22 0,15 21,7 21,8-2,16-17,19-4,15 20,10 19,11-5,16-20,16-5,13z'/%3E%3Cpath d='M909,480l8,15-16,14-20,13 3,15 18,17 6,17-19,11-21,9 0,15 15,21 3,17-21,8-22,5-3,15 12,22-1,18-21,4-24,1-5,14 8,25-4,17-22,0-23-3-7,13 3,26-7,16-21-4-22-6-10,11-2,26-9,14-20-7-21-10-11,9-6,25-12,13-19-10-18-14-13,7-11,23-13,11-17-13-16-17-14,5-14,21-15,8-14-16-13-20-15,3-17,18-17,6-11-19-9-21-15,0-21,15-17,3-8-21-5-22-15-3-22,12-18-1-4-21-1-24-14-5-25,8-17-4 0-22 3-23-13-7-26,3-16-7 4-21 6-22-11-10-26-2-14-9 7-20 10-21-9-11-25-6-13-12 10-19 14-18-7-13-23-11-11-13 13-17 17-16-5-14-21-14-8-15 16-14 20-13-3-15-18-17-6-17 19-11 21-9 0-15-15-21-3-17 21-8 22-5 3-15-12-22 1-18 21-4 24-1 5-14-8-25 4-17 22,0 23,3 7-13-3-26 7-16 21,4 22,6 10-11 1-26 10-14 20,7 21,10 11-9 6-25 12-13 19,10 18,14 13-7 11-23 13-11 17,13 16,17 14-5 14-21 15-8 14,16 13,20 15-3 17-18 17-6 11,19 9,21 15,0 21-15 17-3 8,21 5,22 15,3 22-12 18,1 4,21 1,24 14,5 25-8 17,4 0,22-3,23 13,7 26-3 16,7-4,21-6,22 11,10 26,2 14,9-7,20-10,21 9,11 25,6 13,12-10,19-14,18 7,13 23,11 11,13-13,17-17,16 5,14z'/%3E%3Cpath d='M932,480l-3,16-21,14-12,14 12,16 17,18-5,15-24,11-14,11 9,19 13,20-7,14-25,6-16,9 6,20 9,23-10,12-26,2-17,6 3,20 5,24-12,11-26-3-18,3-1,20 1,25-13,8-25-7-18,0-5,20-3,24-15,6-23-12-18-3-8,19-8,23-15,3-21-15-17-6-11,17-12,22-15,0-18-19-16-9-14,15-15,20-16-3-14-21-14-12-16,12-18,17-15-5-11-24-11-14-19,9-20,13-14-7-6-25-9-16-20,6-23,9-12-10-2-26-6-17-20,3-24,5-11-12 3-26-3-18-20-1-25,1-8-13 7-25 0-18-20-5-24-3-6-15 12-23 3-18-19-8-23-8-3-15 15-21 6-17-17-11-22-12 0-15 19-18 9-16-15-14-20-15 3-16 21-14 12-14-12-16-17-18 5-15 24-11 14-11-9-19-13-20 7-14 25-6 16-9-6-20-9-23 10-12 26-2 17-6-3-20-5-24 12-11 26,3 18-3 1-20-1-25 13-8 25,7 18,0 5-20 3-24 15-6 23,12 18,3 8-19 8-23 15-3 21,15 17,6 11-17 12-22 15,0 18,19 16,9 14-15 15-20 16,3 14,21 14,12 16-12 18-17 15,5 11,24 11,14 19-9 20-13 14,7 6,25 9,16 20-6 23-9 12,10 2,26 6,17 20-3 24-5 11,12-3,26 3,18 20,1 25-1 8,13-7,25 0,18 20,5 24,3 6,15-12,23-3,18 19,8 23,8 3,15-15,21-6,17 17,11 22,12 0,15-19,18-9,16 15,14z'/%3E%3C/g%3E%3C/svg%3E");
+  --sw-guilloche-waves: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 720' width='360' height='180'%3E%3Cg fill='none' stroke='black' stroke-width='2.4'%3E%3Cpath d='M0,0l30,8 30,8 30,8 30,7 30,4 30,2 30,0 30-3 30-6 30-8 30-10 30-10 30-10 30-10 30-8 30-6 30-3 30,0 30,2 30,4 30,7 30,8 30,8 30,8 30,7 30,7 30,4 30,3 30,2 30,0 30-2 30-3 30-4 30-4 30-5 30-5 30-5 30-5 30-4 30-4 30-3 30-2 30,0 30,2 30,3 30,4 30,7 30,7'/%3E%3Cpath d='M0,720l30,8 30,8 30,8 30,7 30,4 30,2 30,0 30-3 30-6 30-8 30-10 30-10 30-10 30-10 30-8 30-6 30-3 30,0 30,2 30,4 30,7 30,8 30,8 30,8 30,7 30,7 30,4 30,3 30,2 30,0 30-2 30-3 30-4 30-4 30-5 30-5 30-5 30-5 30-4 30-4 30-3 30-2 30,0 30,2 30,3 30,4 30,7 30,7'/%3E%3Cpath d='M0,83l30,9 30,8 30,6 30,4 30,2 30-2 30-4 30-7 30-9 30-10 30-10 30-10 30-9 30-7 30-5 30-2 30,1 30,3 30,4 30,7 30,7 30,7 30,7 30,7 30,5 30,4 30,2 30,2 30-1 30-1 30-3 30-3 30-4 30-5 30-5 30-5 30-6 30-5 30-4 30-3 30-2 30,0 30,2 30,4 30,6 30,7 30,9 30,9'/%3E%3Cpath d='M0,167l30,8 30,6 30,3 30,0 30-2 30-5 30-8 30-9 30-10 30-10 30-9 30-8 30-6 30-3 30-1 30,1 30,3 30,5 30,5 30,7 30,6 30,6 30,6 30,4 30,4 30,2 30,1 30,0 30-1 30-2 30-3 30-5 30-5 30-5 30-6 30-6 30-6 30-4 30-4 30-1 30,0 30,3 30,5 30,7 30,8 30,10 30,10 30,9'/%3E%3Cpath d='M0,249l30,5 30,2 30-1 30-3 30-6 30-8 30-9 30-9 30-9 30-9 30-6 30-5 30-2 30-1 30,2 30,3 30,4 30,5 30,6 30,6 30,5 30,5 30,4 30,4 30,2 30,2 30,0 30-1 30-2 30-4 30-5 30-5 30-7 30-7 30-7 30-6 30-5 30-3 30-1 30,1 30,4 30,6 30,8 30,10 30,10 30,10 30,9 30,8'/%3E%3Cpath d='M0,326l30,1 30-2 30-4 30-6 30-8 30-9 30-8 30-8 30-7 30-6 30-4 30-1 30,0 30,1 30,3 30,4 30,5 30,5 30,5 30,5 30,5 30,4 30,4 30,2 30,2 30,0 30-1 30-2 30-4 30-6 30-7 30-7 30-8 30-7 30-7 30-5 30-3 30,0 30,2 30,5 30,8 30,9 30,10 30,10 30,10 30,9 30,7 30,4'/%3E%3Cpath d='M0,396l30-2 30-5 30-6 30-7 30-8 30-8 30-7 30-6 30-4 30-3 30-2 30,0 30,2 30,2 30,4 30,4 30,5 30,5 30,5 30,5 30,5 30,4 30,3 30,2 30,0 30-1 30-4 30-5 30-6 30-8 30-9 30-8 30-8 30-7 30-4 30-2 30,0 30,4 30,6 30,8 30,10 30,10 30,10 30,10 30,8 30,5 30,3 30,0'/%3E%3Cpath d='M0,462l30-5 30-6 30-7 30-7 30-6 30-6 30-5 30-4 30-3 30-1 30,0 30,1 30,3 30,3 30,4 30,5 30,5 30,6 30,5 30,5 30,5 30,3 30,2 30,0 30-2 30-4 30-6 30-8 30-9 30-9 30-9 30-8 30-7 30-4 30-1 30,2 30,4 30,7 30,9 30,10 30,10 30,10 30,8 30,7 30,4 30,2 30,0 30-3'/%3E%3Cpath d='M0,525l30-5 30-6 30-6 30-6 30-6 30-4 30-4 30-2 30-1 30,0 30,1 30,2 30,3 30,4 30,6 30,5 30,7 30,6 30,6 30,5 30,3 30,2 30-1 30-3 30-5 30-7 30-9 30-10 30-10 30-9 30-8 30-6 30-3 30,0 30,2 30,6 30,7 30,9 30,10 30,10 30,9 30,7 30,6 30,3 30,1 30-1 30-3 30-5'/%3E%3Cpath d='M0,589l30-5 30-6 30-5 30-5 30-4 30-4 30-2 30-2 30,0 30,1 30,2 30,3 30,5 30,6 30,7 30,7 30,7 30,7 30,5 30,3 30,1 30-1 30-4 30-7 30-8 30-10 30-10 30-10 30-9 30-8 30-5 30-2 30,1 30,4 30,6 30,7 30,9 30,9 30,9 30,8 30,6 30,5 30,2 30,0 30-1 30-3 30-4 30-5'/%3E%3Cpath d='M0,654l30-5 30-5 30-5 30-4 30-4 30-3 30-2 30,0 30,1 30,2 30,5 30,5 30,7 30,8 30,8 30,8 30,7 30,5 30,3 30,0 30-3 30-5 30-7 30-10 30-10 30-10 30-10 30-9 30-6 30-4 30-1 30,2 30,4 30,6 30,8 30,8 30,8 30,8 30,7 30,5 30,3 30,2 30,0 30-1 30-3 30-4 30-4 30-5'/%3E%3Cpath d='M0,36l30-8 30-8 30-8 30-7 30-4 30-2 30,0 30,3 30,6 30,8 30,10 30,10 30,10 30,10 30,8 30,6 30,3 30,0 30-2 30-4 30-7 30-8 30-8 30-8 30-7 30-7 30-4 30-3 30-2 30,0 30,2 30,3 30,4 30,4 30,5 30,5 30,5 30,5 30,4 30,4 30,3 30,2 30,0 30-2 30-3 30-4 30-7 30-7'/%3E%3Cpath d='M0,756l30-8 30-8 30-8 30-7 30-4 30-2 30,0 30,3 30,6 30,8 30,10 30,10 30,10 30,10 30,8 30,6 30,3 30,0 30-2 30-4 30-7 30-8 30-8 30-8 30-7 30-7 30-4 30-3 30-2 30,0 30,2 30,3 30,4 30,4 30,5 30,5 30,5 30,5 30,4 30,4 30,3 30,2 30,0 30-2 30-3 30-4 30-7 30-7'/%3E%3Cpath d='M0,97l30-9 30-8 30-6 30-4 30-2 30,2 30,4 30,7 30,9 30,10 30,10 30,10 30,9 30,7 30,5 30,2 30-1 30-3 30-4 30-7 30-7 30-7 30-7 30-7 30-5 30-4 30-2 30-2 30,1 30,1 30,3 30,3 30,4 30,5 30,5 30,5 30,6 30,5 30,4 30,3 30,2 30,0 30-2 30-4 30-6 30-7 30-9 30-9'/%3E%3Cpath d='M0,157l30-8 30-6 30-3 30,0 30,2 30,5 30,8 30,9 30,10 30,10 30,9 30,8 30,6 30,3 30,1 30-1 30-3 30-5 30-5 30-7 30-6 30-6 30-6 30-4 30-4 30-2 30-1 30,0 30,1 30,2 30,3 30,5 30,5 30,5 30,6 30,6 30,6 30,4 30,4 30,1 30,0 30-3 30-5 30-7 30-8 30-10 30-10 30-9'/%3E%3Cpath d='M0,219l30-5 30-2 30,1 30,3 30,6 30,8 30,9 30,9 30,9 30,9 30,6 30,5 30,2 30,1 30-2 30-3 30-4 30-5 30-6 30-6 30-5 30-5 30-4 30-4 30-2 30-2 30,0 30,1 30,2 30,4 30,5 30,5 30,7 30,7 30,7 30,6 30,5 30,3 30,1 30-1 30-4 30-6 30-8 30-10 30-10 30-10 30-9 30-8'/%3E%3Cpath d='M0,286l30-1 30,2 30,4 30,6 30,8 30,9 30,8 30,8 30,7 30,6 30,4 30,1 30,0 30-1 30-3 30-4 30-5 30-5 30-5 30-5 30-5 30-4 30-4 30-2 30-2 30,0 30,1 30,2 30,4 30,6 30,7 30,7 30,8 30,7 30,7 30,5 30,3 30,0 30-2 30-5 30-8 30-9 30-10 30-10 30-10 30-9 30-7 30-4'/%3E%3Cpath d='M0,360l30,2 30,5 30,6 30,7 30,8 30,8 30,7 30,6 30,4 30,3 30,2 30,0 30-2 30-2 30-4 30-4 30-5 30-5 30-5 30-5 30-5 30-4 30-3 30-2 30,0 30,1 30,4 30,5 30,6 30,8 30,9 30,8 30,8 30,7 30,4 30,2 30,0 30-4 30-6 30-8 30-10 30-10 30-10 30-10 30-8 30-5 30-3 30,0'/%3E%3Cpath d='M0,438l30,5 30,6 30,7 30,7 30,6 30,6 30,5 30,4 30,3 30,1 30,0 30-1 30-3 30-3 30-4 30-5 30-5 30-6 30-5 30-5 30-5 30-3 30-2 30,0 30,2 30,4 30,6 30,8 30,9 30,9 30,9 30,8 30,7 30,4 30,1 30-2 30-4 30-7 30-9 30-10 30-10 30-10 30-8 30-7 30-4 30-2 30,0 30,3'/%3E%3Cpath d='M0,519l30,5 30,6 30,6 30,6 30,6 30,4 30,4 30,2 30,1 30,0 30-1 30-2 30-3 30-4 30-6 30-5 30-7 30-6 30-6 30-5 30-3 30-2 30,1 30,3 30,5 30,7 30,9 30,10 30,10 30,9 30,8 30,6 30,3 30,0 30-2 30-6 30-7 30-9 30-10 30-10 30-9 30-7 30-6 30-3 30-1 30,1 30,3 30,5'/%3E%3Cpath d='M0,599l30,5 30,6 30,5 30,5 30,4 30,4 30,2 30,2 30,0 30-1 30-2 30-3 30-5 30-6 30-7 30-7 30-7 30-7 30-5 30-3 30-1 30,1 30,4 30,7 30,8 30,10 30,10 30,10 30,9 30,8 30,5 30,2 30-1 30-4 30-6 30-7 30-9 30-9 30-9 30-8 30-6 30-5 30-2 30,0 30,1 30,3 30,4 30,5'/%3E%3Cpath d='M0,678l30,5 30,5 30,5 30,4 30,4 30,3 30,2 30,0 30-1 30-2 30-5 30-5 30-7 30-8 30-8 30-8 30-7 30-5 30-3 30,0 30,3 30,5 30,7 30,10 30,10 30,10 30,10 30,9 30,6 30,4 30,1 30-2 30-4 30-6 30-8 30-8 30-8 30-8 30-7 30-5 30-3 30-2 30,0 30,1 30,3 30,4 30,4 30,5'/%3E%3Cpath d='M0,-42l30,5 30,5 30,5 30,4 30,4 30,3 30,2 30,0 30-1 30-2 30-5 30-5 30-7 30-8 30-8 30-8 30-7 30-5 30-3 30,0 30,3 30,5 30,7 30,10 30,10 30,10 30,10 30,9 30,6 30,4 30,1 30-2 30-4 30-6 30-8 30-8 30-8 30-8 30-7 30-5 30-3 30-2 30,0 30,1 30,3 30,4 30,4 30,5'/%3E%3C/g%3E%3C/svg%3E"); color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { color-scheme: dark; }
+}
+
+/* `background-color` stays an explicit opaque token: the theme test reads
+   `getComputedStyle(body).backgroundColor` and requires dark to be darker.
+   The gradient is `background-image` only, so it can never be what is read. */
+body {
+  min-height: 100dvh;
+  color: var(--sw-ink);
+  font-family: var(--sw-font-body);
+  font-size: var(--sw-text-base);
+  line-height: var(--sw-leading-normal);
+  font-optical-sizing: auto;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  caret-color: var(--sw-pine);
+  scrollbar-color: var(--sw-border-strong) transparent;
+  background-color: var(--sw-paper);
+  background-image:
+    radial-gradient(1100px 760px at 6% -14%, var(--sw-wash-1), transparent 62%),
+    radial-gradient(900px 680px at 104% 2%, var(--sw-wash-2), transparent 58%),
+    linear-gradient(165deg, var(--sw-bg-1) 0%, var(--sw-bg-2) 55%, var(--sw-bg-3) 100%);
+  background-attachment: fixed;
+}
+
+::selection { background: var(--sw-pine-soft); color: var(--sw-ink); }
+::placeholder { color: var(--sw-ink-faint); opacity: 1; }
+
+a { color: var(--sw-pine); text-underline-offset: 0.2em; text-decoration-thickness: 1px; }
+
+/* The ground's texture, painted from the two existing root elements so no
+   screen needs markup for it: `.app` (signed in) and `.gate` (signed out).
+   Back to front: guilloché -4, vignette -3, LiquidBlob -2, grain -1, content.
+   Neither `.app` nor `.gate` may become a stacking context (no transform,
+   filter, opacity < 1 or z-index on them) or these layers fall in front.
+
+   The guilloché layer is one tile wider than the viewport on each side.
+   Signed in, it is STILL: the rail, the top bar, the tabs and every quiet
+   button are frosted glass over it, and a layer that moves under a
+   backdrop-filter makes the browser re-blur that glass on every frame, on
+   screens that otherwise sit idle. Only the Gate drifts, exactly one tile per
+   loop so the loop is seamless, in whole-pixel steps (sub-pixel moves make
+   hairline masks shimmer instead of move). The vignette that fades it out at
+   the edges is a SEPARATE still layer, so the fade never drifts with it. */
+.app::before,
+.gate::before {
+  content: "";
+  position: fixed;
+  inset: -180px -360px;
+  z-index: -4;
+  pointer-events: none;
+  background-color: var(--sw-guilloche);
+  opacity: var(--sw-guilloche-opacity);
+  -webkit-mask: var(--sw-guilloche-waves) 0 0 / 360px 180px repeat;
+  mask: var(--sw-guilloche-waves) 0 0 / 360px 180px repeat;
+}
+.gate::before {
+  animation: sw-drift var(--sw-dur-drift) steps(360, end) infinite;
+}
+.app::after,
+.gate::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -3;
+  pointer-events: none;
+  background: radial-gradient(130% 100% at 68% 8%, transparent 28%, var(--sw-paper) 82%);
+}
+.gate::after {
+  background: radial-gradient(90% 85% at 30% 50%, transparent 25%, var(--sw-paper) 85%);
+}
+@keyframes sw-drift {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(360px, 0, 0); }
+}
+
+/* Grain: kills banding in the gradient and the glass. Below content. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--sw-grain) repeat;
+  background-size: 256px 256px;
+  opacity: var(--sw-grain-opacity);
+  mix-blend-mode: var(--sw-grain-blend);
+}
+
+/* A guilloché ROSETTE as a decorative object. Put it on an empty, aria-hidden
+   element and size/position it in a screen sheet:
+     <span className="sw-rosette" aria-hidden="true" />
+   It is still. Frosted glass sits over every rosette (the bank card, the
+   settings card), and a turning layer under a backdrop-filter is re-blurred
+   on every frame for a motion nobody can see at 1.5 degrees a second. */
+.sw-rosette {
+  display: block;
+  aspect-ratio: 1;
+  pointer-events: none;
+  background-color: var(--sw-guilloche);
+  opacity: calc(var(--sw-guilloche-opacity) * 1.6);
+  -webkit-mask: var(--sw-guilloche-rosette) center / contain no-repeat;
+  mask: var(--sw-guilloche-rosette) center / contain no-repeat;
+}
+/* The HERO STAGE: the positioned wrapper that holds <LiquidBlob contained>,
+   an optional .sw-rosette and the <BankCard>. It clips SIDEWAYS only
+   (`overflow-x: clip` keeps vertical overflow and the card's shadow visible),
+   so an oversized rosette or orb can never make a 375px phone scroll
+   horizontally (test_the_website.py:409, test_the_shell.py:450). */
+.sw-stage {
+  position: relative;
+  isolation: isolate;
+  overflow-x: clip;
+  display: grid;
+  place-items: center;
+  /* No `perspective` here: TiltCard writes its own perspective() into the
+     card's transform, centred on the card wherever it sits. A second one on
+     the stage compounds with it, from the stage's centre, and skews an
+     off-centre card unevenly. */
+}
+.sw-stage > .sw-rosette { position: absolute; z-index: -1; width: min(130%, 640px); }
+
+/* ── 2. type ─────────────────────────────────────────────────────────────── */
+/* Sentence case everywhere: no label class is mono, uppercase or tracked out. */
+.card-label,
+.ribbon-title,
+.card-heading,
+.rail-heading,
+.facts dt,
+.table thead th,
+.field label,
+.swatches legend,
+.plot-axis,
+.bar-label,
+.cat-usage,
+.legend-pct,
+.rail-hint,
+.gate-sub,
+.day-head,
+.panel-title,
+.delta {
+  font-family: var(--sw-font-body);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.card-label,
+.ribbon-title,
+.card-heading,
+.rail-heading,
+.facts dt,
+.field label,
+.swatches legend {
+  font-size: var(--sw-text-sm);
+  font-weight: var(--sw-weight-medium);
+  line-height: var(--sw-leading-snug);
+  color: var(--sw-ink-muted);
+  margin-bottom: var(--sw-space-2);
+}
+.card-heading { color: var(--sw-ink); font-size: var(--sw-text-base); font-weight: var(--sw-weight-semibold); }
+.card-hero .card-label { letter-spacing: 0; }
+.rail-heading { letter-spacing: 0; }
+
+.table thead th,
+.plot-axis,
+.bar-label,
+.cat-usage,
+.legend-pct,
+.day-head {
+  font-size: var(--sw-text-xs);
+  font-weight: var(--sw-weight-medium);
+  letter-spacing: 0.01em;
+  color: var(--sw-ink-muted);
+}
+
+.page-title,
+.gate-title {
+  font-family: var(--sw-font-display);
+  font-size: var(--sw-text-2xl);
+  font-weight: var(--sw-weight-semibold);
+  line-height: var(--sw-leading-tight);
+  letter-spacing: var(--sw-track-display);
+  text-transform: none;
+  text-wrap: balance;
+  color: var(--sw-ink);
+}
+.section-title,
+.state-title {
+  font-family: var(--sw-font-display);
+  font-size: var(--sw-text-xl);
+  font-weight: var(--sw-weight-semibold);
+  line-height: var(--sw-leading-tight);
+  letter-spacing: var(--sw-track-tight);
+  text-transform: none;
+  text-wrap: balance;
+}
+.panel-title {
+  font-size: var(--sw-text-lg);
+  font-weight: var(--sw-weight-semibold);
+  letter-spacing: var(--sw-track-tight);
+  color: var(--sw-ink);
+}
+.page-head, .section-head { border-bottom: 0; }
+
+/* A tagline / eyebrow in gold, sentence case. */
+.sw-eyebrow {
+  font-size: var(--sw-text-sm);
+  font-weight: var(--sw-weight-medium);
+  color: var(--sw-gold);
+  letter-spacing: 0;
+}
+.sw-lede {
+  font-size: var(--sw-text-md);
+  line-height: var(--sw-leading-snug);
+  color: var(--sw-ink-muted);
+  text-wrap: pretty;
+  max-width: 34ch;
+}
+
+/* ── 3. MONEY — numbers are the hero ─────────────────────────────────────── */
+/* Every figure: Geist with tabular lining figures, slashed-free zero. */
+.card-value,
+.card-hero-value,
+.entry-amount,
+.legend-amount,
+.bar-value,
+.donut-total,
+.facts dd,
+.table .num,
+.sw-money {
+  font-family: var(--sw-font-body);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+}
+.card-value {
+  font-size: var(--sw-text-lg);
+  font-weight: var(--sw-weight-semibold);
+  line-height: var(--sw-leading-tight);
+  letter-spacing: var(--sw-track-tight);
+}
+.card-hero-value {
+  font-size: var(--sw-text-3xl);
+  font-weight: var(--sw-weight-semibold);
+  line-height: 1;
+  letter-spacing: var(--sw-track-display);
+}
+
+/* <Money> / splitMoney() (lib/motion.js) wrap the three parts of a figure:
+     <span class="sw-money"><span class="sw-money-cur">₹</span>7,581<span class="sw-money-frac">.00</span></span>
+   The parts are inline with no whitespace between them, so innerText is the
+   exact formatter output ("₹7,581.00") — tests read it verbatim.
+   See the display-size rule below for the raised rupee and superscript paise. */
+.sw-money { white-space: nowrap; }
+.sw-money-frac { font-weight: var(--sw-weight-regular); }
+/* DISPLAY sizes only (>= ~28px): the ₹ set lighter and raised, the paise as a
+   superscript. At body size both would fall under the 12px floor, so ledger
+   rows and table cells keep the plain figure. Add `.sw-money-lg` to any other
+   display-size figure. */
+:is(.sw-total, .sw-bankcard-value, .card-hero-value, .sw-money-lg) .sw-money-cur {
+  font-weight: var(--sw-weight-regular);
+  font-size: 0.66em;
+  vertical-align: 0.24em;
+  margin-right: 0.06em;
+}
+:is(.sw-total, .sw-bankcard-value, .card-hero-value, .sw-money-lg) .sw-money-frac {
+  font-size: 0.46em;
+  font-weight: var(--sw-weight-medium);
+  vertical-align: 0.9em;
+  margin-left: 0.05em;
+  letter-spacing: 0;
+}
+/* The ONE big total per screen. Gold on dark, emerald-ink on light. */
+.sw-total {
+  display: block;
+  font-family: var(--sw-font-display);
+  font-size: var(--sw-text-hero);
+  font-weight: var(--sw-weight-semibold);
+  line-height: 0.95;
+  letter-spacing: var(--sw-track-display);
+  color: var(--sw-ink);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* Sign semantics — the SAME everywhere. Positive is emerald with a "+", money
+   out is ink (spending is normal, not an error), overspend is coral. Colour is
+   never the only cue: the sign or a word carries it too. */
+.sw-pos { color: var(--sw-positive); }
+.sw-neg { color: var(--sw-ink); }
+
+/* ── 4. CHROME glass — translucent, blurred ──────────────────────────────── */
+/* One recipe, three thicknesses, driven by two local properties so a screen
+   can re-tint a surface without restating the recipe:
+     --glass-bg    the surface colour (a --sw-glass* token)
+     --glass-blur  the backdrop blur (a --sw-blur-* token)
+   Only the SURFACE is set here. Geometry (size, padding, position) belongs to
+   the screen stylesheets. */
+.glass,
+.rail,
+.topbar-mobile,
+.gate-card,
+.panel {
+  --glass-bg: var(--sw-glass);
+  --glass-blur: var(--sw-blur-md);
+  --glass-shadow: var(--sw-shadow-md);
+  background-color: var(--glass-bg);
+  background-image: var(--sw-glass-sheen);
+  border: 1px solid var(--sw-glass-edge);
+  box-shadow: var(--sw-highlight), var(--glass-shadow);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--sw-glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--sw-glass-saturate));
+}
+.glass { border-radius: var(--sw-radius-lg); }
+.gate-card, .panel {
+  --glass-bg: var(--sw-glass-strong);
+  --glass-blur: var(--sw-blur-lg);
+  --glass-shadow: var(--sw-shadow-lg); border-radius: var(--sw-radius-xl); }
+
+/* No backdrop-filter, or the person asked for less transparency: the glass
+   becomes its own opaque equivalent. Every contrast figure only rises. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass, .rail, .topbar-mobile, .gate-card, .panel, .chip, .segmented, .tabs, .periods, .filters, .btn-quiet, .banner {
+    --glass-bg: var(--sw-glass-solid);
+  }
+  .sw-bankcard { --card-bg: var(--sw-glass-solid); }
+}
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .glass, .rail, .topbar-mobile, .gate-card, .panel, .chip, .segmented, .tabs, .periods, .filters, .btn-quiet, .banner {
+    --glass-bg: var(--sw-glass-solid);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .sw-bankcard { --card-bg: var(--sw-glass-solid); -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
+@media (prefers-contrast: more) {
+  .glass, .rail, .topbar-mobile, .gate-card, .panel, .card, .entries, .table-wrap, .state { border-color: var(--sw-border-strong); }
+}
+
+/* ── 5. CONTENT glass — opaque "statement" surfaces ──────────────────────── */
+/* Opaque. `getComputedStyle(.card).backgroundColor` must have alpha 1. */
+.card,
+.entries,
+.table-wrap,
+.state {
+  background: var(--sw-paper-raised);
+  border: 1px solid var(--sw-glass-edge);
+  border-radius: var(--sw-radius-lg);
+  box-shadow: var(--sw-highlight), var(--sw-shadow-md);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.card { padding: var(--sw-space-5); }
+/* `.entries` is NOT clipped: a clip would cut the focus ring of its first and
+   last rows. Round the first/last row's hover background in dashboard.css. */
+.table-wrap { overflow-x: auto; }
+.state-body { margin-inline: auto; color: var(--sw-ink-muted); }
+.state-error { border-color: var(--sw-danger); }
+
+/* A STATEMENT card: a content card with a gold hairline across the top, like
+   the rule under a bank's letterhead. Add to any .card. Still opaque. */
+.card-statement {
+  position: relative;
+  background-image: linear-gradient(90deg, transparent, var(--sw-gold-deep) 18%, var(--sw-gold-fill) 50%, var(--sw-gold-deep) 82%, transparent);
+  background-size: 100% 1px;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+}
+
+/* The Swiss grid painted a hairline inside every cell and removed the gap.
+   Undo it so cards are cards; the dashboard sheet decides real layout. */
+.cards, .panels { gap: var(--sw-space-4); }
+.cards > .card,
+.panels > .card {
+  padding: var(--sw-space-5);
+  box-shadow: var(--sw-highlight), var(--sw-shadow-md);
+}
+.card-danger { border: 1px solid var(--sw-danger); padding-top: var(--sw-space-5); }
+
+/* ── 6. THE BANK CARD ────────────────────────────────────────────────────── */
+/* <BankCard> (components/TiltCard.jsx) renders this markup; screens may also
+   hand-write it. ISO 7810 ID-1 proportions (85.60 × 53.98 mm). Every size
+   inside is in container units, so the card is one object at any width.
+
+     .sw-bankcard               glass, translucent — the LOGIN hero (decorative)
+     .sw-bankcard-solid         opaque deep-emerald metal — the DASHBOARD total
+                                (real figures belong on an opaque face)
+
+   Parts: -guilloche -foil -top -brand -contactless -chip -body -label -value
+   -number -bottom -holder -meta. */
+.sw-bankcard {
+  --card-bg: var(--sw-card-glass);
+  --card-ink: var(--sw-card-glass-ink);
+  --card-muted: var(--sw-card-glass-muted);
+  --card-gold: var(--sw-card-glass-gold);
+  position: relative;
+  isolation: isolate;
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 440px;
+  aspect-ratio: 85.6 / 53.98;
+  /* No padding HERE: `cqi` on a container's own box resolves against an
+     ANCESTOR container (or the viewport). The inset lives on the children. */
+  padding: 0;
+  border-radius: var(--sw-radius-card);
+  overflow: hidden;
+  color: var(--card-ink);
+  background-color: var(--card-bg);
+  background-image:
+    radial-gradient(120% 90% at 0% 0%, var(--sw-specular), transparent 55%),
+    var(--sw-glass-sheen);
+  border: 1px solid var(--sw-glass-edge);
+  box-shadow: var(--sw-highlight), var(--sw-shadow-card);
+  -webkit-backdrop-filter: blur(var(--sw-blur-lg)) saturate(160%);
+  backdrop-filter: blur(var(--sw-blur-lg)) saturate(160%);
+  -webkit-user-select: none;
+  user-select: none;
+}
+.sw-bankcard-solid {
+  --card-bg: var(--sw-card-face-1);
+  --card-ink: var(--sw-card-ink);
+  --card-muted: var(--sw-card-muted);
+  --card-gold: var(--sw-card-gold);
+  background-color: var(--sw-card-face-1);
+  background-image:
+    radial-gradient(120% 90% at 0% 0%, rgb(255 255 255 / 0.10), transparent 55%),
+    linear-gradient(135deg, var(--sw-card-face-1), var(--sw-card-face-2));
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  -webkit-user-select: text;
+  user-select: text;
+}
+.sw-bankcard > * { position: relative; z-index: 1; }
+/* The guilloché rosette, half off the right edge, under everything. */
+.sw-bankcard-guilloche {
+  position: absolute;
+  z-index: 0;
+  right: -32cqi;
+  top: -26cqi;
+  width: 96cqi;
+  aspect-ratio: 1;
+  pointer-events: none;
+  background-color: var(--card-gold);
+  opacity: var(--sw-guilloche-card-opacity);
+  -webkit-mask: var(--sw-guilloche-rosette) center / contain no-repeat;
+  mask: var(--sw-guilloche-rosette) center / contain no-repeat;
+}
+/* Gold foil on the edge: a 1px ring painted from a gradient, cut out with a
+   mask so only the border shows. */
+.sw-bankcard-foil {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  border-radius: inherit;
+  padding: 1px;
+  background: var(--sw-foil);
+  -webkit-mask: linear-gradient(black, black) content-box, linear-gradient(black, black);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(black, black) content-box, linear-gradient(black, black);
+  mask-composite: exclude;
+}
+.sw-bankcard-top { margin: 6.5cqi 7.5cqi 0; }
+.sw-bankcard-body { margin: 0 7.5cqi; }
+.sw-bankcard-top,
+.sw-bankcard-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4cqi;
+}
+.sw-bankcard-bottom { margin: 0 7.5cqi 6.5cqi; align-items: flex-end; }
+.sw-bankcard-brand {
+  font-size: max(11px, 4.2cqi);
+  font-weight: var(--sw-weight-semibold);
+  letter-spacing: var(--sw-track-caps);
+  color: var(--card-gold);
+}
+.sw-bankcard-contactless {
+  width: max(16px, 6.5cqi);
+  height: max(16px, 6.5cqi);
+  color: var(--card-muted);
+}
+/* The EMV chip: gold, with the contact pads drawn by gradients. */
+.sw-bankcard-chip {
+  display: block;
+  width: 14cqi;
+  aspect-ratio: 1.3;
+  border-radius: 2.2cqi;
+  background:
+    linear-gradient(90deg, transparent 32%, rgb(0 0 0 / 0.22) 32% 34%, transparent 34% 66%, rgb(0 0 0 / 0.22) 66% 68%, transparent 68%),
+    linear-gradient(0deg, transparent 30%, rgb(0 0 0 / 0.22) 30% 33%, transparent 33% 67%, rgb(0 0 0 / 0.22) 67% 70%, transparent 70%),
+    linear-gradient(135deg, var(--sw-gold-fill), var(--sw-gold-deep) 60%, var(--sw-gold-fill));
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.18), inset 0 1px 0 rgb(255 255 255 / 0.45);
+}
+.sw-bankcard-body { display: grid; gap: 1.5cqi; }
+.sw-bankcard-label {
+  font-size: max(12px, 3.6cqi);
+  font-weight: var(--sw-weight-medium);
+  color: var(--card-muted);
+}
+.sw-bankcard-value {
+  font-size: max(28px, 12cqi);
+  font-weight: var(--sw-weight-semibold);
+  line-height: 1;
+  letter-spacing: var(--sw-track-display);
+  color: var(--card-ink);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.sw-bankcard-number {
+  font-size: max(13px, 5cqi);
+  font-weight: var(--sw-weight-medium);
+  letter-spacing: 0.08em;
+  word-spacing: 0.3em;
+  color: var(--card-ink);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.sw-bankcard-holder {
+  font-size: max(12px, 3.6cqi);
+  font-weight: var(--sw-weight-medium);
+  color: var(--card-ink);
+}
+.sw-bankcard-meta {
+  font-size: max(12px, 3.2cqi);
+  color: var(--card-muted);
+  text-align: right;
+}
+.sw-bankcard .sw-pos { color: var(--sw-card-positive); }
+
+/* ── 7. buttons — pills with an emerald->gold metallic sheen ─────────────── */
+/* The sheen is a ::before layer of the two metal stops at --sw-sheen-alpha
+   (0.18; on-pine measured >= 5.16:1 light / 10.38:1 dark). It slides on hover
+   with a transform, never a background-position. */
+.btn {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  min-height: var(--sw-target-min);
+  padding: 0 var(--sw-space-5);
+  border: 1px solid transparent;
+  border-radius: var(--sw-radius-full);
+  background: var(--sw-pine);
+  color: var(--sw-on-pine);
+  box-shadow: var(--sw-highlight), var(--sw-shadow-pine);
+  font-family: var(--sw-font-body);
+  font-size: var(--sw-text-base);
+  font-weight: var(--sw-weight-semibold);
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+  transition:
+    transform var(--sw-dur-press) var(--sw-ease-out),
+    background-color var(--sw-dur-hover) ease,
+    box-shadow var(--sw-dur-hover) ease,
+    color var(--sw-dur-hover) ease;
+}
+.btn::before {
+  content: "";
+  position: absolute;
+  inset: 0 -40% 0 -40%;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(110deg,
+    transparent 20%,
+    color-mix(in srgb, var(--sw-sheen-a) calc(var(--sw-sheen-alpha) * 100%), transparent) 44%,
+    color-mix(in srgb, var(--sw-sheen-b) calc(var(--sw-sheen-alpha) * 100%), transparent) 60%,
+    transparent 80%);
+  transform: translateX(-14%);
+  transition: transform var(--sw-dur-hero) var(--sw-ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .btn:hover:not([aria-disabled='true']):not(:disabled) { background: var(--sw-pine-deep); }
+  .btn:hover:not([aria-disabled='true']):not(:disabled)::before { transform: translateX(14%); }
+}
+.btn:active:not([aria-disabled='true']):not(:disabled) { transform: scale(0.97); }
+.btn[aria-disabled='true'],
+.btn:disabled {
+  background: var(--sw-paper-sunken);
+  color: var(--sw-ink-faint);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+.btn[aria-disabled='true']::before,
+.btn:disabled::before { content: none; }
+
+/* Quiet: a glass pill. */
+.btn-quiet {
+  --glass-bg: var(--sw-glass-strong);
+  background: var(--glass-bg);
+  color: var(--sw-ink);
+  border: 1px solid var(--sw-glass-edge);
+  box-shadow: var(--sw-highlight), var(--sw-shadow-sm);
+  -webkit-backdrop-filter: blur(var(--sw-blur-sm)) saturate(var(--sw-glass-saturate));
+  backdrop-filter: blur(var(--sw-blur-sm)) saturate(var(--sw-glass-saturate));
+  font-weight: var(--sw-weight-medium);
+}
+.btn-quiet::before { content: none; }
+@media (hover: hover) and (pointer: fine) {
+  .btn-quiet:hover:not([aria-disabled='true']):not(:disabled) {
+    background: var(--sw-paper-raised);
+    color: var(--sw-ink);
+    box-shadow: var(--sw-highlight), var(--sw-shadow-md);
+  }
+}
+
+/* Danger: solid coral, no sheen — metal is not for consequences. */
+.btn-danger {
+  background: var(--sw-danger);
+  color: var(--sw-on-pine);
+  border: 1px solid transparent;
+  box-shadow: var(--sw-highlight), var(--sw-shadow-sm);
+}
+.btn-danger::before { content: none; }
+@media (hover: hover) and (pointer: fine) {
+  .btn-danger:hover:not([aria-disabled='true']):not(:disabled) { filter: brightness(0.94); background: var(--sw-danger); color: var(--sw-on-pine); }
+}
+/* A quiet danger: for the reversible of two consequences (Pause vs Close). */
+.btn-danger-quiet {
+  background: transparent;
+  color: var(--sw-danger);
+  border: 1px solid currentColor;
+  box-shadow: none;
+}
+.btn-danger-quiet::before { content: none; }
+@media (hover: hover) and (pointer: fine) {
+  .btn-danger-quiet:hover:not([aria-disabled='true']):not(:disabled) { background: var(--sw-danger-soft); color: var(--sw-danger); }
+}
+
+.btn-link {
+  min-height: var(--sw-target-min);
+  padding: 0 var(--sw-space-2);
+  border: 0;
+  background: none;
+  color: var(--sw-pine);
+  font-family: var(--sw-font-body);
+  font-size: var(--sw-text-sm);
+  font-weight: var(--sw-weight-medium);
+  letter-spacing: 0;
+  text-transform: none;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.25em;
+  border-radius: var(--sw-radius-sm);
+  cursor: pointer;
+  transition: color var(--sw-dur-hover) ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .btn-link:hover { color: var(--sw-pine-deep); }
+}
+
+.icon-btn {
+  min-width: var(--sw-target-min);
+  min-height: var(--sw-target-min);
+  border: 1px solid transparent;
+  border-radius: var(--sw-radius-full);
+  background: none;
+  color: var(--sw-ink-muted);
+  transition: background-color var(--sw-dur-hover) ease, color var(--sw-dur-hover) ease,
+              transform var(--sw-dur-press) var(--sw-ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .icon-btn:hover { background: var(--sw-glass-sunken); color: var(--sw-ink); }
+}
+.icon-btn:active:not([aria-disabled='true']) { transform: scale(0.94); }
+.icon-btn svg { width: 20px; height: 20px; }
+
+/* Size modifiers for any button. */
+.btn-sm { min-height: 36px; padding: 0 var(--sw-space-4); font-size: var(--sw-text-sm); }
+.btn-lg { min-height: 52px; padding: 0 var(--sw-space-6); font-size: var(--sw-text-md); }
+.btn-block { display: flex; align-items: center; justify-content: center; width: 100%; }
+@media (max-width: 900px) { .btn-sm { min-height: var(--sw-target-min); } }
+
+/* ── 8. chips, segmented, tabs — one track + knob language ───────────────── */
+/* The track is a glass pill. `fit-content` + `max-width: 100%` (Swiss fix,
+   kept): it hugs on a wide screen and wraps on a phone. The radius is half a
+   one-line height, so a wrapped track becomes a soft rectangle, not a lozenge. */
+.periods,
+.filters,
+.segmented,
+.tabs {
+  --glass-bg: var(--sw-glass);
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--sw-space-1);
+  width: fit-content;
+  max-width: 100%;
+  padding: var(--sw-space-1);
+  border: 1px solid var(--sw-glass-edge);
+  border-radius: calc(var(--sw-target-min) / 2 + var(--sw-space-1));
+  background: var(--glass-bg);
+  box-shadow: var(--sw-highlight), var(--sw-shadow-sm);
+  -webkit-backdrop-filter: blur(var(--sw-blur-sm)) saturate(var(--sw-glass-saturate));
+  backdrop-filter: blur(var(--sw-blur-sm)) saturate(var(--sw-glass-saturate));
+}
+.segmented-wide { display: flex; width: 100%; }
+
+.chip,
+.segment,
+.tab {
+  min-height: var(--sw-target-min);
+  margin: 0;
+  padding: 0 var(--sw-space-4);
+  border: 0;
+  border-radius: var(--sw-radius-full);
+  background: transparent;
+  color: var(--sw-ink-muted);
+  font-family: var(--sw-font-body);
+  font-size: var(--sw-text-sm);
+  font-weight: var(--sw-weight-medium);
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color var(--sw-dur-hover) ease,
+    color var(--sw-dur-hover) ease,
+    box-shadow var(--sw-dur-hover) ease,
+    transform var(--sw-dur-press) var(--sw-ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .chip:hover, .segment:hover, .tab:hover { background: var(--sw-glass-sunken); color: var(--sw-ink); }
+}
+.chip:active, .segment:active, .tab:active { transform: scale(0.97); }
+
+/* Selected = a raised knob. Ink on --sw-paper-raised: 16.80:1 / 14.71:1. */
+.chip[aria-pressed='true'],
+.segment[aria-checked='true'],
+.tab[aria-selected='true'] {
+  background: var(--sw-paper-raised);
+  color: var(--sw-ink);
+  font-weight: var(--sw-weight-semibold);
+  box-shadow: var(--sw-highlight), var(--sw-shadow-sm);
+  border: 0;
+}
+/* Tabs sit on a track now, not on an underline. */
+.tab { margin-right: 0; margin-bottom: 0; border-bottom: 0; }
+
+/* COIN — a category token. A round swatch with a minted rim, then the name:
+     <span class="sw-coin" style="--coin: var(--sw-cat-3)">Transport</span>
+   The rim (`--sw-border-strong`, >= 3:1 on every surface) is what makes the
+   swatch legible on glass, where `--sw-cat-uncat` alone measures 2.72:1. */
+.sw-coin {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sw-space-2);
+  min-height: 28px;
+  padding: 0 var(--sw-space-3) 0 var(--sw-space-1);
+  border-radius: var(--sw-radius-full);
+  background: var(--sw-paper-sunken);
+  color: var(--sw-ink);
+  font-size: var(--sw-text-sm);
+  font-weight: var(--sw-weight-medium);
+  white-space: nowrap;
+}
+.sw-coin::before,
+.sw-swatch {
+  content: "";
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--sw-radius-full);
+  background:
+    radial-gradient(circle at 35% 30%, rgb(255 255 255 / 0.35), transparent 45%),
+    var(--coin, var(--sw-cat-uncat));
+  box-shadow:
+    0 0 0 1px var(--sw-border-strong),
+    inset 0 0 0 2px rgb(255 255 255 / 0.22),
+    inset 0 -1px 1px rgb(0 0 0 / 0.20);
+}
+.sw-swatch { display: inline-block; vertical-align: middle; }
+
+/* ── 9. switch (toggle) ──────────────────────────────────────────────────── */
+/* <button class="switch" role="switch" aria-checked="true|false">Label</button>
+   The track is drawn by ::before, the knob by ::after; the label is the text. */
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sw-space-3);
+  min-height: var(--sw-target-min);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--sw-ink);
+  font: inherit;
+  cursor: pointer;
+  position: relative;
+}
+.switch::before {
+  content: "";
+  flex: none;
+  width: 44px;
+  height: 26px;
+  border-radius: var(--sw-radius-full);
+  background: var(--sw-paper-sunken);
+  box-shadow: inset 0 0 0 1px var(--sw-border-strong);
+  transition: background-color 280ms var(--sw-ease-out), box-shadow 280ms var(--sw-ease-out);
+}
+.switch::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 50%;
+  width: 20px;
+  height: 20px;
+  margin-top: -10px;
+  border-radius: var(--sw-radius-full);
+  background: var(--sw-paper-raised);
+  box-shadow: var(--sw-shadow-sm);
+  /* Track and knob on ONE clock: a switch is used tens of times a day, and a
+     knob still bouncing after the track has changed colour reads as lag. */
+  transition: transform 280ms var(--sw-ease-out);
+}
+.switch[aria-checked='true']::before { background: var(--sw-pine); box-shadow: inset 0 0 0 1px var(--sw-pine); }
+.switch[aria-checked='true']::after { transform: translateX(18px); }
+
+/* ── 10. inputs ──────────────────────────────────────────────────────────── */
+/* Selectors repeat the Swiss ones exactly so this wins by order. `.sw-input`
+   is the same recipe for any new field. */
+.field input, .field select, .row-form input, .field-grow input {
+  width: 100%;
+  min-height: var(--sw-target-min);
+  padding: 0 var(--sw-space-3);
+  border: 1px solid var(--sw-border);
+  border-radius: var(--sw-radius-sm);
+  background: var(--sw-glass-sunken);
+  color: var(--sw-ink);
+  font-family: var(--sw-font-body);
+  font-size: var(--sw-text-base);
+  box-shadow: inset 0 1px 2px var(--sw-glass-edge);
+  transition: border-color var(--sw-dur-hover) ease, box-shadow var(--sw-dur-hover) ease,
+              background-color var(--sw-dur-hover) ease;
+}
+.field input:focus, .field select:focus, .row-form input:focus, .field-grow input:focus {
+  border-color: var(--sw-pine);
+  background: var(--sw-paper-raised);
+  box-shadow: 0 0 0 4px var(--sw-pine-soft);
+}
+.field input[aria-invalid='true'],
+.row-form input[aria-invalid='true'],
+.field-grow input[aria-invalid='true'] { border-color: var(--sw-danger); }
+.field { margin-bottom: var(--sw-space-4); }
+.field-error {
+  font-family: var(--sw-font-body);
+  font-size: var(--sw-text-sm);
+  letter-spacing: 0;
+  color: var(--sw-danger);
+}
+/* The amount field: big tabular figures, like writing a cheque. */
+.panel input[name='amount'] {
+  font-family: var(--sw-font-body);
+  font-size: var(--sw-text-xl);
+  font-weight: var(--sw-weight-semibold);
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: var(--sw-track-tight);
+  min-height: 56px;
+}
+/* The dotted leader between a label and its figure, as on a receipt. */
+.sw-leader {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sw-space-2);
+}
+.sw-leader::after {
+  content: "";
+  order: 1;
+  flex: 1;
+  min-width: var(--sw-space-4);
+  border-bottom: 1px dotted var(--sw-border-strong);
+  transform: translateY(-0.3em);
+}
+.sw-leader > :last-child { order: 2; font-variant-numeric: tabular-nums; }
+
+/* ── 12. pills, notices, banners, errors, skeletons ──────────────────────── */
+/* `.pill` is a status label (admin role, account state), not a button. */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sw-space-1);
+  padding: 2px var(--sw-space-2);
+  border-radius: var(--sw-radius-full);
+  background: var(--sw-pine-soft);
+  color: var(--sw-pine);
+  font-family: var(--sw-font-body);
+  font-size: var(--sw-text-xs);
+  font-weight: var(--sw-weight-medium);
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+.pill-gold { background: var(--sw-gold-soft); color: var(--sw-gold); }
+.ok-dot, .off-dot, .gone-dot { border-radius: var(--sw-radius-full); }
+
+.notice {
+  border-radius: var(--sw-radius-sm);
+  font-family: var(--sw-font-body);
+  font-size: var(--sw-text-sm);
+  background: var(--sw-glass-sunken);
+}
+
+.banner {
+  --glass-bg: var(--sw-glass-strong);
+  background: var(--glass-bg);
+  border: 1px solid var(--sw-glass-edge);
+  border-left-width: 1px;
+  border-radius: var(--sw-radius-md);
+  box-shadow: var(--sw-highlight), var(--sw-shadow-sm);
+  -webkit-backdrop-filter: blur(var(--sw-blur-sm)) saturate(var(--sw-glass-saturate));
+  backdrop-filter: blur(var(--sw-blur-sm)) saturate(var(--sw-glass-saturate));
+}
+.banner::before {
+  content: "";
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--sw-radius-full);
+  background: var(--sw-warning);
+}
+
+.form-error {
+  border: 1px solid var(--sw-danger);
+  border-radius: var(--sw-radius-sm);
+  background: var(--sw-danger-soft);
+  font-family: var(--sw-font-body);
+  font-size: var(--sw-text-sm);
+  letter-spacing: 0;
+}
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--sw-radius-sm);
+  background: var(--sw-paper-sunken);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 20%, var(--sw-glare) 50%, transparent 80%);
+  transform: translateX(-100%);
+  animation: sw-shimmer 1.4s linear infinite;
+}
+
+/* ── 13. scrim, panel, toast ─────────────────────────────────────────────── */
+/* A tint only. A backdrop-filter here would make the scrim the panel's
+   Backdrop Root: the sheet (its child) would then blur only the scrim, not
+   the page, and read as a flat tint instead of frosted glass. */
+.scrim {
+  background: var(--sw-scrim);
+  z-index: var(--sw-z-scrim);
+}
+
+/* ── 14. TiltCard ────────────────────────────────────────────────────────── */
+/* JS (TiltCard.jsx) writes `transform` on the element and on the glare
+   directly — never a custom property on a parent, which would recalculate
+   every child's style on every pointer move. */
+.sw-tilt {
+  position: relative;
+  transform-origin: 50% 50%;
+  transition: transform var(--sw-dur-spring) var(--sw-spring);
+}
+.sw-tilt[data-tilting] {
+  transition: transform var(--sw-dur-hover) var(--sw-ease-out);
+  will-change: transform;
+}
+.sw-tilt-glare {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--sw-dur-small) ease;
+}
+.sw-tilt[data-tilting] > .sw-tilt-glare { opacity: 1; }
+.sw-tilt-glare > span {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: max(70%, 280px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--sw-glare), transparent);
+  will-change: transform;
+}
+/* On the bank card the glare is METAL: a gold-tinged specular, screen-blended. */
+.sw-bankcard > .sw-tilt-glare > span {
+  background: radial-gradient(closest-side, rgb(255 244 214 / 0.30), rgb(232 199 122 / 0.10) 45%, transparent);
+  mix-blend-mode: screen;
+}
+
+/* ── 15. LiquidBlob — the molten orb ─────────────────────────────────────── */
+.sw-blob {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  opacity: var(--sw-orb-opacity);
+  contain: strict;
+}
+.sw-blob[data-contained] { position: absolute; z-index: 0; }
+/* On a hero stage the orb is sized and placed by the screen sheet, in px,
+   relative to the stage's centre: --orb-r (visible radius), --orb-dx/-dy
+   (offset, so it shows past the card's edges) and --orb-bleed (how far the
+   layer extends above and below the stage, so the orb is never cut by the
+   canvas edge). LiquidBlob.jsx reads them and caps the radius so the orb's
+   full extent always fits the layer. The layer is never wider than the
+   stage: the 375px tests count any box past the window's right edge, clipped
+   or not (test_the_website.py:409, test_the_shell.py:450). */
+.sw-stage > .sw-blob[data-contained] {
+  inset: calc(-1 * var(--orb-bleed, 0px)) 0;
+  z-index: -1;
+}
+.sw-stage > .sw-blob[data-static]::before {
+  left: calc(50% + var(--orb-dx, 0px) - var(--orb-r, 30vmin));
+  top: calc(50% + var(--orb-dy, 0px) - var(--orb-r, 30vmin));
+  width: calc(var(--orb-r, 30vmin) * 2);
+}
+.sw-blob canvas { display: block; width: 100%; height: 100%; }
+/* No WebGL, or the context was lost: a still, CSS-drawn orb from the same
+   three metal stops — the same colours §2.4 measured. */
+.sw-blob[data-static]::before {
+  content: "";
+  position: absolute;
+  left: calc(var(--blob-x, 0.5) * 100% - var(--blob-r, 30vmin));
+  top: calc(var(--blob-y, 0.45) * 100% - var(--blob-r, 30vmin));
+  width: calc(var(--blob-r, 30vmin) * 2);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background:
+    radial-gradient(45% 40% at 32% 28%, var(--sw-orb-gold), transparent 70%),
+    radial-gradient(60% 60% at 70% 72%, var(--sw-orb-emerald), transparent 72%),
+    var(--sw-orb-deep);
+  filter: blur(18px);
+}
+
+/* ── 16. reduced motion ──────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .gate::before { animation: none; }
+}
+
+/* ── 17. phone width ─────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .page-title, .gate-title { font-size: var(--sw-text-xl); }
+  .section-title { font-size: var(--sw-text-lg); }
+  .state-title { font-size: var(--sw-text-md); }
+  .card-hero-value { font-size: var(--sw-text-3xl); }
+  .cards > .card, .panels > .card {
+    padding: var(--sw-space-4);
+    box-shadow: var(--sw-highlight), var(--sw-shadow-sm);
+  }
+  .segment { min-height: var(--sw-target-min); }
+}

@@ -32,6 +32,26 @@ export function apply(theme) {
   try {
     localStorage.setItem(KEY, theme)
   } catch { /* see above */ }
+  syncThemeColor(theme)
+}
+
+/**
+ * The browser's own chrome (the phone status bar, the tab strip) is coloured
+ * by `<meta name="theme-color" media="(prefers-color-scheme: …)">` in
+ * index.html. Those follow the OS, so a forced theme would leave a light bar
+ * over a dark page. While a theme is forced, both tags carry its paper; on
+ * "System" they get their original colours back.
+ */
+function syncThemeColor(theme) {
+  const metas = document.querySelectorAll('meta[name="theme-color"]')
+  if (!metas.length) return
+  const paper = theme === 'system'
+    ? null
+    : getComputedStyle(document.documentElement).getPropertyValue('--sw-paper').trim()
+  metas.forEach((m) => {
+    if (!m.dataset.original) m.dataset.original = m.getAttribute('content') || ''
+    m.setAttribute('content', paper || m.dataset.original)
+  })
 }
 
 /** What is actually on screen right now — `system` resolved against the OS. */

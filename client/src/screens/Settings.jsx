@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { api } from '../lib/api.js'
 import { THEMES, effective } from '../lib/theme.js'
+import { BankCard } from '../components/TiltCard.jsx'
 
 /**
  * Settings.
@@ -22,36 +23,57 @@ import { THEMES, effective } from '../lib/theme.js'
  */
 export default function Settings({ principal, theme, onTheme, onSignedOut,
                                   onPrincipal }) {
+  // The draft name lives HERE, one level above the form, so the card in the
+  // header can show it as it is typed. The card is a preview and nothing more:
+  // it is aria-hidden, and the saved name still comes back from the server.
+  const [name, setName] = useState(principal.display_name)
+
   return (
-    <>
-      <header className="page-head">
-        <div>
+    <div className="settings">
+      <header className="page-head settings-head">
+        <div className="settings-head-text">
+          <p className="sw-eyebrow">Your account</p>
           <h1 className="page-title">Settings</h1>
           <p className="entry-meta">{principal.email}</p>
         </div>
+        <div className="sw-stage settings-card">
+          <span className="sw-rosette" aria-hidden="true" />
+          <BankCard decorative
+                    holder={name.trim() || principal.display_name}
+                    meta={principal.role === 'admin' ? 'Administrator' : 'Member'}
+                    last4={String(principal.id).padStart(4, '0').slice(-4)} />
+        </div>
       </header>
 
-      <Profile principal={principal} onPrincipal={onPrincipal} />
-      <Appearance theme={theme} onTheme={onTheme} />
-      <Password />
-      <YourData />
-      <Leaving principal={principal} onSignedOut={onSignedOut} />
-    </>
+      <div className="settings-sections sw-stagger">
+        <Profile onPrincipal={onPrincipal} name={name} setName={setName} />
+        <Appearance theme={theme} onTheme={onTheme} />
+        <Password />
+        <YourData />
+        <Leaving principal={principal} onSignedOut={onSignedOut} />
+      </div>
+    </div>
   )
 }
 
+/**
+ * One settings section: heading and explanation on the left, the controls on
+ * the right, stacked below 900px. The split is also the reading order, so
+ * nothing moves for a screen reader when the columns collapse.
+ */
 function Card({ title, description, children, tone }) {
   return (
-    <section className={`card${tone ? ` card-${tone}` : ''}`}>
-      <h2 className="card-heading">{title}</h2>
-      {description && <p className="entry-meta card-desc">{description}</p>}
-      {children}
+    <section className={`card settings-section${tone ? ` card-${tone}` : ''}`}>
+      <div className="settings-section-head">
+        <h2 className="card-heading">{title}</h2>
+        {description && <p className="entry-meta card-desc">{description}</p>}
+      </div>
+      <div className="settings-section-body">{children}</div>
     </section>
   )
 }
 
-function Profile({ principal, onPrincipal }) {
-  const [name, setName] = useState(principal.display_name)
+function Profile({ onPrincipal, name, setName }) {
   const [state, setState] = useState(null)
   const [error, setError] = useState(null)
 
@@ -86,7 +108,7 @@ function Profile({ principal, onPrincipal }) {
         </button>
       </form>
       {state === 'saved' && (
-        <p className="ok" role="status" data-testid="name-saved">Saved.</p>
+        <p className="ok sw-pop" role="status" data-testid="name-saved">Saved.</p>
       )}
     </Card>
   )
@@ -142,7 +164,7 @@ function Password() {
   return (
     <Card title="Password"
           description="Changing it signs you out everywhere else and keeps you signed in here.">
-      <form onSubmit={submit}>
+      <form className="settings-password" onSubmit={submit}>
         <div className="field">
           <label htmlFor="current-password">Current password</label>
           <input id="current-password" type="password" autoComplete="current-password"
@@ -155,10 +177,10 @@ function Password() {
                  value={form.new_password} onChange={set('new_password')}
                  data-testid="new-password" required
                  aria-invalid={error?.field === 'password' ? 'true' : undefined} />
-          <span className="entry-meta">At least 12 characters.</span>
+          <span className="entry-meta field-hint">At least 12 characters.</span>
         </div>
         {error && (
-          <p className="form-error" role="alert" data-testid="password-error">
+          <p className="form-error sw-pop" role="alert" data-testid="password-error">
             {error.message}
           </p>
         )}
@@ -168,7 +190,7 @@ function Password() {
         </button>
       </form>
       {result && (
-        <p className="ok" role="status" data-testid="password-changed">
+        <p className="ok sw-pop" role="status" data-testid="password-changed">
           Changed. {result.signed_out_elsewhere} other session
           {result.signed_out_elsewhere === 1 ? '' : 's'} signed out.
         </p>
@@ -214,10 +236,13 @@ function YourData() {
   return (
     <Card title="Your data"
           description="Every category and every expense on this account, as JSON. Amounts are exact integers in paise.">
-      <button type="button" className="btn btn-quiet" onClick={download}
-              data-testid="export" aria-disabled={busy ? 'true' : undefined}>
-        {busy ? 'Preparing…' : 'Download my data'}
-      </button>
+      <div className="settings-export">
+        <button type="button" className="btn btn-quiet" onClick={download}
+                data-testid="export" aria-disabled={busy ? 'true' : undefined}>
+          {busy ? 'Preparing…' : 'Download my data'}
+        </button>
+        <span className="entry-meta">spendwise-export.json</span>
+      </div>
     </Card>
   )
 }
@@ -265,11 +290,11 @@ function Leaving({ principal, onSignedOut }) {
           erased" is still the true sentence. It would be easy to relabel the
           old button and change nothing underneath — and a person would only
           find out by asking for their data back. */}
-      <p className="card-desc">
+      <p className="card-desc leaving-note">
         <strong>Your records are kept, not erased.</strong> An expense history
         is the one thing here that cannot be reconstructed, so neither of these
         throws any of it away and an administrator can undo either one. Take a
-        copy first if you want one — <em>Your data</em>, just above.
+        copy first if you want one: <em>Your data</em>, just above.
       </p>
 
       <div className="leaving">
@@ -282,7 +307,7 @@ function Leaving({ principal, onSignedOut }) {
           </p>
 
           {errorFor('deactivate') && (
-            <p className="form-error" role="alert" data-testid="deactivate-error">
+            <p className="form-error sw-pop" role="alert" data-testid="deactivate-error">
               {errorFor('deactivate').code === 'CONFLICT'
                 ? 'You are the last active administrator. Promote someone else first.'
                 : errorFor('deactivate').message}
@@ -290,7 +315,7 @@ function Leaving({ principal, onSignedOut }) {
           )}
 
           {confirming === 'deactivate' ? (
-            <div className="row-form">
+            <div className="row-form leaving-confirm sw-enter">
               <button type="button" className="btn btn-danger"
                       onClick={go('deactivate', api.deactivate)}
                       data-testid="deactivate-confirm">
@@ -302,7 +327,7 @@ function Leaving({ principal, onSignedOut }) {
               </button>
             </div>
           ) : (
-            <button type="button" className="btn btn-danger"
+            <button type="button" className="btn btn-danger-quiet"
                     onClick={() => { setFailed(null); setConfirming('deactivate') }}
                     data-testid="deactivate">
               Deactivate my account
@@ -318,13 +343,13 @@ function Leaving({ principal, onSignedOut }) {
           </p>
 
           {errorFor('delete') && (
-            <p className="form-error" role="alert" data-testid="delete-account-error">
+            <p className="form-error sw-pop" role="alert" data-testid="delete-account-error">
               {/* 409 with `field: "is_active"` (`CR-001 §2`). The generic
                   message would be "Conflict", which tells a person nothing
                   about what to do — and what to do is specific and doable. */}
               {errorFor('delete').code === 'CONFLICT'
                 ? 'You are the last active administrator, so this account cannot be '
-                  + 'closed — there would be nobody left who can restore accounts or '
+                  + 'closed: there would be nobody left who can restore accounts or '
                   + 'promote anyone. Promote another administrator first, then come back.'
                 : errorFor('delete').message}
             </p>
@@ -335,7 +360,7 @@ function Leaving({ principal, onSignedOut }) {
                            onGo={go('delete', api.deleteMe)}
                            onCancel={() => setConfirming(null)} />
           ) : (
-            <button type="button" className="btn btn-danger"
+            <button type="button" className="btn btn-danger-quiet"
                     onClick={() => { setFailed(null); setConfirming('delete') }}
                     data-testid="delete-account">
               Delete my account
@@ -372,10 +397,10 @@ function DeleteConfirm({ principal, onGo, onCancel }) {
   }
 
   return (
-    <div data-testid="delete-account-confirmation">
+    <div className="leaving-confirm sw-enter" data-testid="delete-account-confirmation">
       <ul className="consequences">
         <li>
-          The account closes, and signing in is refused from that moment —
+          The account closes, and signing in is refused from that moment,
           with the same answer a wrong password gets, so the sign-in screen
           never reveals that it happened.
         </li>
@@ -389,12 +414,12 @@ function DeleteConfirm({ principal, onGo, onCancel }) {
         </li>
         <li>
           <strong>{principal.email} stays taken.</strong> That address cannot
-          be used to register a new account while this one exists — ask an
+          be used to register a new account while this one exists. Ask an
           administrator to restore this account instead of making another.
         </li>
       </ul>
 
-      <div className="row-form">
+      <div className="row-form leaving-actions">
         {/* The export, offered at the last useful moment. It is the same
             function the card above calls, so there is no second version of it
             to drift. */}

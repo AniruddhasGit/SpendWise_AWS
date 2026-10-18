@@ -3,17 +3,18 @@ import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
 import { boot } from './lib/theme.js'
 
-// Tokens FIRST, then components — the cascade is order-dependent and the
-// components reference the custom properties the tokens define.
+// Tokens FIRST — every stylesheet below reads the custom properties they define.
 import './styles/tokens.css'
-import './styles/app.css'
-// The redesign layer, LAST — it overrides app.css by cascade order, not by
-// specificity, so nothing here needs !important and app.css stays readable.
-import './styles/app.redesign.css'
-// The Swiss restyle, LAST. Same cascade argument as the line above: it targets
-// class names that already exist and overrides by order, so no `.jsx` file
-// changes and nothing here needs `!important`.
-import './styles/app.swiss.css'
+// The system: base reset, surfaces and primitives, then motion utilities.
+import './styles/glass.css'
+import './styles/motion.css'
+// Screen sheets, LAST. Each is owned by one screen and only refines geometry
+// and screen-specific detail on top of the system.
+import './styles/screens/shell.css'
+import './styles/screens/dashboard.css'
+import './styles/screens/charts.css'
+import './styles/screens/expenses.css'
+import './styles/screens/settings-admin.css'
 
 // BEFORE the first render. Applying the theme in an effect means the first
 // paint uses the media query and then flips — a white flash on every load for

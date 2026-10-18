@@ -24,6 +24,7 @@ export default function DayBars({ days }) {
             key={d.date}
             className="daybar"
             data-empty={d.total_paise === 0 ? 'true' : 'false'}
+            data-peak={peak > 0 && d.total_paise === peak ? 'true' : undefined}
             // A day with spending never renders as nothing: 2% is the floor, so
             // ₹5 on an otherwise ₹5,000 day is still a visible mark. A zero day
             // renders as the 2% stub in the border colour, which reads as the

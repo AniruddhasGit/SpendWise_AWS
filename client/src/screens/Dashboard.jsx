@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../lib/api.js'
 import { days, rupees } from '../lib/money.js'
-import { labelFor, previousMonthOf, readCategory, readRange, writeState } from '../lib/period.js'
+import {
+  foreignEntry, labelFor, monthOf, previousMonthOf, readCategory, readRange, today, writeState,
+} from '../lib/period.js'
 import Bars from '../components/charts/Bars.jsx'
 import Donut from '../components/charts/Donut.jsx'
 import LinePlot from '../components/charts/LinePlot.jsx'
@@ -10,8 +12,18 @@ import ExpensePanel from '../components/ExpensePanel.jsx'
 import PeriodPicker from '../components/PeriodPicker.jsx'
 import Ribbon from '../components/Ribbon.jsx'
 import { FirstRun, Loading, LoadFailed, NoMatches } from '../components/States.jsx'
+import LiquidBlob from '../components/LiquidBlob.jsx'
+import { BankCard } from '../components/TiltCard.jsx'
+import { CountUp, Odometer } from '../lib/motion.js'
 
 const UNCATEGORISED_COLOR = 'var(--sw-cat-uncat)'
+
+// The dashboard's entrance (the card rising, the total counting up from ₹0,
+// the plots drawing, the bars growing) plays ONCE per person per page load.
+// The shell remounts this screen on every return from another pane, and
+// replaying the whole choreography there is noise; later visits just appear.
+// Keyed by the person, so the next one to sign in on this tab gets their own.
+let enteredFor = null
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 /**
@@ -32,8 +44,15 @@ const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
  * sentence people actually want and it cannot be computed from one range.
  */
 export default function Dashboard({ principal, draft, onDraft }) {
-  const [range, setRange] = useState(() => readRange())
-  const [category, setCategory] = useState(() => readCategory())
+  const me = principal?.id ?? null
+  // A history entry written for someone else is never read: see writeState.
+  const [range, setRange] = useState(() => (foreignEntry(me) ? monthOf(today()) : readRange()))
+  const [category, setCategory] = useState(() => (foreignEntry(me) ? null : readCategory()))
+  const [entered] = useState(() => enteredFor !== null && enteredFor === me)
+  // WCAG 4.1.3: what changed, said once, after the server has answered. The
+  // final figures only, never the count-up frames.
+  const [announcement, setAnnouncement] = useState('')
+  const announceNext = useRef(null)
 
   const [whole, setWhole] = useState(null)
   const [scoped, setScoped] = useState(null)
@@ -52,12 +71,25 @@ export default function Dashboard({ principal, draft, onDraft }) {
   const loadSeq = useRef(0)
 
   useEffect(() => {
-    const onPop = () => { setRange(readRange()); setCategory(readCategory()) }
+    const onPop = (e) => {
+      announceNext.current = ''
+      if (foreignEntry(me, e.state)) {
+        // Back walked into the previous person's history. Do not replay it:
+        // this person's default period, written over that entry.
+        const fresh = monthOf(today())
+        setRange(fresh)
+        setCategory(null)
+        writeState({ ...fresh, category: null }, { replace: true, owner: me })
+        return
+      }
+      setRange(readRange())
+      setCategory(readCategory())
+    }
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
-  }, [])
+  }, [me])
 
-  useEffect(() => { writeState({ ...range, category }, { replace: true }) }, [])
+  useEffect(() => { writeState({ ...range, category }, { replace: true, owner: me }) }, [])
 
   const load = useCallback(async () => {
     const seq = ++loadSeq.current
@@ -95,6 +127,12 @@ export default function Dashboard({ principal, draft, onDraft }) {
         if (ever.total > 0) answered.current = true
         setEverAny(ever.total > 0)
       }
+      if (announceNext.current !== null) {
+        const n = s.count
+        setAnnouncement(`${announceNext.current}${labelFor(range)}${category !== null ? ', filtered' : ''}: `
+          + `${rupees(s.total_paise)} across ${n} ${n === 1 ? 'entry' : 'entries'}.`)
+        announceNext.current = null
+      }
     } catch (err) {
       if (seq !== loadSeq.current) return
       if (err.status !== 401) setError(err)
@@ -111,13 +149,15 @@ export default function Dashboard({ principal, draft, onDraft }) {
     [colours])
 
   const changeRange = (next) => {
+    announceNext.current = ''
     setRange(next)
     setCategory(null)                 // a category from last month means nothing here
-    writeState({ ...next, category: null })
+    writeState({ ...next, category: null }, { owner: me })
   }
   const changeCategory = (next) => {
+    announceNext.current = ''
     setCategory(next)
-    writeState({ ...range, category: next })
+    writeState({ ...range, category: next }, { owner: me })
   }
 
   const submit = async (body) => {
@@ -125,6 +165,7 @@ export default function Dashboard({ principal, draft, onDraft }) {
     else await api.createExpense(body)
     // Reload AFTER the server confirms. The list never shows a row the server
     // has not accepted (E3-S5 AC5).
+    announceNext.current = editing ? 'Expense saved. ' : 'Expense added. '
     await load()
   }
 
@@ -133,6 +174,7 @@ export default function Dashboard({ principal, draft, onDraft }) {
     setBusyId(expense.id)
     try {
       await api.deleteExpense(expense.id)
+      announceNext.current = 'Expense deleted. '
       await load()
     } catch (err) {
       if (err.status !== 401) setError(err)
@@ -146,6 +188,9 @@ export default function Dashboard({ principal, draft, onDraft }) {
 
   // ── derived ──────────────────────────────────────────────────────────────
   const periodLabel = labelFor(range)
+  // The name embossed on the card. Display name first; an account that never
+  // set one shows the part of its email before the @, never the whole address.
+  const holderName = principal?.display_name || principal?.email?.split('@')[0] || null
   const accountIsNew = everAny === false
 
   const delta = useMemo(() => {
@@ -192,9 +237,17 @@ export default function Dashboard({ principal, draft, onDraft }) {
     }
   }, [scoped])
 
+  // Mark the entrance as played once the full dashboard has been on screen.
+  const shownFull = Boolean(whole) && everAny !== false && !error
+  useEffect(() => { if (shownFull) enteredFor = me }, [shownFull, me])
+
   return (
     <>
-      <div className="pane">
+      <div className="pane dash-pane" data-entered={entered ? '' : undefined}>
+        {/* One polite live region, always in the DOM so its first update is
+            announced. */}
+        <p className="visually-hidden" role="status" aria-live="polite"
+           data-testid="dash-announce">{announcement}</p>
         <header className="page-head">
           <div>
             <h1 className="page-title">Your spending</h1>
@@ -217,70 +270,96 @@ export default function Dashboard({ principal, draft, onDraft }) {
           <FirstRun onAdd={openAdd} />
         ) : (
           <>
-            {/* The hero is its OWN full-width row, not a two-column span in
-                the stat grid. Spanning clipped `₹3,790.49` at four columns —
-                and a lakh figure is four characters longer, so the version
-                that fitted today would not have fitted a real month. */}
-            <section aria-label="Total">
-              <article className="card card-hero" data-testid="headline">
-                <p className="card-label">
-                  {category !== null ? 'Filtered total' : 'Total'}
-                </p>
-                <p className="card-hero-value sw-num" data-testid="total">
-                  {rupees(scoped.total_paise)}
-                </p>
-                {delta && (
-                  <p className={`delta${delta.up ? ' is-up' : ' is-down'}`}
-                     data-testid="delta">
-                    {delta.up ? '▲' : '▼'} {delta.pct}%{' '}
-                    <span className="entry-meta">
-                      {delta.up ? 'more' : 'less'} than last month
-                    </span>
-                  </p>
-                )}
-              </article>
+            {/* The hero is its OWN full-width row, never a span inside a stat
+                grid: spanning clipped `₹3,790.49` at four columns, and a lakh
+                figure is four characters longer.
+
+                The total sits on the SOLID bank card (an opaque face; real
+                money is never printed on translucent glass), over the one
+                LiquidBlob this screen is allowed. `<CountUp>` keeps the
+                element's innerText the final figure on every frame, which is
+                what the browser tests and a screen reader read. */}
+            <section className="dash-hero" aria-label="Total">
+              <div className="sw-stage dash-stage">
+                <LiquidBlob contained x={0.5} y={0.5} size={0.88} />
+                <span className="sw-rosette" aria-hidden="true" />
+                <BankCard
+                  variant="solid"
+                  className="dash-bankcard"
+                  data-testid="headline"
+                  label={category !== null ? 'Filtered total' : 'Total spent'}
+                  value={<CountUp value={scoped.total_paise} data-testid="total"
+                                  from={entered ? scoped.total_paise : 0} />}
+                  holder={holderName}
+                  meta={periodLabel}
+                >
+                  {delta && (
+                    <p className={`delta dash-delta${delta.up ? ' is-up' : ' is-down sw-pos'}`}
+                       data-testid="delta">
+                      <span aria-hidden="true">{delta.up ? '▲' : '▼'}</span>{' '}
+                      {delta.pct}%{' '}
+                      <span className="dash-delta-words">
+                        {delta.up ? 'more' : 'less'} than last month
+                      </span>
+                    </p>
+                  )}
+                </BankCard>
+              </div>
+
+              {/* The statement: three figures read like the lines of a bank
+                  statement, in one opaque card, rather than three equal tiles.
+                  `<Odometer>` rolls each digit when the period or filter
+                  changes; its innerText is always the real value. */}
+              <div className="card card-statement dash-figures">
+                <dl className="dash-figure-list">
+                  <div className="dash-figure">
+                    <dt className="card-label">Entries</dt>
+                    <dd className="card-value">
+                      <Odometer value={scoped.count} format={String} split={false}
+                                data-testid="count" />
+                    </dd>
+                    {biggest && (
+                      <dd className="entry-meta" data-testid="biggest">
+                        Largest {rupees(biggest.amount_paise)}
+                      </dd>
+                    )}
+                  </div>
+
+                  <div className="dash-figure">
+                    <dt className="card-label">Daily average</dt>
+                    {/* `null`, never 0.00, when no day has elapsed. A wholly
+                        future range has no average, and 0.00 reads as "spent
+                        nothing" on the first screen a new account sees
+                        (`SW-ADR-053`). */}
+                    <dd className="card-value">
+                      {scoped.daily_average_paise === null
+                        ? <span data-testid="daily-average">Not yet</span>
+                        : <Odometer value={scoped.daily_average_paise}
+                                    data-testid="daily-average" />}
+                    </dd>
+                    <dd className="entry-meta" data-testid="days-elapsed">
+                      over {days(scoped.days_elapsed)}
+                    </dd>
+                  </div>
+
+                  <div className="dash-figure">
+                    <dt className="card-label">On track for</dt>
+                    <dd className="card-value dash-projection">
+                      {projection === null
+                        ? <span data-testid="projection">—</span>
+                        : <Odometer value={projection} data-testid="projection" />}
+                    </dd>
+                    <dd className="entry-meta">
+                      {projection === null
+                        ? 'this period has finished'
+                        : 'estimate, if the rest matches so far'}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
             </section>
 
-            <section className="cards" aria-label="Headline figures">
-              <article className="card">
-                <p className="card-label">Entries</p>
-                <p className="card-value sw-num" data-testid="count">{scoped.count}</p>
-                {biggest && (
-                  <p className="entry-meta" data-testid="biggest">
-                    Largest {rupees(biggest.amount_paise)}
-                  </p>
-                )}
-              </article>
-
-              <article className="card">
-                <p className="card-label">Daily average</p>
-                {/* `null`, never 0.00, when no day has elapsed — a wholly
-                    future range has no average, and 0.00 reads as "spent
-                    nothing" on the first screen a new account sees
-                    (`SW-ADR-053`). */}
-                <p className="card-value sw-num" data-testid="daily-average">
-                  {scoped.daily_average_paise === null
-                    ? 'Not yet' : rupees(scoped.daily_average_paise)}
-                </p>
-                <p className="entry-meta" data-testid="days-elapsed">
-                  over {days(scoped.days_elapsed)}
-                </p>
-              </article>
-
-              <article className="card">
-                <p className="card-label">On track for</p>
-                <p className="card-value sw-num" data-testid="projection">
-                  {projection === null ? '—' : rupees(projection)}
-                </p>
-                <p className="entry-meta">
-                  {projection === null
-                    ? 'this period has finished'
-                    : 'estimate, if the rest matches so far'}
-                </p>
-              </article>
-            </section>
-
-            <section className="panels" aria-label="Charts">
+            <section className="panels dash-panels sw-stagger" aria-label="Charts">
               <article className="card">
                 <h2 className="card-heading">Spending over time</h2>
                 <LinePlot days={scoped.by_day} />
@@ -297,13 +376,15 @@ export default function Dashboard({ principal, draft, onDraft }) {
             {/* The same filter in a different shape, and the one that stays
                 proportion-true at any width (`SW-ADR-055`). Both write the same
                 state, so they cannot disagree. */}
-            <Ribbon buckets={whole.by_category} selected={category}
-                    onSelect={changeCategory} />
+            <section className="card dash-ribbon sw-enter" aria-label="Category filter">
+              <Ribbon buckets={whole.by_category} selected={category}
+                      onSelect={changeCategory} />
+            </section>
 
-            <section className="panels" aria-label="Patterns">
+            <section className="panels dash-panels sw-stagger" aria-label="Patterns">
               <article className="card">
                 <h2 className="card-heading">Running total</h2>
-                <LinePlot days={scoped.by_day} cumulative height={140} />
+                <LinePlot days={scoped.by_day} cumulative height={200} />
               </article>
 
               <article className="card">

@@ -1,5 +1,7 @@
-import { useState } from 'react'
-import { api, armSessionGuard } from '../lib/api.js'
+import { useEffect, useRef, useState } from 'react'
+import { api } from '../lib/api.js'
+import LiquidBlob from '../components/LiquidBlob.jsx'
+import { BankCard } from '../components/TiltCard.jsx'
 
 /**
  * Sign in and sign up. One component, because they are the same form with one
@@ -8,111 +10,191 @@ import { api, armSessionGuard } from '../lib/api.js'
  * `reason` is E3-S7 AC1: a session that ended mid-use lands here with a banner
  * saying so, rather than dumping the person at a bare sign-in form that looks
  * like they were never signed in.
+ *
+ * Layout: the hero (a glass card floating over the liquid orb, on banknote
+ * guilloché) on the left, a compact sign-in panel on the right. Stacked on a
+ * phone, with the card shrunk above the form. The card is decorative and
+ * aria-hidden; it repeats nothing a reader needs, except that it shows the
+ * name being typed into "Your name", which is only ever a flourish.
+ *
+ * Session bookkeeping (epochs, arming the guard) is App's job, in
+ * `onSignedIn`. This screen only asks the server and reports what it said.
  */
-export default function Gate({ mode, onMode, reason, onSignedIn }) {
+export default function Gate({ mode, onMode, reason, onSignedIn, autoFocus = false }) {
   const [form, setForm] = useState({ email: '', password: '', display_name: '' })
   const [error, setError] = useState(null)
   const [busy, setBusy] = useState(false)
+  const [reveal, setReveal] = useState(false)
+  const busyRef = useRef(false)
+  const emailRef = useRef(null)
 
   const registering = mode === 'register'
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
+  // Focus lands on the email field when the person arrives from the app (a
+  // sign-out or an ended session unmounted whatever had focus), and on a
+  // desktop first visit. Not on a phone's first visit: that would raise the
+  // keyboard over the page before anyone has read it.
+  useEffect(() => {
+    const fine = window.matchMedia?.('(pointer: fine)').matches
+    if (autoFocus || fine) emailRef.current?.focus({ preventScroll: true })
+  }, [])
+
   const submit = async (event) => {
     event.preventDefault()
-    if (busy) return
+    // A ref, not only state: two Enter presses inside one frame both see the
+    // stale `busy === false` and would send two requests.
+    if (busyRef.current) return
+    busyRef.current = true
     setBusy(true)
     setError(null)
     try {
       const principal = registering
         ? await api.register(form)
         : await api.login({ email: form.email, password: form.password })
-      // Re-arm, so the NEXT expiry can fire its redirect. Without this a
-      // person who signs back in gets no banner the second time their session
-      // ends — the guard has already latched.
-      armSessionGuard()
       onSignedIn(principal)
     } catch (err) {
+      busyRef.current = false
       setError(err)
       setBusy(false)
     }
   }
 
+  const switchMode = (e) => {
+    setError(null)
+    // Only a pointer gets the field's entrance; keyboard actions never animate.
+    setReveal(e.detail > 0)
+    onMode(registering ? 'login' : 'register')
+  }
+
   const errorOn = (field) => (error && error.field === field ? error.message : null)
+  const holder = (registering && form.display_name.trim()) || 'Your name'
+
+  // A wrong email or password comes back as the SAME generic 401 the server
+  // sends for an expired session ("Your session has ended. Please sign in
+  // again."). On a sign-in form that message is both wrong and alarming — a
+  // typo is not a session ending — so a rejected credential is said plainly,
+  // and said identically whether or not the email exists (no account
+  // enumeration). A paused account keeps its own ACCOUNT_DEACTIVATED message.
+  // App's session-ended FLOW is untouched: api.js already exempts the auth
+  // calls (login / register / me) from the guard and the guard is disarmed on
+  // the sign-in screen anyway, so this changes only what the form SHOWS.
+  const formError =
+    error && !error.field
+      ? !registering && error.status === 401 && error.code !== 'ACCOUNT_DEACTIVATED'
+        ? 'Wrong email or password.'
+        : error.message
+      : null
 
   return (
     <div className="gate">
-      <div className="gate-card">
-        <h1 className="gate-title">SpendWise</h1>
-        <p className="gate-sub">See where your money went.</p>
+      <div className="gate-layout">
+        <section className="gate-hero sw-enter" aria-labelledby="gate-title">
+          <span className="wordmark gate-brand">SpendWise</span>
+          <div className="sw-stage gate-stage">
+            <LiquidBlob contained x={0.5} y={0.5} size={0.88} />
+            <span className="sw-rosette" aria-hidden="true" />
+            <BankCard decorative className="gate-bankcard" holder={holder} meta="Since 2026" />
+          </div>
+          <div className="gate-copy">
+            <h1 className="gate-title" id="gate-title">Know where every rupee goes.</h1>
+            <p className="sw-lede gate-lede">
+              Log a spend in seconds and see it by category and by day.
+              Your figures are visible to you alone.
+            </p>
+          </div>
+        </section>
 
-        {reason && (
-          <p className="banner" role="status" data-testid="session-reason">{reason}</p>
-        )}
+        <section className="gate-card sw-enter" style={{ '--sw-delay': '80ms' }}
+                 aria-labelledby="gate-form-title">
+          <h2 className="gate-form-title" id="gate-form-title">
+            {registering ? 'Create your account' : 'Sign in'}
+          </h2>
+          <p className="gate-sub">
+            {registering ? 'It takes a name, an email and a password.' : 'Welcome back.'}
+          </p>
 
-        {error && !error.field && (
-          <p className="form-error" role="alert" data-testid="gate-error">{error.message}</p>
-        )}
-
-        <form onSubmit={submit} noValidate>
-          {registering && (
-            <div className="field">
-              <label htmlFor="display_name">Your name</label>
-              <input
-                id="display_name" name="display_name" autoComplete="name"
-                value={form.display_name} onChange={set('display_name')}
-                aria-invalid={errorOn('display_name') ? 'true' : undefined} required
-              />
-              {errorOn('display_name') && (
-                <span className="field-error" role="alert">{errorOn('display_name')}</span>
-              )}
-            </div>
+          {reason && (
+            <p className="banner" role="status" data-testid="session-reason">{reason}</p>
           )}
 
-          <div className="field">
-            <label htmlFor="email">Email</label>
-            <input
-              id="email" name="email" type="email" autoComplete="email"
-              value={form.email} onChange={set('email')}
-              aria-invalid={errorOn('email') ? 'true' : undefined} required
-            />
-            {errorOn('email') && (
-              <span className="field-error" role="alert">{errorOn('email')}</span>
-            )}
-          </div>
+          {formError && (
+            <p className="form-error" role="alert" data-testid="gate-error">{formError}</p>
+          )}
 
-          <div className="field">
-            <label htmlFor="password">Password</label>
-            <input
-              id="password" name="password" type="password"
-              autoComplete={registering ? 'new-password' : 'current-password'}
-              value={form.password} onChange={set('password')}
-              aria-invalid={errorOn('password') ? 'true' : undefined} required
-            />
-            {errorOn('password') && (
-              <span className="field-error" role="alert">{errorOn('password')}</span>
-            )}
+          <form onSubmit={submit} noValidate aria-busy={busy ? 'true' : undefined}>
             {registering && (
-              <span className="entry-meta">At least 12 characters.</span>
+              <div className={reveal ? 'field gate-reveal' : 'field'}>
+                <label htmlFor="display_name">Your name</label>
+                <input
+                  id="display_name" name="display_name" autoComplete="name"
+                  value={form.display_name} onChange={set('display_name')}
+                  aria-invalid={errorOn('display_name') ? 'true' : undefined}
+                  aria-describedby={errorOn('display_name') ? 'display_name-error' : undefined}
+                  required
+                />
+                {errorOn('display_name') && (
+                  <span className="field-error" id="display_name-error" role="alert">
+                    {errorOn('display_name')}
+                  </span>
+                )}
+              </div>
             )}
-          </div>
 
-          <button
-            type="submit" className="btn" style={{ width: '100%' }}
-            data-testid="gate-submit" aria-disabled={busy ? 'true' : undefined}
-          >
-            {busy ? 'Just a moment…' : registering ? 'Create account' : 'Sign in'}
-          </button>
-        </form>
+            <div className="field">
+              <label htmlFor="email">Email</label>
+              <input
+                ref={emailRef}
+                id="email" name="email" type="email" autoComplete="email" inputMode="email"
+                spellCheck={false} autoCapitalize="none"
+                value={form.email} onChange={set('email')}
+                aria-invalid={errorOn('email') ? 'true' : undefined}
+                aria-describedby={errorOn('email') ? 'email-error' : undefined}
+                required
+              />
+              {errorOn('email') && (
+                <span className="field-error" id="email-error" role="alert">{errorOn('email')}</span>
+              )}
+            </div>
 
-        <p className="gate-footer">
-          {registering ? 'Already have an account?' : 'New to SpendWise?'}{' '}
-          <button
-            type="button" className="btn-link" data-testid="gate-switch"
-            onClick={() => { setError(null); onMode(registering ? 'login' : 'register') }}
-          >
-            {registering ? 'Sign in' : 'Create one'}
-          </button>
-        </p>
+            <div className="field">
+              <label htmlFor="password">Password</label>
+              <input
+                id="password" name="password" type="password"
+                autoComplete={registering ? 'new-password' : 'current-password'}
+                value={form.password} onChange={set('password')}
+                aria-invalid={errorOn('password') ? 'true' : undefined}
+                aria-describedby={
+                  [errorOn('password') && 'password-error', registering && 'password-hint']
+                    .filter(Boolean).join(' ') || undefined
+                }
+                required
+              />
+              {errorOn('password') && (
+                <span className="field-error" id="password-error" role="alert">
+                  {errorOn('password')}
+                </span>
+              )}
+              {registering && (
+                <span className="entry-meta gate-hint" id="password-hint">At least 12 characters.</span>
+              )}
+            </div>
+
+            <button
+              type="submit" className="btn btn-lg btn-block gate-submit"
+              data-testid="gate-submit" aria-disabled={busy ? 'true' : undefined}
+            >
+              {busy ? 'Just a moment…' : registering ? 'Create account' : 'Sign in'}
+            </button>
+          </form>
+
+          <p className="gate-footer">
+            {registering ? 'Already have an account?' : 'New to SpendWise?'}{' '}
+            <button type="button" className="btn-link" data-testid="gate-switch" onClick={switchMode}>
+              {registering ? 'Sign in' : 'Create one'}
+            </button>
+          </p>
+        </section>
       </div>
     </div>
   )

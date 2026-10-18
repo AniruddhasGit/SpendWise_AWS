@@ -1,4 +1,5 @@
 import { rupees } from '../../lib/money.js'
+import { Odometer } from '../../lib/motion.js'
 
 /**
  * Spending by category, as a ring.
@@ -40,6 +41,11 @@ export default function Donut({ buckets, selected, onSelect, total }) {
       <div className="donut" data-filtering={selected !== null ? 'true' : 'false'}>
         <svg viewBox="0 0 160 160" className="donut-svg" role="group"
              aria-label="Spending by category" data-testid="donut">
+          {/* The empty ring under the slices: a hairline track, so a month
+              whose slices do not quite close (rounding) still reads as a
+              whole, and the ring has a shape while the slices draw in. */}
+          <circle className="donut-track" cx="80" cy="80" r={R} fill="none"
+                  strokeWidth="20" aria-hidden="true" />
           {slices.map((s) => (
             <circle
               key={key(s)}
@@ -64,7 +70,9 @@ export default function Donut({ buckets, selected, onSelect, total }) {
           ))}
         </svg>
         <div className="donut-centre" aria-hidden="true">
-          <span className="donut-total sw-num">{rupees(total)}</span>
+          {/* Rolls digit by digit when a slice filters the total. */}
+          <Odometer value={total} className="donut-total"
+                    style={{ '--donut-chars': rupees(total).length }} />
           <span className="entry-meta">
             {selected !== null ? 'filtered' : 'total'}
           </span>
@@ -85,7 +93,9 @@ export default function Donut({ buckets, selected, onSelect, total }) {
               aria-pressed={isSelected(b)}
               onClick={() => onSelect(isSelected(b) ? null : key(b))}
             >
-              <span className="legend-swatch" style={{ background: b.color }}
+              {/* A coin, not a bare square: the rim is what keeps a pale
+                  category colour visible against the card (3:1). */}
+              <span className="legend-swatch sw-swatch" style={{ '--coin': b.color }}
                     aria-hidden="true" />
               <span className="legend-name">{b.category_name}</span>
               <span className="legend-amount sw-num">{rupees(b.total_paise)}</span>

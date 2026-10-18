@@ -14,12 +14,16 @@ export default function Bars({ rows, format = rupees, label, testId }) {
 
   return (
     <div className="bars" data-testid={testId} aria-label={label} role="img">
-      {rows.map((r) => (
-        <div className="bar-row" key={r.label}>
+      {rows.map((r, i) => (
+        // The largest row is marked so the sheet can set it in gold (a
+        // highlight); its value is printed, so colour is never the only cue.
+        <div className="bar-row" key={r.label}
+             data-peak={r.value > 0 && r.value === peak ? 'true' : undefined}>
           <span className="bar-label">{r.label}</span>
           <span className="bar-track">
             <span className="bar-fill"
-                  style={{ width: `${Math.max(1, (r.value / peak) * 100)}%` }} />
+                  style={{ width: `${Math.max(1, (r.value / peak) * 100)}%`,
+                           '--sw-delay': `calc(${Math.min(i, 8)} * var(--sw-stagger))` }} />
           </span>
           <span className="bar-value sw-num">{format(r.value)}</span>
         </div>

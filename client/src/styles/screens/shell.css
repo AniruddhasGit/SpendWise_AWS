@@ -1,0 +1,479 @@
+/* screens/shell.css — owned by the shell screen agent. Builds on tokens.css + glass.css + motion.css;
+   see the contract in docs/05 B DesignSystem/DESIGN-SYSTEM.md §9. No raw hex, no :focus-visible rule.
+
+   Covers: the boot splash, the sign-in gate, the app shell (rail, mobile top
+   bar, content column, route pane) and the four screen states.
+
+   glass.css owns every SURFACE here (.rail, .topbar-mobile, .gate-card): its
+   background, blur, border, shadow and radius. This sheet owns geometry,
+   type and the shell's own small parts. Where a legacy compound selector
+   needs beating, it is repeated exactly; there is no !important.
+
+   Motion decisions (animate skill):
+     gate entrance      occasional, preventing a jarring change: .sw-enter
+                        320ms rise, the panel 80ms after the hero.
+     name field reveal  occasional, spatial: 240ms rise, pointer only.
+     route pane         occasional, preventing a jarring change: .sw-route
+                        240ms settle (transform only), pointer navigation only.
+     rail item select   tens per day, state: background/colour 180ms ease.
+     phone rail         occasional, spatial: transform 320ms on the drawer
+                        curve; the scrim fades via @starting-style.
+     boot splash        once per load: wordmark fades in AFTER 300ms, so a
+                        fast session probe shows nothing at all.
+     skeleton           fades in after 150ms for the same reason.
+   Reduced motion: tokens.css collapses every duration; the literal delays
+   below are kept on purpose, because they decide WHETHER something shows,
+   not how it moves. */
+
+/* ── 0. boot splash ───────────────────────────────────────────────────────── */
+/* Not the gate: no guilloché, no orb, nothing that reads as the sign-in
+   screen. Just the page ground (body owns it) and a quiet wordmark. */
+.boot {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+}
+.boot-mark {
+  opacity: 0;
+  animation: shell-appear var(--sw-dur-enter) var(--sw-ease-out) 300ms forwards;
+}
+@keyframes shell-appear {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── 1. the wordmark: a gold coin and the name ───────────────────────────── */
+/* Repeats the legacy selectors so the square / tile marks are replaced. */
+.wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sw-space-2);
+  font-family: var(--sw-font-display);
+  font-size: var(--sw-text-lg);
+  font-weight: var(--sw-weight-semibold);
+  letter-spacing: var(--sw-track-tight);
+  line-height: 1;
+  color: var(--sw-ink);
+}
+.wordmark::before,
+:root[data-theme="dark"] .wordmark::before {
+  content: "";
+  flex: none;
+  width: 1.1em;
+  height: 1.1em;
+  border-radius: var(--sw-radius-full);
+  background:
+    radial-gradient(circle at 34% 30%, var(--sw-specular), transparent 46%),
+    linear-gradient(140deg, var(--sw-gold-fill), var(--sw-gold-deep));
+  box-shadow:
+    inset 0 0 0 2px var(--sw-gold-soft),
+    0 0 0 1px var(--sw-gold-deep);
+}
+
+/* ── 2. the gate ──────────────────────────────────────────────────────────── */
+/* `.gate` stays a plain block: it must never become a stacking context (the
+   guilloché and vignette hang off it at z -4/-3). Layout lives one level in. */
+.gate {
+  display: block;
+  min-height: 100dvh;
+  padding: 0;
+}
+.gate-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 420px);
+  align-items: center;
+  gap: var(--sw-space-14);
+  width: 100%;
+  max-width: 76rem;
+  min-height: 100dvh;
+  margin-inline: auto;
+  padding: var(--sw-space-10) var(--sw-space-8);
+}
+
+.gate-hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sw-space-6);
+  min-width: 0;
+}
+.gate-brand { align-self: flex-start; }
+
+.gate-stage {
+  min-height: clamp(340px, 52vh, 520px);
+  padding: var(--sw-space-8) 0;
+  /* The orb: wider than the card and centred below-right of it, so molten
+     metal shows past the card's right, top and bottom edges. It spills at
+     most a few dozen px below the stage, into the gap and the title (ink on
+     the orb: 5.65:1 worst case, dark gold).
+     It must never reach the lede: MUTED ink on the orb is only 3.12:1. */
+  --orb-r: 215px;
+  --orb-dx: 30px;
+  --orb-dy: 40px;
+  --orb-bleed: 112px;
+}
+.gate-stage > .sw-rosette { width: min(120%, 600px); }
+.gate-bankcard { width: min(100%, 400px); }
+
+.gate-copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sw-space-3);
+}
+/* Five words, two lines at most: big and tight, set in ink. */
+.gate-title,
+.page-title.gate-title {
+  margin: 0;
+  max-width: 13ch;
+  font-size: clamp(2.5rem, 4.4vw, 3.75rem);
+  font-weight: var(--sw-weight-semibold);
+  line-height: 1.02;
+  letter-spacing: var(--sw-track-display);
+  color: var(--sw-ink);
+}
+.gate-lede { margin: 0; }
+
+/* The sign-in panel: compact, never a stretched form. */
+.gate-card {
+  justify-self: end;
+  width: 100%;
+  max-width: 420px;
+  padding: var(--sw-space-8) var(--sw-space-6) var(--sw-space-6);
+  overflow: visible;
+}
+.gate-form-title {
+  margin: 0 0 var(--sw-space-1);
+  font-family: var(--sw-font-display);
+  font-size: var(--sw-text-xl);
+  font-weight: var(--sw-weight-semibold);
+  line-height: var(--sw-leading-tight);
+  letter-spacing: var(--sw-track-tight);
+  color: var(--sw-ink);
+}
+.gate-sub {
+  margin: 0 0 var(--sw-space-6);
+  font-size: var(--sw-text-sm);
+  color: var(--sw-ink-muted);
+}
+.gate-card .banner,
+.gate-card .form-error { margin: 0 0 var(--sw-space-4); }
+.gate-card .form-error { padding: var(--sw-space-3) var(--sw-space-4); color: var(--sw-danger); }
+.gate-card .field label { display: block; }
+.gate-hint { display: block; margin-top: var(--sw-space-1); }
+.gate-submit { margin-top: var(--sw-space-2); }
+.gate-footer {
+  margin: var(--sw-space-6) 0 0;
+  padding-top: var(--sw-space-4);
+  border-top: 1px solid var(--sw-border);
+  font-size: var(--sw-text-sm);
+  color: var(--sw-ink-muted);
+  text-align: center;
+}
+
+.gate-reveal {
+  animation: sw-rise var(--sw-dur-small) var(--sw-ease-out) backwards;
+}
+
+/* Tablet and phone: one column, the card shrunk above the form. */
+@media (max-width: 900px) {
+  .gate-layout {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: var(--sw-space-6);
+    min-height: 0;
+    padding: var(--sw-space-5) var(--sw-space-4) var(--sw-space-10);
+  }
+  .gate-hero { gap: var(--sw-space-4); }
+  .gate-stage {
+    min-height: 0;
+    padding: var(--sw-space-8) 0;
+    /* The card nearly fills the width here, so the orb peeks out BELOW it
+       (the radius is capped to the stage width in LiquidBlob.jsx). It spills
+       ~35-45px under the stage, into the gap and the title, and never reaches
+       the lede (shown from 601px). */
+    --orb-r: 150px;
+    --orb-dx: 0px;
+    --orb-dy: 24px;
+    --orb-bleed: 100px;
+  }
+  .gate-stage > .sw-rosette { width: min(110%, 420px); }
+  .gate-bankcard { width: min(82%, 320px); }
+  .gate-title,
+  .page-title.gate-title { font-size: clamp(1.875rem, 7.4vw, 2.5rem); }
+  .gate-card {
+    justify-self: center;
+    padding: var(--sw-space-6) var(--sw-space-5) var(--sw-space-5);
+  }
+}
+/* A phone: keep the form near the fold. The lede is the first thing to go. */
+@media (max-width: 600px) {
+  .gate-lede { display: none; }
+  .gate-bankcard { width: min(76%, 280px); }
+}
+
+/* ── 3. the app shell ─────────────────────────────────────────────────────── */
+.app-main { min-width: 0; }
+
+.content {
+  max-width: 80rem;
+  margin-inline: auto;
+  padding: var(--sw-space-8) var(--sw-space-8) var(--sw-space-12);
+}
+/* The route pane: carries the crossfade and stands in for the old direct
+   children of .content, so it is a column with the same (zero) gap. */
+.shell-pane {
+  display: flex;
+  flex-direction: column;
+  gap: inherit;
+  min-width: 0;
+}
+/* A sign-out the server did not confirm: said plainly, with the retry beside it. */
+.shell-signout-error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sw-space-3);
+}
+
+/* The rail. The legacy Swiss rail is a ruled column; this one is a quiet
+   glass slab with rounded items. */
+.rail {
+  width: 16.5rem;
+  height: 100dvh;
+  gap: var(--sw-space-6);
+  padding: var(--sw-space-5) var(--sw-space-3) var(--sw-space-4);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.rail-brand {
+  min-height: var(--sw-target-min);
+  padding: 0 var(--sw-space-3);
+  border-bottom: 0;
+}
+
+.rail-nav {
+  gap: var(--sw-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rail-item,
+.rail-item[aria-current='page'] {
+  display: flex;
+  align-items: center;
+  gap: var(--sw-space-3);
+  min-height: var(--sw-target-min);
+  padding: 0 var(--sw-space-3);
+  border: 0;
+  border-radius: var(--sw-radius-md);
+  font-family: var(--sw-font-body);
+  font-size: var(--sw-text-base);
+  text-transform: none;
+  letter-spacing: 0;
+  cursor: pointer;
+  transition:
+    background-color var(--sw-dur-hover) ease,
+    color var(--sw-dur-hover) ease,
+    box-shadow var(--sw-dur-hover) ease,
+    transform var(--sw-dur-press) var(--sw-ease-out);
+}
+.rail-item {
+  background: transparent;
+  color: var(--sw-ink-muted);
+  font-weight: var(--sw-weight-medium);
+}
+.rail-item:hover { background: transparent; color: var(--sw-ink-muted); }
+@media (hover: hover) and (pointer: fine) {
+  .rail-item:hover { background: var(--sw-glass-sunken); color: var(--sw-ink); }
+}
+.rail-item:active { transform: scale(0.98); }
+/* Selected: a raised knob, ink on --sw-paper-raised (16.80:1 / 14.71:1), the
+   icon in emerald (6.42:1 / 9.31:1, well over the 3:1 a glyph needs). */
+.rail-item[aria-current='page'],
+.rail-item[aria-current='page']:hover {
+  background: var(--sw-paper-raised);
+  color: var(--sw-ink);
+  font-weight: var(--sw-weight-semibold);
+  box-shadow: var(--sw-highlight), var(--sw-shadow-sm);
+}
+.rail-icon {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  font-size: inherit;
+  color: currentColor;
+}
+.rail-item[aria-current='page'] .rail-icon { color: var(--sw-pine); }
+
+.rail-section {
+  gap: var(--sw-space-2);
+  padding: 0 var(--sw-space-3);
+  border-bottom: 0;
+}
+.rail-heading {
+  margin: 0;
+  font-size: var(--sw-text-xs);
+  font-weight: var(--sw-weight-medium);
+  color: var(--sw-ink-muted);
+}
+.rail .segmented { display: flex; width: 100%; }
+.rail .segment { flex: 1 1 0; min-width: 0; padding: 0 var(--sw-space-2); }
+.rail-hint { margin: 0; font-size: var(--sw-text-xs); color: var(--sw-ink-muted); }
+
+.rail-foot {
+  margin-top: auto;
+  gap: var(--sw-space-3);
+  padding: var(--sw-space-4) var(--sw-space-3) 0;
+  border-top: 1px solid var(--sw-border);
+}
+.rail-account {
+  display: flex;
+  align-items: center;
+  gap: var(--sw-space-3);
+  min-width: 0;
+}
+/* The account's monogram, minted as a coin. --sw-on-gold on --sw-gold-fill
+   is the gold button's own pair. */
+.rail-avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--sw-radius-full);
+  background:
+    radial-gradient(circle at 34% 28%, var(--sw-specular), transparent 50%),
+    var(--sw-gold-fill);
+  color: var(--sw-on-gold);
+  font-size: var(--sw-text-sm);
+  font-weight: var(--sw-weight-semibold);
+  box-shadow: inset 0 0 0 1px var(--sw-gold-deep), var(--sw-shadow-sm);
+}
+.rail-id {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.rail-who {
+  font-size: var(--sw-text-sm);
+  font-weight: var(--sw-weight-semibold);
+  color: var(--sw-ink);
+  overflow-wrap: anywhere;
+}
+.rail-email {
+  font-size: var(--sw-text-xs);
+  color: var(--sw-ink-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rail-foot .pill { align-self: flex-start; }
+.rail-signout {
+  align-self: stretch;
+  margin-top: 0;
+}
+
+/* ── 4. phone width: the top bar and the drawer ──────────────────────────── */
+@media (max-width: 900px) {
+  .topbar-mobile {
+    position: sticky;
+    top: 0;
+    z-index: var(--sw-z-topbar);
+    min-height: 56px;
+    padding: var(--sw-space-1) var(--sw-space-2) var(--sw-space-1) var(--sw-space-1);
+  }
+  .topbar-mobile .wordmark { font-size: var(--sw-text-md); }
+
+  .rail {
+    z-index: var(--sw-z-rail);
+    width: min(18rem, 86vw);
+    transition: transform var(--sw-dur-enter) var(--sw-ease-drawer);
+  }
+  /* The rail's own scrim sits just under it (the dialog scrim token is above
+     the rail on purpose, so it cannot be reused here). */
+  .rail-scrim {
+    z-index: calc(var(--sw-z-rail) - 1);
+    background: var(--sw-scrim);
+    opacity: 1;
+    transition: opacity var(--sw-dur-small) var(--sw-ease-out);
+  }
+  @starting-style {
+    .rail-scrim { opacity: 0; }
+  }
+
+  .content { padding: var(--sw-space-5) var(--sw-space-4) var(--sw-space-12); }
+}
+
+/* ── 5. screen states ─────────────────────────────────────────────────────── */
+/* Centred again (the Swiss layer left-aligned and ruled them), on the opaque
+   content tier glass.css gives .state. */
+.state,
+.state-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sw-space-3);
+  padding: var(--sw-space-12) var(--sw-space-6);
+  text-align: center;
+}
+.state-title,
+.section-title.state-title {
+  margin: 0;
+  font-size: var(--sw-text-lg);
+  font-weight: var(--sw-weight-semibold);
+  text-transform: none;
+  letter-spacing: var(--sw-track-tight);
+}
+.state-body {
+  margin: 0 auto var(--sw-space-2);
+  max-width: 42ch;
+  text-wrap: pretty;
+}
+
+/* The state's mark: a 48px token. Glyphs are UI graphics (3:1): gold on
+   --sw-gold-soft, muted ink on --sw-paper-sunken, coral on --sw-danger-soft;
+   see the computed table in the shell report. */
+.state-mark {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: var(--sw-space-1);
+  border-radius: var(--sw-radius-full);
+}
+.state-mark svg { width: 24px; height: 24px; }
+.state-mark-gold   { background: var(--sw-gold-soft);   color: var(--sw-gold); }
+.state-mark-muted  { background: var(--sw-paper-sunken); color: var(--sw-ink-muted); }
+.state-mark-danger { background: var(--sw-danger-soft); color: var(--sw-danger); }
+
+/* Loading: shaped like the dashboard (the statement card, then ledger rows),
+   and invisible for its first 150ms. */
+.state-loading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sw-space-6);
+  animation: shell-appear var(--sw-dur-small) var(--sw-ease-out) 150ms backwards;
+}
+.state-loading-card {
+  width: min(100%, 440px);
+  aspect-ratio: 85.6 / 53.98;
+  height: auto;
+  border-radius: var(--sw-radius-card);
+}
+.state-loading-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sw-space-3);
+}
+.state-loading-rows > .skeleton { height: 56px; border-radius: var(--sw-radius-md); }
+.state-loading-rows > .skeleton:nth-child(2) { width: 88%; }
+.state-loading-rows > .skeleton:nth-child(3) { width: 72%; }
+
+@media (max-width: 900px) {
+  .state, .state-error { padding: var(--sw-space-10) var(--sw-space-5); }
+}
+
+/* ── 6. reduced motion ───────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .gate-reveal { animation: none; }
+}

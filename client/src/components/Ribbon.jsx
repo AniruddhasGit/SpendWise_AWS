@@ -130,10 +130,12 @@ export default function Ribbon({ buckets, selected, onSelect }) {
           band's accessible name — announcing both would double every item. */}
       <ul className="ribbon-legend" aria-hidden="true">
         {buckets.map((b) => (
-          <li className="legend-item" key={key(b)}>
-            <span className="legend-swatch" style={{ background: b.color }} />
-            <span>{b.category_name}</span>
-            <span className="sw-num">{b.percent}%</span>
+          // The swatch is the coin's own ::before, with a rim, so a pale
+          // category stays visible on the card.
+          <li className="legend-item sw-coin" key={key(b)} style={{ '--coin': b.color }}
+              title={`${b.category_name}: ${b.percent}%`}>
+            <span className="legend-item-name">{b.category_name}</span>
+            <span className="sw-num legend-item-pct">{b.percent}%</span>
           </li>
         ))}
       </ul>

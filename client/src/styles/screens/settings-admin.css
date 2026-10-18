@@ -1,0 +1,405 @@
+/* screens/settings-admin.css — owned by the settings-admin screen agent. Builds on tokens.css + glass.css + motion.css;
+   see the contract in docs/05 B DesignSystem/DESIGN-SYSTEM.md §9. No raw hex, no :focus-visible rule.
+
+   Geometry and screen detail only. Surfaces of .card / .table-wrap belong to
+   glass.css; every colour below is a token. Contrast of the pairs introduced
+   here, computed from tokens.css (WCAG 2.1, light / dark):
+     --sw-gold on --sw-paper-raised        6.39 / 10.29   (headline counts)
+     --sw-gold on --sw-gold-soft           5.38 /  9.47   (monogram, admin pill)
+     --sw-pine on --sw-pine-soft           5.45 /  7.49   (status: active)
+     --sw-ink-muted on --sw-paper-sunken   6.09 /  9.38   (status: deactivated, row hover)
+     --sw-danger on --sw-danger-soft       5.23 /  6.95   (status: deleted)
+     --sw-ink on --sw-paper-sunken        14.22 / 16.99   (leaving options, row hover) */
+
+/* ══ SETTINGS ═══════════════════════════════════════════════════════════════ */
+
+.settings {
+  display: grid;
+  gap: var(--sw-space-8);
+  max-width: 72rem;
+}
+
+/* Head: title block on the left, the account's card on the right. The card is
+   a live preview of the display name, so the one thing a person types on this
+   screen shows up somewhere that looks like it matters. */
+.settings-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--sw-space-6);
+  align-items: end;
+  padding-bottom: 0;
+}
+.settings-head-text { display: grid; gap: var(--sw-space-2); min-width: 0; }
+.settings-head-text .sw-eyebrow { margin: 0; }
+.settings-head .page-title {
+  font-size: var(--sw-text-3xl);
+  line-height: 0.95;
+}
+.settings-head-text .entry-meta { overflow-wrap: anywhere; }
+
+.settings-card {
+  justify-self: center;
+  width: min(100%, 19rem);
+  padding-block: var(--sw-space-4);
+}
+.settings-card > .sw-bankcard { width: 100%; }
+.settings-card > .sw-rosette { width: min(135%, 26rem); }
+
+@media (min-width: 901px) {
+  .settings-head { grid-template-columns: minmax(0, 1fr) minmax(16rem, 21rem); }
+  .settings-card { justify-self: end; width: 100%; }
+}
+
+/* Sections: label column + controls column, like a statement's two sides. */
+.settings-sections {
+  display: grid;
+  gap: var(--sw-space-4);
+}
+.settings-section {
+  display: grid;
+  gap: var(--sw-space-4);
+}
+.card.settings-section { padding: var(--sw-space-5); }
+.settings-section-head { min-width: 0; }
+.settings-section-head .card-heading { margin-bottom: var(--sw-space-1); }
+.settings-section-head .card-desc {
+  margin: 0;
+  max-width: 38ch;
+  text-wrap: pretty;
+}
+.settings-section-body {
+  display: grid;
+  gap: var(--sw-space-3);
+  align-content: start;
+  min-width: 0;
+}
+.settings-section-body > * { margin: 0; }
+
+@media (min-width: 901px) {
+  .card.settings-section {
+    grid-template-columns: minmax(12rem, 17rem) minmax(0, 1fr);
+    column-gap: var(--sw-space-10);
+    padding: var(--sw-space-6) var(--sw-space-8);
+  }
+}
+
+/* Your name: input and Save on one line, never wider than a name needs. */
+.settings-section-body > .row-form { max-width: 34rem; }
+.settings-section-body .field-grow { margin-bottom: 0; }
+
+/* Appearance: the three-way control at a sensible width. */
+.settings-section-body > .segmented-wide { max-width: 26rem; }
+.settings-section-body > .segmented-wide > .segment { flex: 1 1 0; }
+
+/* Password: a short column, the button under the fields. */
+.settings-password {
+  display: grid;
+  gap: var(--sw-space-1);
+  max-width: 26rem;
+  justify-items: start;
+}
+.settings-password > .field { width: 100%; }
+.settings-password > .form-error { width: 100%; margin-bottom: var(--sw-space-3); }
+.field-hint { display: block; margin-top: var(--sw-space-1); font-size: var(--sw-text-sm); }
+
+/* Your data: the button, and the filename it will produce. */
+.settings-export {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sw-space-3);
+}
+.settings-export .entry-meta {
+  font-family: var(--sw-font-mono);
+  font-size: var(--sw-text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Closing your account. The note sits above the two options; each option is a
+   sunken tile so the pair reads as a choice between two things. */
+.leaving-note { max-width: 62ch; font-size: var(--sw-text-sm); line-height: var(--sw-leading-snug); }
+.settings .leaving {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  align-items: start;
+  gap: var(--sw-space-4);
+}
+.settings .leaving-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sw-space-3);
+  padding: var(--sw-space-5);
+  border: 1px solid var(--sw-border);
+  border-radius: var(--sw-radius-md);
+  background: var(--sw-paper-sunken);
+}
+.settings .leaving-option > * { margin: 0; }
+.settings .leaving-title {
+  font-family: var(--sw-font-display);
+  font-size: var(--sw-text-md);
+  font-weight: var(--sw-weight-semibold);
+  letter-spacing: var(--sw-track-tight);
+}
+.leaving-confirm {
+  display: grid;
+  gap: var(--sw-space-4);
+  width: 100%;
+}
+.leaving-confirm.row-form { display: flex; }
+.leaving-confirm .consequences {
+  margin: 0;
+  color: var(--sw-ink);
+  line-height: var(--sw-leading-snug);
+}
+.leaving-actions { gap: var(--sw-space-2); }
+
+/* ══ ADMINISTRATION ═════════════════════════════════════════════════════════ */
+
+.admin {
+  display: grid;
+  gap: var(--sw-space-6);
+  min-width: 0;
+}
+.admin-head { padding-bottom: 0; }
+.admin-head > div { display: grid; gap: var(--sw-space-2); }
+.admin-head .sw-eyebrow,
+.admin-head .page-title { margin: 0; }
+.admin-lede,
+.admin-intro { max-width: 62ch; text-wrap: pretty; margin: 0; }
+
+/* Each tab's content settles 4px into place. Transform only: an opacity fade
+   on the panel would make it the Backdrop Root of the glass inside it (the
+   tabs, quiet buttons, banners) and draw them unfrosted until it ended. Its
+   children fade themselves (.sw-enter / .sw-stagger). */
+.admin > *,
+.admin-panel > *,
+.admin-detail > * { min-width: 0; }
+.admin-panel {
+  display: grid;
+  gap: var(--sw-space-5);
+  min-width: 0;
+  animation: sw-settle var(--sw-dur-small) var(--sw-ease-out) backwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .admin-panel { animation: none; }
+}
+
+/* Overview: ONE statement card holding four counts, divided by hairlines,
+   rather than four identical boxes. The first figure is the screen's total
+   and is set in gold; the rest are ink. */
+.card.admin-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 0;
+}
+.admin-stat {
+  display: grid;
+  align-content: start;
+  gap: var(--sw-space-1);
+  padding: var(--sw-space-5);
+  min-width: 0;
+}
+.admin-stat > * { margin: 0; }
+.admin-stat:nth-child(even) { border-left: 1px solid var(--sw-border); }
+.admin-stat:nth-child(n + 3) { border-top: 1px solid var(--sw-border); }
+.admin-stat-value {
+  font-size: var(--sw-text-xl);
+  font-weight: var(--sw-weight-semibold);
+  letter-spacing: var(--sw-track-display);
+  line-height: 1.05;
+  color: var(--sw-ink);
+}
+.admin-stat:first-child .admin-stat-value { color: var(--sw-gold); }
+.admin-stat .entry-meta { font-size: var(--sw-text-sm); }
+
+@media (min-width: 901px) {
+  .card.admin-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .admin-stat { padding: var(--sw-space-6); }
+  .admin-stat:nth-child(n + 3) { border-top: 0; }
+  .admin-stat + .admin-stat { border-left: 1px solid var(--sw-border); }
+  .admin-stat-value { font-size: var(--sw-text-2xl); }
+}
+
+.admin-skel-label { display: block; width: 6rem; height: 0.875rem; }
+.admin-skel-value { display: block; width: 3.5rem; height: 2.25rem; margin-top: var(--sw-space-2); }
+
+@media (min-width: 1100px) {
+  .admin-panels { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); }
+}
+.admin-panels > .card > .entry-meta { margin-top: var(--sw-space-3); }
+
+/* Accounts: search and the deletion filter share one toolbar line. */
+.admin-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sw-space-3);
+}
+.admin-search { flex: 1 1 18rem; min-width: 0; }
+.admin-search .field { margin-bottom: 0; }
+
+/* Tables as a ledger: hairline rules, generous rows, figures right-aligned. */
+.admin .table { width: 100%; border-collapse: collapse; }
+.admin .table th,
+.admin .table td {
+  padding: var(--sw-space-3);
+  border-bottom: 1px solid var(--sw-border);
+  vertical-align: middle;
+}
+.admin .table th:first-child,
+.admin .table td:first-child { padding-left: var(--sw-space-5); }
+.admin .table th:last-child,
+.admin .table td:last-child { padding-right: var(--sw-space-5); }
+/* Positioned so the visually-hidden "Actions" label (absolute) is contained
+   by the scrolling .table-wrap; unpositioned, it escaped the clip and made a
+   375px page scroll sideways (measured: scrollWidth 712). */
+.admin .table thead th {
+  position: relative;
+  height: var(--sw-target-min);
+  background: none;
+  font-size: var(--sw-text-xs);
+  border-bottom: 1px solid var(--sw-border-strong);
+}
+.admin .table td { height: 4rem; }
+.admin .table tbody tr:last-child td { border-bottom: 0; }
+.admin .table tbody tr { transition: background-color var(--sw-dur-hover) ease; }
+@media (hover: hover) and (pointer: fine) {
+  .admin .table tbody tr:hover { background: var(--sw-paper-sunken); }
+}
+.admin .table .num { text-align: right; }
+
+/* The account cell: a gold monogram coin, then name over email. The initials
+   come from a data attribute so they are never part of the row's text. */
+.admin .table td.admin-account {
+  position: relative;
+  padding-left: calc(var(--sw-space-5) + 2.25rem + var(--sw-space-3));
+}
+.admin-account::before,
+.admin-detail-who::before {
+  content: attr(data-initials);
+  display: grid;
+  place-items: center;
+  border-radius: var(--sw-radius-full);
+  background: var(--sw-gold-soft);
+  color: var(--sw-gold);
+  box-shadow: inset 0 0 0 1px var(--sw-gold-deep), var(--sw-highlight);
+  font-family: var(--sw-font-body);
+  font-weight: var(--sw-weight-semibold);
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.admin-account::before {
+  position: absolute;
+  left: var(--sw-space-5);
+  top: 50%;
+  width: 2.25rem;
+  height: 2.25rem;
+  margin-top: -1.125rem;
+  font-size: var(--sw-text-xs);
+}
+.admin .cell-strong { font-weight: var(--sw-weight-semibold); color: var(--sw-ink); }
+.admin .cell-sub {
+  font-family: var(--sw-font-body);
+  font-size: var(--sw-text-sm);
+  color: var(--sw-ink-muted);
+  white-space: nowrap;
+}
+
+/* Row actions: real 44px pills, aligned to the row's right edge. */
+/* The cell stays a real table cell (the legacy rule made it a flex box, which
+   detaches it from the row's height and hairline); the pills flow inside it. */
+.admin .table td.row-actions {
+  display: table-cell;
+  text-align: right;
+  white-space: nowrap;
+}
+.admin .btn-sm.admin-act {
+  display: inline-flex;
+  align-items: center;
+  margin: var(--sw-space-1) 0 var(--sw-space-1) var(--sw-space-1);
+  min-height: var(--sw-target-min);
+  padding: 0 var(--sw-space-2);
+  font-size: var(--sw-text-sm);
+}
+.btn-quiet.admin-act-view { color: var(--sw-pine); font-weight: var(--sw-weight-semibold); }
+
+/* Account state as a pill. The WORD carries the state; colour only repeats it. */
+.admin-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sw-space-2);
+  min-height: 1.75rem;
+  padding: 0 var(--sw-space-3);
+  border-radius: var(--sw-radius-full);
+  font-family: var(--sw-font-body);
+  font-size: var(--sw-text-sm);
+  font-weight: var(--sw-weight-medium);
+  letter-spacing: 0;
+  line-height: 1;
+  white-space: nowrap;
+}
+.admin-status > span { width: 0.5rem; height: 0.5rem; margin: 0; border-radius: var(--sw-radius-full); }
+.admin-status-active { background: var(--sw-pine-soft); color: var(--sw-pine); }
+.admin-status-active > span { background: var(--sw-pine); }
+.admin-status-deactivated { background: var(--sw-paper-sunken); color: var(--sw-ink-muted); }
+.admin-status-deactivated > span { background: var(--sw-ink-muted); }
+.admin-status-deleted { background: var(--sw-danger-soft); color: var(--sw-danger); }
+.admin-status-deleted > span { background: var(--sw-danger); }
+
+.admin .notice { margin: 0; padding: var(--sw-space-3) var(--sw-space-4); }
+
+/* One person. */
+.admin-detail { gap: var(--sw-space-5); }
+.admin-detail-head { align-items: center; padding-bottom: 0; }
+.admin-detail-who {
+  display: grid;
+  grid-template-columns: 3rem minmax(0, 1fr);
+  column-gap: var(--sw-space-4);
+  align-items: center;
+  min-width: 0;
+}
+.admin-detail-who::before {
+  grid-row: 1 / span 2;
+  width: 3rem;
+  height: 3rem;
+  font-size: var(--sw-text-sm);
+}
+.admin-detail-who > * { margin: 0; grid-column: 2; }
+.admin-detail-who .entry-meta { overflow-wrap: anywhere; }
+
+.card.admin-facts { padding: var(--sw-space-5) var(--sw-space-6); }
+.admin-facts dd { font-size: var(--sw-text-md); font-weight: var(--sw-weight-semibold); color: var(--sw-ink); }
+
+.admin-closed { display: grid; gap: var(--sw-space-4); justify-items: start; }
+.admin-closed .card-desc { margin: 0; max-width: 62ch; font-size: var(--sw-text-sm); line-height: var(--sw-leading-snug); }
+
+@media (min-width: 901px) {
+  .admin-figures { grid-template-columns: minmax(0, 1.5fr) repeat(2, minmax(0, 1fr)); }
+}
+.admin-figures .card > * { margin: 0; }
+.admin-figures .card { display: grid; gap: var(--sw-space-1); align-content: start; }
+.admin-figures .card-value { font-size: var(--sw-text-xl); }
+.admin-figure-total .card-value { font-size: var(--sw-text-2xl); color: var(--sw-gold); }
+
+/* Audit: a ledger of sentences, date column on the left. */
+.card.admin-audit-card { padding: var(--sw-space-1) var(--sw-space-5); }
+.admin .audit { gap: 0; margin: 0; padding: 0; }
+.admin .audit-row {
+  display: grid;
+  grid-template-columns: 9rem minmax(0, 1fr);
+  gap: var(--sw-space-4);
+  align-items: baseline;
+  min-height: 3.5rem;
+  padding: var(--sw-space-4) 0;
+  border-bottom: 1px solid var(--sw-border);
+  font-family: var(--sw-font-body);
+  font-size: var(--sw-text-sm);
+}
+.admin .audit-row:last-child { border-bottom: 0; }
+.admin .audit-when { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.admin .audit-what { color: var(--sw-ink); overflow-wrap: anywhere; }
+
+@media (max-width: 600px) {
+  .admin .audit-row { grid-template-columns: minmax(0, 1fr); gap: var(--sw-space-1); }
+}

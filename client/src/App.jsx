@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { api, armSessionGuard, onSessionEnded } from './lib/api.js'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { api, onSessionEnded, startSession, stopSession } from './lib/api.js'
 import { apply, stored } from './lib/theme.js'
 import Sidebar from './components/Sidebar.jsx'
 import Admin from './screens/Admin.jsx'
@@ -19,27 +19,68 @@ import Settings from './screens/Settings.jsx'
  * A router library would buy nothing and cost a dependency, a bundle, and a
  * second set of conventions for expressing "which pane".
  */
+
+/** Drop `?from&to&category` so the next person does not inherit them. */
+function clearQuery() {
+  if (window.location.search) {
+    window.history.replaceState(null, '', window.location.pathname + window.location.hash)
+  }
+}
+
 export default function App() {
   const [principal, setPrincipal] = useState(null)
   const [checking, setChecking] = useState(true)
   const [mode, setMode] = useState('login')
   const [reason, setReason] = useState(null)
   const [view, setView] = useState('dashboard')
+  const [animateRoute, setAnimateRoute] = useState(false)
   const [railOpen, setRailOpen] = useState(false)
   const [theme, setTheme] = useState(stored)
+  const [signingOut, setSigningOut] = useState(false)
+  const [gateFocus, setGateFocus] = useState(false)
+  // A sign-out the server never confirmed. The session cookie is httpOnly, so
+  // script cannot clear it: showing the sign-in form here would be a lie, and
+  // the next person to reload would be signed in as this one.
+  const [signOutError, setSignOutError] = useState(null)
 
   // E3-S7 AC3: a half-typed expense survives the redirect. Held HERE, above
   // the screen that gets unmounted. Memory only, never localStorage — an
   // unsaved amount is somebody's spending, and leaving it on a shared machine
   // after sign-out is a disclosure nobody asked for.
+  //
+  // Stored WITH ITS OWNER, `{ ownerId, form }`. A session ending keeps it on
+  // purpose, and the next person to sign in at that screen may not be the one
+  // who typed it: their "Add expense" must not open on someone else's amount,
+  // description and (foreign) category id.
   const [draft, setDraft] = useState(null)
+
+  const principalRef = useRef(null)
+  principalRef.current = principal
+  const signingOutRef = useRef(false)
+  const focusMain = useRef(false)
+  // The period a person was looking at when their session ended, so the SAME
+  // person signing back in resumes it. Anyone else starts clean.
+  const resume = useRef(null)
+
+  /** Every piece of shell state, back to a signed-out start. One place, so a
+      new piece of state cannot be reset by one exit path and missed by another. */
+  const resetShell = (nextReason) => {
+    setPrincipal(null)
+    setMode('login')
+    setView('dashboard')
+    setAnimateRoute(false)
+    setRailOpen(false)
+    setReason(nextReason)
+    setSignOutError(null)
+    setGateFocus(true)
+  }
 
   useEffect(() => {
     onSessionEnded((err) => {
-      setPrincipal(null)
-      setMode('login')
-      setView('dashboard')
-      setReason(err?.code === 'ACCOUNT_DEACTIVATED'
+      const who = principalRef.current
+      resume.current = who ? { ownerId: who.id, search: window.location.search } : null
+      clearQuery()
+      resetShell(err?.code === 'ACCOUNT_DEACTIVATED'
         ? err.message
         : 'Your session ended. Sign in to pick up where you left off.')
     })
@@ -48,12 +89,15 @@ export default function App() {
   useEffect(() => {
     // `GET /api/auth/me` is the only way to know: the session cookie is
     // httpOnly, so script cannot see whether one exists. A 401 here is the
-    // NORMAL first-visit answer, not a session ending — so the guard is armed
-    // only once the answer is known.
+    // NORMAL first-visit answer, not a session ending — `me` is an auth call,
+    // so it never fires the session-ended handler, and the guard is armed only
+    // once a session is known to exist.
+    let live = true
     api.me()
-      .then((p) => { setPrincipal(p); armSessionGuard() })
-      .catch(() => setPrincipal(null))
-      .finally(() => { setChecking(false); setReason(null) })
+      .then((p) => { if (live) { startSession(); setPrincipal(p) } })
+      .catch(() => { if (live) setPrincipal(null) })
+      .finally(() => { if (live) setChecking(false) })
+    return () => { live = false }
   }, [])
 
   useEffect(() => {
@@ -64,21 +108,94 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
+  // After a sign-in the submit button that had focus is gone with the Gate.
+  // Focus the content region rather than let it fall to <body>.
+  useEffect(() => {
+    if (principal && focusMain.current) {
+      focusMain.current = false
+      document.getElementById('main')?.focus({ preventScroll: true })
+    }
+  }, [principal?.id])
+
   const chooseTheme = (next) => { setTheme(next); apply(next) }
 
-  const signOut = async () => {
-    try { await api.logout() } catch { /* already gone is still signed out */ }
-    setPrincipal(null)
-    setDraft(null)
-    setMode('login')
-    setView('dashboard')
+  const signedIn = (p) => {
+    startSession()
+    const r = resume.current
+    resume.current = null
+    if (r && r.ownerId === p.id && r.search) {
+      window.history.replaceState(null, '', window.location.pathname + r.search)
+    } else {
+      // Anyone else starts clean. Back after a sign-out can put the previous
+      // person's `?from&to&category` into the URL while the Gate is showing;
+      // without this the next person's dashboard would open on it, and send
+      // the previous account's category id to this account's queries.
+      clearQuery()
+    }
+    setDraft((d) => (d && d.ownerId === p.id ? d : null))
+    focusMain.current = true
+    setGateFocus(false)
     setReason(null)
-    armSessionGuard()
+    setPrincipal(p)
+  }
+
+  /**
+   * Idempotent: a double click, or Settings closing the account while the rail
+   * button is also pressed, sends ONE logout. The epoch moves before the call,
+   * so nothing still in flight from this screen can come back as a false
+   * "session ended". `alreadyClosed` skips the call when the server has already
+   * revoked the session and cleared the cookie (close / deactivate).
+   */
+  const signOut = async ({ alreadyClosed = false } = {}) => {
+    if (signingOutRef.current) return
+    signingOutRef.current = true
+    setSigningOut(true)
+    stopSession()
+    if (!alreadyClosed) {
+      let failed = false
+      try {
+        await api.logout()
+      } catch (err) {
+        // 401: the session was already gone, which IS signed out. Anything
+        // else (offline, a timeout, a 5xx) means the server may still hold a
+        // live session behind a cookie script cannot clear.
+        failed = err?.status !== 401
+      }
+      if (failed) {
+        startSession()   // the session is still live: re-arm the guard
+        setRailOpen(false)
+        setSignOutError('Could not sign you out. Check your connection and try again.')
+        signingOutRef.current = false
+        setSigningOut(false)
+        return
+      }
+    }
+    clearQuery()
+    resume.current = null
+    setDraft(null)
+    resetShell(null)
+    signingOutRef.current = false
+    setSigningOut(false)
+  }
+
+  const onDraft = useCallback(
+    (form) => setDraft(form ? { ownerId: principalRef.current?.id, form } : null),
+    [],
+  )
+
+  const go = (next, byPointer) => {
+    // Keyboard navigation is never animated; a pointer gets the crossfade.
+    setAnimateRoute(Boolean(byPointer))
+    setView(next)
   }
 
   if (checking) {
+    // NOT the Gate's backdrop: a signed-in person reloading would see the
+    // sign-in screen flash before their dashboard. The page ground only, and
+    // a wordmark that fades in after 300ms, so a fast probe shows nothing.
     return (
-      <div className="gate">
+      <div className="boot" aria-busy="true">
+        <span className="wordmark boot-mark" aria-hidden="true">SpendWise</span>
         <p className="visually-hidden" aria-live="polite">Checking your session.</p>
       </div>
     )
@@ -87,7 +204,7 @@ export default function App() {
   if (!principal) {
     return (
       <Gate mode={mode} onMode={(m) => { setMode(m); setReason(null) }} reason={reason}
-            onSignedIn={(p) => { setPrincipal(p); setReason(null) }} />
+            autoFocus={gateFocus} onSignedIn={signedIn} />
     )
   }
 
@@ -97,42 +214,64 @@ export default function App() {
 
   return (
     <div className="app">
-      <Sidebar view={view} onView={setView} principal={principal}
-               theme={theme} onTheme={chooseTheme} onSignOut={signOut}
+      <Sidebar view={view} onView={go} principal={principal}
+               theme={theme} onTheme={chooseTheme} onSignOut={() => signOut()}
+               signingOut={signingOut}
                open={railOpen} onClose={() => setRailOpen(false)} />
 
       <div className="app-main">
         <div className="topbar-mobile">
           <button type="button" className="icon-btn" data-testid="rail-open"
                   aria-label="Open menu" aria-expanded={railOpen}
-                  onClick={() => setRailOpen(true)}>☰</button>
+                  onClick={() => setRailOpen(true)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"
+                 strokeLinecap="round" aria-hidden="true">
+              <path d="M4 7h16M4 12h16M4 17h10" />
+            </svg>
+          </button>
           <span className="wordmark">SpendWise</span>
-          <button type="button" className="btn-link" onClick={signOut}>Sign out</button>
+          <button type="button" className="btn-link" onClick={() => signOut()}
+                  aria-disabled={signingOut ? 'true' : undefined}>
+            {signingOut ? 'Signing out…' : 'Sign out'}
+          </button>
         </div>
 
-        <main id="main" className="content">
-          {pane === 'dashboard' && (
-            <Dashboard principal={principal} draft={draft} onDraft={setDraft} />
-          )}
-          {pane === 'categories' && <Categories />}
-          {pane === 'settings' && (
-            <Settings principal={principal} theme={theme} onTheme={chooseTheme}
-                      onSignedOut={signOut} onPrincipal={setPrincipal} />
-          )}
-          {pane === 'admin' && <Admin principal={principal} />}
-          {pane === 'denied' && (
-            <div className="state" data-testid="state-denied">
-              <h2 className="state-title">Not available</h2>
-              <p className="state-body">
-                Administration is for administrator accounts. Hiding this
-                section would be cosmetic — the server refuses every
-                administrative request from a normal account regardless.
-              </p>
-              <button type="button" className="btn" onClick={() => setView('dashboard')}>
-                Back to your spending
+        <main id="main" className="content" tabIndex={-1}>
+          {signOutError && (
+            <div className="form-error shell-signout-error" role="alert"
+                 data-testid="sign-out-error">
+              <span>{signOutError}</span>
+              <button type="button" className="btn btn-quiet btn-sm"
+                      onClick={() => signOut()}
+                      aria-disabled={signingOut ? 'true' : undefined}>
+                {signingOut ? 'Signing out…' : 'Try again'}
               </button>
             </div>
           )}
+          <div key={pane} className={animateRoute ? 'shell-pane sw-route' : 'shell-pane'}>
+            {pane === 'dashboard' && (
+              <Dashboard principal={principal} draft={draft?.form ?? null} onDraft={onDraft} />
+            )}
+            {pane === 'categories' && <Categories />}
+            {pane === 'settings' && (
+              <Settings principal={principal} theme={theme} onTheme={chooseTheme}
+                        onSignedOut={signOut} onPrincipal={setPrincipal} />
+            )}
+            {pane === 'admin' && <Admin principal={principal} />}
+            {pane === 'denied' && (
+              <div className="state" data-testid="state-denied">
+                <h2 className="state-title">Not available</h2>
+                <p className="state-body">
+                  Administration is for administrator accounts. Hiding this
+                  section would be cosmetic. The server refuses every
+                  administrative request from a normal account regardless.
+                </p>
+                <button type="button" className="btn" onClick={() => go('dashboard', true)}>
+                  Back to your spending
+                </button>
+              </div>
+            )}
+          </div>
         </main>
       </div>
     </div>

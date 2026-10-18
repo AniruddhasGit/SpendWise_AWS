@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../lib/api.js'
 import { rupees } from '../lib/money.js'
+import { Money, staggerStyle } from '../lib/motion.js'
+import { PencilIcon, TrashIcon } from '../components/EntryList.jsx'
 import { monthOf, today } from '../lib/period.js'
 
 /**
@@ -107,8 +109,8 @@ export default function Categories() {
       ? `${used.count} expense${used.count === 1 ? '' : 's'} worth ${rupees(used.total_paise)} this month`
       : 'no expenses this month'
     if (!window.confirm(
-      `Delete "${row.name}"?\n\nIt currently has ${scope}. Those expenses are KEPT — ` +
-      `they become Uncategorised. Only the label goes.`)) return
+      `Delete "${row.name}"?\n\nIt currently has ${scope}. Those expenses are KEPT. ` +
+      `They become Uncategorised, and only the label goes.`)) return
     setError(null)
     try {
       await api.deleteCategory(row.id)
@@ -119,15 +121,29 @@ export default function Categories() {
   }
 
   if (rows === null) {
-    return <p className="entry-meta" aria-live="polite">Loading your categories.</p>
+    // The shape of the list it is about to become, so nothing jumps when the
+    // rows arrive. The sentence is the announcement; the bars are decoration.
+    return (
+      <div className="cat-loading">
+        <p className="entry-meta" aria-live="polite">Loading your categories.</p>
+        <div className="card cat-list" aria-hidden="true">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="cat-skel-row">
+              <span className="skeleton cat-skel-coin" />
+              <span className="skeleton cat-skel-line" />
+            </div>
+          ))}
+        </div>
+      </div>
+    )
   }
 
   return (
-    <>
+    <div className="cat-screen">
       <header className="page-head">
         <div>
           <h1 className="page-title">Categories</h1>
-          <p className="entry-meta">
+          <p className="sw-lede cat-lede">
             The eight you started with, and any you add. Renaming or recolouring
             one never touches the money in it.
           </p>
@@ -135,22 +151,23 @@ export default function Categories() {
       </header>
 
       {error && !error.field && (
-        <p className="form-error" role="alert" data-testid="category-error">
+        <p className="form-error cat-error" role="alert" data-testid="category-error">
           {error.message}
         </p>
       )}
 
-      <section className="card" aria-labelledby="new-category">
+      <section className="card card-statement cat-new sw-enter" aria-labelledby="new-category">
         <h2 className="card-heading" id="new-category">Add a category</h2>
-        <form className="row-form" onSubmit={create}>
+        <form className="row-form cat-form" onSubmit={create}>
           <div className="field field-grow">
             <label htmlFor="cat-name">Name</label>
             <input id="cat-name" ref={nameInput} value={form.name} maxLength={50}
-                   data-testid="new-category-name" required
-                   aria-invalid={error?.field === 'name' ? 'true' : undefined}
+                   data-testid="new-category-name" required autoComplete="off"
+                   aria-invalid={error?.field === 'name' && editingId === null ? 'true' : undefined}
+                   aria-describedby={error?.field === 'name' && editingId === null ? 'cat-name-err' : undefined}
                    onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
-            {error?.field === 'name' && (
-              <span className="field-error" role="alert">{error.message}</span>
+            {error?.field === 'name' && editingId === null && (
+              <span className="field-error" id="cat-name-err" role="alert">{error.message}</span>
             )}
           </div>
 
@@ -162,7 +179,7 @@ export default function Categories() {
                 type="button"
                 className="swatch"
                 data-testid={`swatch-${hex.slice(1)}`}
-                style={{ background: hex }}
+                style={{ '--coin': hex }}
                 aria-pressed={form.color === hex}
                 aria-label={`Colour ${hex}`}
                 onClick={() => setForm((f) => ({ ...f, color: hex }))}
@@ -177,41 +194,60 @@ export default function Categories() {
         </form>
       </section>
 
-      <ul className="cat-list" data-testid="category-list">
-        {rows.map((row) => (
-          <li key={row.id} className="cat-row" data-testid={`category-${row.id}`}>
-            <span className="cat-dot" aria-hidden="true" style={{ background: row.color }} />
+      <h2 className="section-title cat-list-title" id="your-categories">
+        Your categories
+        <span className="pill pill-gold cat-count">{rows.length}</span>
+      </h2>
+      <ul className="card cat-list" data-testid="category-list" aria-labelledby="your-categories">
+        {rows.map((row, i) => {
+          const used = usage[row.id]
+          return (
+            <li key={row.id} className="cat-row sw-enter" data-testid={`category-${row.id}`}
+                style={staggerStyle(i)}>
+              {/* `--coin`, not an inline background: `.sw-swatch` paints the
+                  minted rim and highlight around it. The computed
+                  background-color is still exactly `row.color`. */}
+              <span className="cat-dot sw-swatch" aria-hidden="true"
+                    style={{ '--coin': row.color }} />
 
-            {editingId === row.id ? (
-              <CategoryEditor row={row} palette={palette} error={error}
-                              onCancel={() => { setEditingId(null); setError(null) }}
-                              onSave={(patch) => save(row, patch)} />
-            ) : (
-              <>
-                <span className="cat-name">{row.name}</span>
-                <span className="entry-meta cat-usage" data-testid={`usage-${row.id}`}>
-                  {usage[row.id]
-                    ? `${usage[row.id].count} this month · ${rupees(usage[row.id].total_paise)}`
-                    : 'nothing this month'}
-                </span>
-                <span className="cat-actions">
-                  <button type="button" className="icon-btn"
-                          data-testid={`edit-category-${row.id}`}
-                          onClick={() => { setError(null); setEditingId(row.id) }}>
-                    Edit
-                  </button>
-                  <button type="button" className="icon-btn"
-                          data-testid={`delete-category-${row.id}`}
-                          onClick={() => remove(row)}>
-                    Delete
-                  </button>
-                </span>
-              </>
-            )}
-          </li>
-        ))}
+              {editingId === row.id ? (
+                <CategoryEditor row={row} palette={palette} error={error}
+                                onCancel={() => { setEditingId(null); setError(null) }}
+                                onSave={(patch) => save(row, patch)} />
+              ) : (
+                <>
+                  <span className="cat-main">
+                    <span className="cat-name">{row.name}</span>
+                    <span className="cat-usage" data-testid={`usage-${row.id}`}>
+                      {used
+                        ? `${used.count} ${used.count === 1 ? 'expense' : 'expenses'} this month`
+                        : 'Nothing this month'}
+                    </span>
+                  </span>
+                  {used
+                    ? <Money paise={used.total_paise} className="cat-total sw-neg" />
+                    : <span className="cat-total cat-total-empty" aria-hidden="true" />}
+                  <span className="cat-actions">
+                    <button type="button" className="icon-btn"
+                            data-testid={`edit-category-${row.id}`}
+                            aria-label={`Edit ${row.name}`}
+                            onClick={() => { setError(null); setEditingId(row.id) }}>
+                      <PencilIcon />
+                    </button>
+                    <button type="button" className="icon-btn icon-btn-danger"
+                            data-testid={`delete-category-${row.id}`}
+                            aria-label={`Delete ${row.name}`}
+                            onClick={() => remove(row)}>
+                      <TrashIcon />
+                    </button>
+                  </span>
+                </>
+              )}
+            </li>
+          )
+        })}
       </ul>
-    </>
+    </div>
   )
 }
 
@@ -221,17 +257,19 @@ function CategoryEditor({ row, palette, error, onSave, onCancel }) {
 
   return (
     <form
-      className="cat-editor"
+      className="cat-editor sw-pop"
+      aria-label={`Edit ${row.name}`}
       onSubmit={(e) => { e.preventDefault(); onSave({ name: name.trim(), color }) }}
     >
       <div className="field field-grow">
         <label htmlFor={`rename-${row.id}`} className="visually-hidden">Name</label>
         <input id={`rename-${row.id}`} value={name} maxLength={50} autoFocus
-               data-testid={`rename-${row.id}`}
+               data-testid={`rename-${row.id}`} autoComplete="off"
                aria-invalid={error?.field === 'name' ? 'true' : undefined}
+               aria-describedby={error?.field === 'name' ? `rename-${row.id}-err` : undefined}
                onChange={(e) => setName(e.target.value)} />
         {error?.field === 'name' && (
-          <span className="field-error" role="alert">{error.message}</span>
+          <span className="field-error" id={`rename-${row.id}-err`} role="alert">{error.message}</span>
         )}
       </div>
 
@@ -241,17 +279,19 @@ function CategoryEditor({ row, palette, error, onSave, onCancel }) {
             palette — a category recoloured before a token was re-tinted would
             otherwise silently change colour on save. */}
         {[...new Set([row.color, ...palette])].map((hex) => (
-          <button key={hex} type="button" className="swatch" style={{ background: hex }}
+          <button key={hex} type="button" className="swatch" style={{ '--coin': hex }}
                   aria-pressed={color === hex} aria-label={`Colour ${hex}`}
                   data-testid={`recolour-${row.id}-${hex.slice(1)}`}
                   onClick={() => setColor(hex)} />
         ))}
       </fieldset>
 
-      <button type="submit" className="btn" data-testid={`save-category-${row.id}`}>
-        Save
-      </button>
-      <button type="button" className="btn btn-quiet" onClick={onCancel}>Cancel</button>
+      <div className="cat-editor-actions">
+        <button type="button" className="btn btn-quiet btn-sm" onClick={onCancel}>Cancel</button>
+        <button type="submit" className="btn btn-sm" data-testid={`save-category-${row.id}`}>
+          Save
+        </button>
+      </div>
     </form>
   )
 }

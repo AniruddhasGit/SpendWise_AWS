@@ -1,0 +1,409 @@
+/* screens/dashboard.css — owned by the dashboard screen agent. Builds on tokens.css + glass.css + motion.css;
+   see the contract in docs/05 B DesignSystem/DESIGN-SYSTEM.md §9. No raw hex, no :focus-visible rule. */
+
+/* The dashboard reads like a bank statement: the balance on a solid card over
+   the molten orb, a statement card of three figures beside it, then the charts
+   on opaque content cards. Emerald draws the daily series and every primary
+   control; gold marks totals, the projection and each chart's peak; ink is
+   ordinary spending. Coral is never used here (nothing on this screen is an
+   overspend or destructive).
+
+   Layout answers to the PANE's width, not the window's: the rail takes a
+   different amount of room at each breakpoint, so a viewport media query
+   would switch layouts at the wrong moment. `.dash-pane` is a size container. */
+
+/* ── 0. the pane ─────────────────────────────────────────────────────────── */
+.dash-pane {
+  container: dash / inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sw-space-6);
+  min-width: 0;
+}
+
+.dash-pane > .page-head {
+  align-items: flex-end;
+  padding-bottom: 0;
+}
+.dash-pane > .page-head .page-title { margin: 0; }
+.dash-pane > .page-head .entry-meta { margin-top: var(--sw-space-1); }
+
+/* ── 1. the hero: bank card on the stage + the statement card ────────────── */
+.dash-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--sw-space-5);
+  align-items: stretch;
+}
+
+.dash-stage {
+  min-height: 15rem;
+  /* The orb shows below the card (and a little right of it): the card takes
+     most of the stage's width. Below the stage it sits under the glass chart
+     cards, the composite §2.4's contrast table measured. */
+  --orb-r: 210px;
+  --orb-dx: 20px;
+  --orb-dy: 80px;
+  --orb-bleed: 172px;
+  padding: var(--sw-space-6) var(--sw-space-2);
+  border-radius: var(--sw-radius-xl);
+  animation: sw-rise var(--sw-dur-hero) var(--sw-ease-out) backwards;
+}
+.dash-stage > .sw-rosette { width: min(120%, 560px); }
+
+.dash-bankcard { width: min(100%, 420px); }
+
+/* The delta, printed on the card. Arrow + number + words, so the direction is
+   never carried by colour alone. Spending LESS than last month is the good
+   news and takes the card-safe emerald; spending more is stated plainly in
+   the card's own ink (more spending is not an error). */
+.sw-bankcard .dash-delta {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 0.35em;
+  margin: 1.5cqi 0 0;
+  font-family: var(--sw-font-body);
+  font-size: max(12px, 3.4cqi);
+  font-weight: var(--sw-weight-semibold);
+  letter-spacing: 0;
+  text-transform: none;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.sw-bankcard .dash-delta.is-up { color: var(--sw-card-ink); }
+.sw-bankcard .dash-delta.is-down { color: var(--sw-card-positive); }
+.sw-bankcard .dash-delta-words {
+  font-weight: var(--sw-weight-regular);
+  color: var(--sw-card-muted);
+}
+
+/* The statement card: three figures in one opaque card. It is the first
+   `.card` in the document, so its background stays the opaque content tier
+   (the browser test reads it). */
+.dash-figures {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: var(--sw-space-2) var(--sw-space-5);
+  animation: sw-rise var(--sw-dur-enter) var(--sw-ease-out) backwards;
+  animation-delay: calc(2 * var(--sw-stagger));
+}
+.dash-figure-list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  margin: 0;
+}
+.dash-figure {
+  display: grid;
+  gap: var(--sw-space-1);
+  padding: var(--sw-space-4) 0;
+  border-top: 1px solid var(--sw-border);
+  min-width: 0;
+}
+.dash-figure:first-child { border-top: 0; }
+.dash-figure dd { margin: 0; min-width: 0; }
+.dash-figure .card-label { margin-bottom: 0; }
+.dash-figure .card-value {
+  font-family: var(--sw-font-display);
+  font-size: var(--sw-text-2xl);
+  font-weight: var(--sw-weight-semibold);
+  line-height: 1.1;
+  letter-spacing: var(--sw-track-tight);
+  color: var(--sw-ink);
+  font-variant-numeric: tabular-nums lining-nums;
+  overflow-wrap: anywhere;
+}
+/* A forecast total: gold, the colour of totals. 6.39:1 light, 10.29:1 dark
+   on --sw-paper-raised. */
+.dash-figure .dash-projection { color: var(--sw-gold); }
+
+/* Wide pane: card and statement side by side, the card given more room. */
+@container dash (min-width: 880px) {
+  .dash-hero { grid-template-columns: minmax(0, 1.25fr) minmax(17rem, 1fr); }
+  .dash-stage { min-height: 21rem; }
+  .dash-figures { padding-block: var(--sw-space-3); }
+}
+/* Middle widths: the hero stacks, and the three figures sit in a row with
+   hairline rules between them instead of under them. */
+@container dash (min-width: 560px) and (max-width: 879.98px) {
+  .dash-figure-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .dash-figure {
+    padding: var(--sw-space-4) var(--sw-space-4);
+    border-top: 0;
+    border-left: 1px solid var(--sw-border);
+  }
+  .dash-figure:first-child { border-left: 0; padding-left: 0; }
+  .dash-figure .card-value { font-size: var(--sw-text-xl); }
+}
+
+/* ── 2. chart panels ─────────────────────────────────────────────────────── */
+/* Two rows of two. The line plot is the wider partner. Selectors repeat
+   `.panels > .card` so this wins over the Swiss grid by order. */
+.dash-panels {
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--sw-space-5);
+}
+@container dash (min-width: 880px) {
+  .dash-panels { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); }
+}
+.dash-panels > .card { min-width: 0; }
+.dash-panels .card-heading { margin-bottom: var(--sw-space-4); }
+/* Plots FILL their card. Paired cards are stretched to one row height, and a
+   fixed-aspect plot left a blank band under the shorter partner. The SVG is
+   already drawn with preserveAspectRatio="none" and a non-scaling stroke, so
+   stretching it changes the shape's proportions but never the line weight;
+   the peak bead is placed in percentages and follows. */
+.dash-panels > .card { display: flex; flex-direction: column; }
+.dash-panels .plot { flex: 1 1 auto; display: flex; flex-direction: column; }
+.dash-panels .plot-frame { flex: 1 1 auto; min-height: 11rem; }
+.dash-panels .plot-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+.dash-ribbon { padding: var(--sw-space-5); animation-delay: calc(3 * var(--sw-stagger)); }
+
+/* ── 3. the line plot ────────────────────────────────────────────────────── */
+/* Shared with the admin overview (same component, same sheet: every screen
+   sheet is loaded globally). Nothing here is money-specific. */
+.plot { margin: 0; }
+.plot-frame { position: relative; }
+.plot-line { stroke: var(--sw-plot-line); }
+.plot-stop-top { stop-color: var(--sw-plot-line); stop-opacity: 0.24; }
+.plot-stop-bottom { stop-color: var(--sw-plot-line); stop-opacity: 0; }
+.plot-grid { stroke: var(--sw-plot-grid); stroke-dasharray: 2 5; }
+
+/* The running total is a TOTAL, so it is drawn in gold. --sw-plot-gold on
+   --sw-paper-raised: 3.75:1 light, 10.29:1 dark (graphics need 3:1). */
+.plot-total .plot-line { stroke: var(--sw-plot-gold); }
+.plot-total .plot-stop-top { stop-color: var(--sw-plot-gold); stop-opacity: 0.22; }
+.plot-total .plot-stop-bottom { stop-color: var(--sw-plot-gold); }
+
+/* The peak: a gold bead with a paper ring, so it reads on the line. */
+.plot-peak {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border-radius: var(--sw-radius-full);
+  background: var(--sw-plot-gold);
+  box-shadow: 0 0 0 3px var(--sw-paper-raised), 0 0 0 4px var(--sw-plot-gold);
+  pointer-events: none;
+  animation: sw-pop var(--sw-dur-small) var(--sw-ease-out) backwards;
+  animation-delay: calc(var(--sw-dur-spring) - 120ms);
+}
+
+/* Draw-in: the series is wiped in left to right, like ink across a page. A
+   clip-path inset (compositor-friendly, no path-length maths, and safe with
+   the non-scaling stroke). The negative insets keep the stroke at the top and
+   bottom from being shaved. Runs on mount and when the period changes. */
+@keyframes dash-wipe {
+  from { clip-path: inset(-12% 100% -12% -2%); }
+  to   { clip-path: inset(-12% -2% -12% -2%); }
+}
+.plot-draw { animation: dash-wipe var(--sw-dur-spring) var(--sw-ease-out) backwards; }
+
+.plot-axis { margin-top: var(--sw-space-2); }
+.plot figcaption { margin-top: var(--sw-space-2); }
+
+/* ── 4. the donut ────────────────────────────────────────────────────────── */
+.donut-wrap { gap: var(--sw-space-5); align-items: center; }
+.donut { width: 11rem; }
+.donut-track { stroke: var(--sw-paper-sunken); }
+
+@keyframes dash-donut-in {
+  from { opacity: 0; transform: rotate(-36deg) scale(0.92); }
+  to   { opacity: 1; transform: none; }
+}
+.donut-svg {
+  transform-origin: 50% 50%;
+  animation: dash-donut-in var(--sw-dur-spring) var(--sw-ease-out) backwards;
+}
+/* The slices keep their two selection cues from app.css: the chosen one
+   thickens (inline geometry) and the rest dim. Only the timing is restated. */
+.slice {
+  transition:
+    stroke-width var(--sw-dur-hover) var(--sw-ease-out),
+    opacity var(--sw-dur-hover) ease;
+}
+
+.donut-centre { gap: 0; }
+.donut-total {
+  font-family: var(--sw-font-display);
+  /* Fitted to the hole. The ring's hole is ~110px at 11rem; Donut.jsx passes
+     the label's character count, and a tabular figure is ~0.58em wide, so
+     the label stays inside ~92px whether it reads ₹962.25 or ₹1,23,45,678.90.
+     Never larger than the token, never below 11px. */
+  font-size: clamp(11px, calc(5.75rem / (var(--donut-chars, 10) * 0.58)), var(--sw-text-md));
+  font-weight: var(--sw-weight-semibold);
+  letter-spacing: var(--sw-track-tight);
+  color: var(--sw-gold);
+}
+
+/* The legend: the keyboard path. Ledger rows with a coin, tabular amounts on
+   a shared right edge. Selectors repeat the Swiss ones so these win by order. */
+/* 16rem basis: in the narrow half of the grid the legend drops UNDER the ring
+   rather than truncating every category name beside it. */
+.donut-wrap { justify-content: center; }
+.donut-legend { flex: 1 1 16rem; gap: 0; min-width: 0; }
+.legend-btn {
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  gap: var(--sw-space-3);
+  min-height: var(--sw-target-min);
+  padding: var(--sw-space-2) var(--sw-space-2);
+  border: 0;
+  border-top: 1px solid var(--sw-border);
+  border-radius: 0;
+  background: none;
+  color: var(--sw-ink);
+  font-family: var(--sw-font-body);
+  font-size: var(--sw-text-sm);
+  transition: background-color var(--sw-dur-hover) ease, color var(--sw-dur-hover) ease;
+}
+.donut-legend li:first-child .legend-btn { border-top: 0; }
+@media (hover: hover) and (pointer: fine) {
+  .legend-btn:hover { background: var(--sw-glass-sunken); color: var(--sw-ink); }
+}
+/* Selected: a soft emerald field AND a heavier weight AND an inset emerald
+   rule, so it never rests on colour alone. */
+.legend-btn[aria-pressed='true'] {
+  border-color: var(--sw-border);
+  background: var(--sw-pine-soft);
+  color: var(--sw-ink);
+  font-weight: var(--sw-weight-semibold);
+  box-shadow: inset 3px 0 0 var(--sw-pine);
+}
+.legend-amount {
+  color: var(--sw-ink);
+  font-family: var(--sw-font-body);
+  font-variant-numeric: tabular-nums lining-nums;
+  text-align: right;
+}
+.legend-pct {
+  min-width: 3.5ch;
+  color: var(--sw-ink-muted);
+  font-family: var(--sw-font-body);
+  font-variant-numeric: tabular-nums lining-nums;
+  text-align: right;
+}
+.legend-swatch.sw-swatch { width: 18px; height: 18px; }
+
+/* ── 5. the ribbon ───────────────────────────────────────────────────────── */
+/* GEOMETRY UNTOUCHED (SW-ADR-055): no width, min-width, flex or gap changes.
+   Only the surface: a rounded track with a 3:1 rim, and the separators and
+   selection marker drawn in the card's own paper so they read as cuts. The
+   two selection cues (the others dim; the chosen band gains an inset ring)
+   stay exactly as app.css defines them. */
+.ribbon-head { margin-bottom: var(--sw-space-3); }
+.ribbon-title { margin: 0; color: var(--sw-ink); font-size: var(--sw-text-base); font-weight: var(--sw-weight-semibold); }
+.ribbon {
+  height: 44px;
+  border: 0;
+  border-radius: var(--sw-radius-sm);
+  background: var(--sw-paper-sunken);
+  box-shadow: 0 0 0 1px var(--sw-border-strong);
+}
+.band { box-shadow: inset -2px 0 0 var(--sw-paper-raised); }
+.band:last-child { box-shadow: none; }
+.ribbon[data-filtering='true'] .band[aria-pressed='true'] {
+  box-shadow: inset 0 0 0 3px var(--sw-paper-raised), inset 0 0 0 5px var(--sw-ink);
+}
+.ribbon-legend {
+  gap: var(--sw-space-2);
+  margin-top: var(--sw-space-4);
+  padding: 0;
+  list-style: none;
+}
+.ribbon-legend .legend-item { gap: var(--sw-space-2); min-width: 0; max-width: 100%; }
+/* A long category name gives way, never the percentage: the name ellipsises
+   inside the chip and the figure keeps its full width. */
+.ribbon-legend .legend-item-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ribbon-legend .legend-item-pct { flex: none; }
+.ribbon-legend .legend-item-pct { color: var(--sw-ink-muted); font-variant-numeric: tabular-nums lining-nums; }
+
+/* ── 6. bars (day of week; also the admin's activity bars) ───────────────── */
+.bars { gap: 0; }
+.bar-row {
+  grid-template-columns: minmax(2.75rem, max-content) minmax(0, 1fr) auto;
+  gap: var(--sw-space-3);
+  min-height: 36px;
+  padding: var(--sw-space-1) 0;
+  border-top: 0;
+}
+/* No filled track: the bar is the only ink, on a single hairline baseline. */
+.bar-track {
+  height: 8px;
+  border-radius: var(--sw-radius-full);
+  background: none;
+  box-shadow: inset 0 -1px 0 var(--sw-border);
+  overflow: visible;
+}
+.bar-fill {
+  height: 100%;
+  border-radius: var(--sw-radius-full);
+  background: var(--sw-plot-line);
+  transform-origin: left center;
+  animation: sw-grow var(--sw-dur-hero) var(--sw-ease-out) backwards;
+  animation-delay: var(--sw-delay, 0ms);
+}
+.bar-row[data-peak='true'] .bar-fill { background: var(--sw-plot-gold); }
+.bar-row[data-peak='true'] .bar-value { color: var(--sw-ink); font-weight: var(--sw-weight-semibold); }
+.bar-value {
+  color: var(--sw-ink-muted);
+  font-family: var(--sw-font-body);
+  font-size: var(--sw-text-sm);
+  font-variant-numeric: tabular-nums lining-nums;
+  text-align: right;
+}
+
+/* ── 7. day bars (kept styled for any screen that mounts them) ───────────── */
+.daybars { gap: 2px; }
+.daybar {
+  border-radius: 3px 3px 0 0;
+  background: var(--sw-plot-line);
+}
+.daybar[data-peak='true'] { background: var(--sw-plot-gold); }
+.daybar[data-empty='true'] { background: var(--sw-border); }
+
+/* ── 8. entries heading ──────────────────────────────────────────────────── */
+.dash-pane > .section-head { margin-top: var(--sw-space-2); padding-bottom: 0; }
+
+/* ── 9. phone ────────────────────────────────────────────────────────────── */
+@container dash (max-width: 559.98px) {
+  .dash-stage { min-height: 0; padding: var(--sw-space-5) 0; --orb-r: 150px; --orb-dx: 0px; --orb-dy: 40px; --orb-bleed: 84px; }
+  /* Clipped decoration still has a bounding box, and the 375px test counts
+     any box past the window's right edge (test_the_shell.py:450). On a phone
+     the card is flush with the gutter, so both rosettes are pulled inside. */
+  .dash-stage > .sw-rosette { width: 100%; }
+  .dash-bankcard .sw-bankcard-guilloche { right: 0; top: -30cqi; width: 78cqi; }
+  .dash-bankcard { width: min(100%, 360px); }
+  .dash-figures { padding: var(--sw-space-1) var(--sw-space-4); }
+  .dash-figure { padding: var(--sw-space-3) 0; }
+  .dash-figure .card-value { font-size: var(--sw-text-xl); }
+  .donut-wrap { justify-content: center; }
+  .donut-legend { flex-basis: 100%; }
+  .dash-ribbon { padding: var(--sw-space-4); }
+}
+
+/* ── 10. reduced motion ──────────────────────────────────────────────────── */
+/* Instant, not slow: tokens.css collapses durations, and this removes the
+   delays and the movement so nothing waits invisibly. */
+@media (prefers-reduced-motion: reduce) {
+  .dash-stage,
+  .dash-figures,
+  .plot-draw,
+  .plot-peak,
+  .donut-svg,
+  .bar-fill { animation: none; }
+}
+
+/* ── 11. the entrance plays once ─────────────────────────────────────────── */
+/* Dashboard.jsx sets data-entered on a return visit by the same person. The
+   pane then simply appears: no rise, no stagger, no plot wipe, no bar growth,
+   and the total starts at its value instead of counting up from ₹0. */
+.dash-pane[data-entered] :is(
+  .dash-stage, .dash-figures, .plot-draw, .plot-peak, .donut-svg, .bar-fill,
+  .sw-enter, .sw-stagger > *
+) { animation: none; }

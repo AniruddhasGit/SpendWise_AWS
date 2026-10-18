@@ -77,9 +77,24 @@ export default function ExpensePanel({ open, editing, categories, draft, onDraft
    * inert happens in the dashboard's effect, which runs after this commit.
    * A zero timeout is the first moment both have happened.
    */
+  //
+  // A zero timeout is enough after Escape (a discrete event: React flushes
+  // the close synchronously). After a SAVE it is not: the close is set after
+  // an await, the commit is batched, and the timeout can fire before the
+  // effect that clears `inert` has run — focus() is then a no-op and focus
+  // lands on <body>. So the restore waits, frame by frame, until the trigger
+  // is out of every inert subtree (or gives up after ~10 frames).
   const restoreFocus = () => {
     const trigger = returnFocusTo.current
-    setTimeout(() => trigger?.focus?.(), 0)
+    const attempt = (left) => {
+      if (!trigger?.isConnected) return
+      if (trigger.closest('[inert]')) {
+        if (left > 0) requestAnimationFrame(() => attempt(left - 1))
+        return
+      }
+      trigger.focus?.()
+    }
+    setTimeout(() => attempt(10), 0)
   }
 
   // THE DIALOG makes the rest of the application inert, and it does it to the
@@ -197,25 +212,30 @@ export default function ExpensePanel({ open, editing, categories, draft, onDraft
         )}
 
         <form onSubmit={submit} noValidate>
-          <div className="field">
+          <div className="field field-amount">
             <label htmlFor={`${id}-amount`}>Amount</label>
-            <input
-              id={`${id}-amount`}
-              name="amount"
-              className="sw-num"
-              inputMode="decimal"
-              // Two decimal places, enforced in the field (`SW-ADR-112`), so
-              // the server's 422 is a backstop the person should never meet.
-              // The server still checks — this is courtesy, not the rule.
-              pattern="^[0-9]{1,15}(\.[0-9]{1,2})?$"
-              placeholder="0.00"
-              autoComplete="off"
-              value={form.amount}
-              onChange={set('amount')}
-              aria-invalid={errorOn('amount') ? 'true' : undefined}
-              aria-describedby={errorOn('amount') ? `${id}-amount-err` : undefined}
-              required
-            />
+            {/* The rupee sign is drawn beside the figure, not typed into it:
+                the field's value stays the plain decimal the server parses. */}
+            <div className="amount-wrap">
+              <span className="amount-cur" aria-hidden="true">₹</span>
+              <input
+                id={`${id}-amount`}
+                name="amount"
+                className="sw-num"
+                inputMode="decimal"
+                // Two decimal places, enforced in the field (`SW-ADR-112`), so
+                // the server's 422 is a backstop the person should never meet.
+                // The server still checks — this is courtesy, not the rule.
+                pattern="^[0-9]{1,15}(\.[0-9]{1,2})?$"
+                placeholder="0.00"
+                autoComplete="off"
+                value={form.amount}
+                onChange={set('amount')}
+                aria-invalid={errorOn('amount') ? 'true' : undefined}
+                aria-describedby={errorOn('amount') ? `${id}-amount-err` : undefined}
+                required
+              />
+            </div>
             {errorOn('amount') && (
               <span className="field-error" id={`${id}-amount-err`} role="alert">
                 {errorOn('amount')}
@@ -223,39 +243,43 @@ export default function ExpensePanel({ open, editing, categories, draft, onDraft
             )}
           </div>
 
-          <div className="field">
-            <label htmlFor={`${id}-date`}>Date</label>
-            <input
-              id={`${id}-date`}
-              name="spent_on"
-              type="date"
-              value={form.spent_on}
-              onChange={set('spent_on')}
-              aria-invalid={errorOn('spent_on') ? 'true' : undefined}
-              required
-            />
-            {errorOn('spent_on') && (
-              <span className="field-error" role="alert">{errorOn('spent_on')}</span>
-            )}
-          </div>
+          <div className="field-pair">
+            <div className="field">
+              <label htmlFor={`${id}-date`}>Date</label>
+              <input
+                id={`${id}-date`}
+                name="spent_on"
+                type="date"
+                value={form.spent_on}
+                onChange={set('spent_on')}
+                aria-invalid={errorOn('spent_on') ? 'true' : undefined}
+                aria-describedby={errorOn('spent_on') ? `${id}-date-err` : undefined}
+                required
+              />
+              {errorOn('spent_on') && (
+                <span className="field-error" id={`${id}-date-err`} role="alert">{errorOn('spent_on')}</span>
+              )}
+            </div>
 
-          <div className="field">
-            <label htmlFor={`${id}-category`}>Category</label>
-            <select
-              id={`${id}-category`}
-              name="category_id"
-              value={form.category_id}
-              onChange={set('category_id')}
-              aria-invalid={errorOn('category_id') ? 'true' : undefined}
-            >
-              <option value="">No category</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-            {errorOn('category_id') && (
-              <span className="field-error" role="alert">{errorOn('category_id')}</span>
-            )}
+            <div className="field">
+              <label htmlFor={`${id}-category`}>Category</label>
+              <select
+                id={`${id}-category`}
+                name="category_id"
+                value={form.category_id}
+                onChange={set('category_id')}
+                aria-invalid={errorOn('category_id') ? 'true' : undefined}
+                aria-describedby={errorOn('category_id') ? `${id}-category-err` : undefined}
+              >
+                <option value="">No category</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+              {errorOn('category_id') && (
+                <span className="field-error" id={`${id}-category-err`} role="alert">{errorOn('category_id')}</span>
+              )}
+            </div>
           </div>
 
           <div className="field">
@@ -267,9 +291,10 @@ export default function ExpensePanel({ open, editing, categories, draft, onDraft
               value={form.description}
               onChange={set('description')}
               aria-invalid={errorOn('description') ? 'true' : undefined}
+              aria-describedby={errorOn('description') ? `${id}-description-err` : undefined}
             />
             {errorOn('description') && (
-              <span className="field-error" role="alert">{errorOn('description')}</span>
+              <span className="field-error" id={`${id}-description-err`} role="alert">{errorOn('description')}</span>
             )}
           </div>
 

@@ -1,0 +1,157 @@
+/* MOTION — client/src/styles/motion.css
+ *
+ * Utilities and keyframes. Loaded after glass.css. Decisions, per the
+ * animate skill's gate:
+ *   - Route change: occasional -> standard. Purpose: preventing a jarring
+ *     change. The PANE only settles 4px into place (transform, 240ms); the
+ *     fade is carried by its children's own entrances (.sw-enter /
+ *     .sw-stagger), each on the glass element itself. Opacity or filter on
+ *     the pane would make it the Backdrop Root of every frosted control
+ *     inside it: they would blur only the transparent pane, draw unfrosted
+ *     for the whole transition, then snap to frosted at the end.
+ *   - List / card entrance: occasional (once per mount) -> stagger, 40ms per
+ *     item, capped at 8 so the ninth row never waits more than 320ms.
+ *   - Hover/press: tens per day -> 120–180ms, transitions only (interruptible).
+ *   - Keyboard-initiated actions are never animated.
+ *
+ * Every entrance uses `animation-fill-mode: backwards`, NEVER `both`/`forwards`:
+ * a filled keyframe would keep overriding `opacity` after it ends, and the
+ * ribbon's selection cue (`.band` dimming, SW-ADR-118, read from computed
+ * style by a browser test) is an opacity transition.
+ *
+ * Reduced motion means INSTANT (SW-ADR-117 (2)): tokens.css collapses every
+ * duration to 0.01ms; the block at the bottom also removes the DELAYS, which
+ * that rule does not touch, so nothing waits invisibly in a stagger.
+ */
+
+@keyframes sw-rise {
+  from { opacity: 0; transform: translateY(10px) scale(0.985); }
+  to   { opacity: 1; transform: none; }
+}
+/* Transform ONLY: transform does not create a Backdrop Root, so glass inside
+   an element moved by this keeps frosting the real page under it. */
+@keyframes sw-settle {
+  from { transform: translateY(4px); }
+  to   { transform: none; }
+}
+@keyframes sw-pop {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes sw-grow {
+  from { transform: scaleX(0.02); }
+  to   { transform: scaleX(1); }
+}
+@keyframes sw-shimmer {
+  to { transform: translateX(100%); }
+}
+
+/* Route crossfade. Put `.sw-route` on the pane's wrapper and give that
+   wrapper `key={view}` so React remounts it on navigation. */
+.sw-route {
+  animation: sw-settle 240ms var(--sw-ease-out) backwards;
+}
+
+/* One element arriving. `--sw-delay` optionally offsets it. */
+.sw-enter {
+  animation: sw-rise var(--sw-dur-enter) var(--sw-ease-out) backwards;
+  animation-delay: var(--sw-delay, 0ms);
+}
+.sw-pop {
+  animation: sw-pop var(--sw-dur-small) var(--sw-ease-out) backwards;
+  animation-delay: var(--sw-delay, 0ms);
+}
+
+/* Stagger the DIRECT children of a container. Indices are set here for the
+   first eight children; past eight they share the last slot. A component
+   can override with style={staggerStyle(i)} from lib/motion.js. */
+.sw-stagger > * {
+  animation: sw-rise var(--sw-dur-enter) var(--sw-ease-out) backwards;
+  animation-delay: calc(var(--sw-i, 0) * var(--sw-stagger) + var(--sw-delay, 0ms));
+}
+.sw-stagger > :nth-child(2) { --sw-i: 1; }
+.sw-stagger > :nth-child(3) { --sw-i: 2; }
+.sw-stagger > :nth-child(4) { --sw-i: 3; }
+.sw-stagger > :nth-child(5) { --sw-i: 4; }
+.sw-stagger > :nth-child(6) { --sw-i: 5; }
+.sw-stagger > :nth-child(7) { --sw-i: 6; }
+.sw-stagger > :nth-child(8) { --sw-i: 7; }
+.sw-stagger > :nth-child(n + 9) { --sw-i: 8; }
+
+/* CountUp (lib/motion.js). The REAL formatted value is always in the DOM and
+   in flow, so `innerText` reads the final figure on every frame — browser
+   tests read totals the instant they render. While counting it is painted
+   transparent, and the ticking digits are drawn by `::before` from data
+   attributes on three part spans (sign+rupee, rupees, paise), so the ticker
+   keeps the same rupee/paise styling as the value. Generated content is not
+   part of innerText or the a11y tree. */
+.sw-countup {
+  position: relative;
+  display: inline-block;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.sw-countup[data-counting] > .sw-countup-value { color: transparent; }
+.sw-countup-ticker {
+  position: absolute;
+  inset: 0;
+  text-align: inherit;
+  pointer-events: none;
+  visibility: hidden;
+  white-space: nowrap;
+}
+.sw-countup[data-counting] > .sw-countup-ticker { visibility: visible; }
+.sw-countup-ticker > span::before { content: attr(data-text); }
+
+/* Odometer (lib/motion.js). A row of reels; each digit reel is one em-high
+   window onto a column "0..9" drawn by ::before, moved by `--d` on the reel
+   itself (never a parent property). Transition, not keyframes, so a value
+   that changes mid-roll retargets from where the reel is. Reels roll right to
+   left, 18ms apart, because that is how a mechanical counter carries. */
+.sw-odo {
+  position: relative;
+  display: inline-block;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.sw-odo-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+.sw-odo-reel { display: inline-flex; align-items: baseline; }
+.sw-odo-reel > span { display: inline-flex; }
+.sw-odo-d,
+.sw-odo-c {
+  display: inline-block;
+  height: 1.15em;
+  line-height: 1.15;
+  overflow: hidden;
+  vertical-align: bottom;
+}
+.sw-odo-d { width: 1ch; text-align: center; }
+.sw-odo-d::before {
+  content: "0\A 1\A 2\A 3\A 4\A 5\A 6\A 7\A 8\A 9";
+  display: block;
+  white-space: pre;
+  transform: translateY(calc(var(--d, 0) * -1.15em));
+  transition: transform var(--sw-dur-roll) var(--sw-ease-out);
+  transition-delay: calc(var(--i, 0) * 18ms);
+}
+.sw-odo-c::before { content: attr(data-c); }
+
+/* Reduced motion: no delays, no transforms, no shimmer. */
+@media (prefers-reduced-motion: reduce) {
+  .sw-route, .sw-enter, .sw-pop, .sw-stagger > * {
+    animation: none;
+  }
+  .skeleton::after { animation: none; }
+  .sw-odo-d::before { transition: none; }
+}

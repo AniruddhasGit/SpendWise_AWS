@@ -4,6 +4,7 @@ import { days, longDate, rupees, shortDate } from '../lib/money.js'
 import { PERIODS, identify, today } from '../lib/period.js'
 import Bars from '../components/charts/Bars.jsx'
 import LinePlot from '../components/charts/LinePlot.jsx'
+import { CountUp, Odometer } from '../lib/motion.js'
 
 /**
  * Administration.
@@ -45,13 +46,14 @@ export default function Admin({ principal }) {
   const [tab, setTab] = useState('overview')
 
   return (
-    <>
-      <header className="page-head">
+    <div className="admin">
+      <header className="page-head admin-head">
         <div>
+          <p className="sw-eyebrow">Console</p>
           <h1 className="page-title">Administration</h1>
-          <p className="entry-meta">
+          <p className="entry-meta admin-lede">
             Accounts and activity. Opening one account shows how much that
-            person spent over a range and never what they spent it on — no
+            person spent over a range and never what they spent it on: no
             category, no description, no single entry. That limit is enforced
             by the database, not by this page, and every look is audited.
           </p>
@@ -61,6 +63,7 @@ export default function Admin({ principal }) {
       <div className="tabs" role="tablist" aria-label="Administration sections">
         {TABS.map((t) => (
           <button key={t.id} type="button" role="tab" className="tab"
+                  id={`admin-tabbtn-${t.id}`} aria-controls="admin-tabpanel"
                   aria-selected={tab === t.id} data-testid={`admin-tab-${t.id}`}
                   onClick={() => setTab(t.id)}>
             {t.label}
@@ -68,11 +71,16 @@ export default function Admin({ principal }) {
         ))}
       </div>
 
-      {tab === 'overview' && <Overview />}
-      {tab === 'accounts' && <Accounts me={principal} />}
-      {tab === 'sessions' && <Sessions />}
-      {tab === 'audit' && <Audit />}
-    </>
+      {/* Keyed on the tab so each section arrives with a short fade instead of
+          swapping in place. 240ms, opacity and a few pixels only. */}
+      <div key={tab} id="admin-tabpanel" role="tabpanel" className="admin-panel"
+           aria-labelledby={`admin-tabbtn-${tab}`}>
+        {tab === 'overview' && <Overview />}
+        {tab === 'accounts' && <Accounts me={principal} />}
+        {tab === 'sessions' && <Sessions />}
+        {tab === 'audit' && <Audit />}
+      </div>
+    </div>
   )
 }
 
@@ -95,13 +103,26 @@ function Overview() {
   const [{ data, error, loading }] = useAsync(() => api.adminOverview(), [])
 
   if (error) return <p className="form-error" role="alert">{error.message}</p>
-  if (loading || !data) return <p className="entry-meta" aria-live="polite">Loading…</p>
+  if (loading || !data) {
+    return (
+      <div className="card admin-stats admin-stats-loading">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="admin-stat" aria-hidden="true">
+            <span className="skeleton admin-skel-label" />
+            <span className="skeleton admin-skel-value" />
+          </div>
+        ))}
+        <p className="visually-hidden" aria-live="polite">Loading…</p>
+      </div>
+    )
+  }
 
   const count = (n) => String(n)
 
   return (
     <>
-      <section className="cards" aria-label="Totals" data-testid="admin-overview">
+      <section className="card card-statement admin-stats sw-stagger" aria-label="Totals"
+               data-testid="admin-overview">
         <Stat label="Accounts" value={data.accounts_total} testId="stat-accounts"
               hint={`${data.admins} administrator${data.admins === 1 ? '' : 's'}`} />
         {/* PAUSED and CLOSED are separate figures, and the hint says both.
@@ -114,10 +135,10 @@ function Overview() {
         <Stat label="Signed in now" value={data.sessions_live} testId="stat-sessions"
               hint="live sessions across all accounts" />
         <Stat label="Expenses recorded" value={data.expenses_recorded}
-              testId="stat-expenses" hint="a count of rows — never a sum" />
+              testId="stat-expenses" hint="a count of rows, never a sum" />
       </section>
 
-      <section className="panels" aria-label="Activity">
+      <section className="panels admin-panels sw-stagger" aria-label="Activity">
         <article className="card">
           <h2 className="card-heading">New accounts, last 30 days</h2>
           {/* The one honest time series an admin can plot: it comes from
@@ -153,13 +174,20 @@ function Overview() {
   )
 }
 
+/**
+ * One figure in the overview strip. COUNTS only, so the count-up formats with
+ * `String` and never with `rupees`: nothing on this tab is money. The final
+ * figure is the real text from the first frame (tests read it at once).
+ */
 function Stat({ label, value, hint, testId }) {
   return (
-    <article className="card">
+    <div className="admin-stat">
       <p className="card-label">{label}</p>
-      <p className="card-value sw-num" data-testid={testId}>{value}</p>
+      <p className="card-value admin-stat-value sw-num">
+        <CountUp value={value} format={String} split={false} data-testid={testId} />
+      </p>
       {hint && <p className="entry-meta">{hint}</p>}
-    </article>
+    </div>
   )
 }
 
@@ -189,11 +217,18 @@ const DOTS = { active: 'ok-dot', deactivated: 'off-dot', deleted: 'gone-dot' }
 function Status({ user }) {
   const state = statusOf(user)
   return (
-    <>
+    <span className={`admin-status admin-status-${state}`}>
       <span className={DOTS[state]} aria-hidden="true" />
       {state}
-    </>
+    </span>
   )
+}
+
+/** Two letters for the account's monogram, drawn by CSS from a data attribute
+    so it is decoration only: not in the accessible name, not in innerText. */
+function initials(name) {
+  const parts = String(name || '').trim().split(/\s+/).filter(Boolean)
+  return ((parts[0]?.[0] || '') + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase()
 }
 
 /**
@@ -233,7 +268,7 @@ function Accounts({ me }) {
     try {
       const out = await fn()
       setNotice(typeof out === 'object' && out?.token
-        ? `Reset code for that account — copy it now, it is shown once: ${out.token}`
+        ? `Reset code for that account. Copy it now, it is shown once: ${out.token}`
         : label)
       await reload()
     } catch (err) {
@@ -253,7 +288,8 @@ function Accounts({ me }) {
 
   return (
     <>
-      <div className="row-form">
+      <div className="admin-toolbar">
+      <div className="row-form admin-search">
         <div className="field field-grow">
           <label htmlFor="admin-search" className="visually-hidden">Search accounts</label>
           <input id="admin-search" placeholder="Search by email or name"
@@ -272,9 +308,10 @@ function Accounts({ me }) {
           </button>
         ))}
       </div>
+      </div>
 
       {error && (
-        <p className="form-error" role="alert" data-testid="admin-error">
+        <p className="form-error sw-pop" role="alert" data-testid="admin-error">
           {error.code === 'CONFLICT'
             ? 'That would leave no active administrator.'
             : error.code === 'FORBIDDEN'
@@ -283,11 +320,11 @@ function Accounts({ me }) {
         </p>
       )}
       {notice && (
-        <p className="ok notice" role="status" data-testid="admin-notice">{notice}</p>
+        <p className="ok notice sw-pop" role="status" data-testid="admin-notice">{notice}</p>
       )}
 
-      {loading && !data ? <p className="entry-meta">Loading…</p> : (
-        <div className="table-wrap">
+      {loading && !data ? <p className="entry-meta" aria-live="polite">Loading…</p> : (
+        <div className="table-wrap admin-table-wrap sw-enter">
           <table className="table" data-testid="admin-users">
             <thead>
               <tr>
@@ -302,13 +339,13 @@ function Accounts({ me }) {
             <tbody>
               {data?.items.map((u) => (
                 <tr key={u.id} data-testid={`admin-user-${u.id}`}>
-                  <td>
+                  <td className="admin-account" data-initials={initials(u.display_name)}>
                     <span className="cell-strong">{u.display_name}</span>
                     <span className="entry-meta cell-sub">{u.email}</span>
                   </td>
                   <td>
                     {u.role === 'admin'
-                      ? <span className="pill">admin</span>
+                      ? <span className="pill pill-gold">admin</span>
                       : <span className="entry-meta">user</span>}
                   </td>
                   <td><Status user={u} /></td>
@@ -321,12 +358,12 @@ function Accounts({ me }) {
                     {u.last_activity ? shortDate(u.last_activity) : 'never'}
                   </td>
                   <td className="row-actions">
-                    <button type="button" className="icon-btn"
+                    <button type="button" className="btn btn-quiet btn-sm admin-act admin-act-view"
                             data-testid={`view-${u.id}`}
                             onClick={() => setViewing(u)}>
                       View
                     </button>
-                    <button type="button" className="icon-btn"
+                    <button type="button" className="btn btn-quiet btn-sm admin-act"
                             data-testid={`revoke-${u.id}`}
                             onClick={() => act('Signed out.', () => api.adminRevoke(u.id))}>
                       Sign out
@@ -336,20 +373,21 @@ function Accounts({ me }) {
                         same call with a truthful label rather than a fourth
                         button — "Reactivate" on a closed account would leave
                         the person wondering which half it undid. */}
-                    <button type="button" className="icon-btn"
+                    <button type="button"
+                            className="btn btn-quiet btn-sm admin-act"
                             data-testid={`toggle-active-${u.id}`}
                             onClick={() => act(
                               u.deleted ? 'Restored.' : u.is_active ? 'Deactivated.' : 'Reactivated.',
                               () => api.adminSetActive(u.id, !u.is_active))}>
                       {u.deleted ? 'Restore' : u.is_active ? 'Deactivate' : 'Reactivate'}
                     </button>
-                    <button type="button" className="icon-btn"
+                    <button type="button" className="btn btn-quiet btn-sm admin-act"
                             data-testid={`toggle-role-${u.id}`}
                             onClick={() => act('Role changed.',
                               () => api.adminSetRole(u.id, u.role === 'admin' ? 'user' : 'admin'))}>
                       {u.role === 'admin' ? 'Demote' : 'Promote'}
                     </button>
-                    <button type="button" className="icon-btn"
+                    <button type="button" className="btn btn-quiet btn-sm admin-act"
                             data-testid={`reset-${u.id}`}
                             onClick={() => act(null, () => api.adminReset(u.id))}>
                       Reset password
@@ -423,10 +461,10 @@ function UserDetail({ row, onBack, onChanged }) {
   }
 
   return (
-    <section className="detail" data-testid="admin-user-detail"
+    <section className="detail admin-detail sw-enter" data-testid="admin-user-detail"
              aria-label={`${who.display_name}, account detail`}>
-      <header className="page-head">
-        <div>
+      <header className="page-head admin-detail-head">
+        <div className="admin-detail-who" data-initials={initials(who.display_name)}>
           <h2 className="section-title">{who.display_name}</h2>
           <p className="entry-meta">{who.email}</p>
         </div>
@@ -436,7 +474,7 @@ function UserDetail({ row, onBack, onChanged }) {
         </button>
       </header>
 
-      <dl className="card facts">
+      <dl className="card facts admin-facts">
         <div>
           <dt>Status</dt>
           <dd data-testid="admin-user-status"><Status user={who} /></dd>
@@ -466,21 +504,21 @@ function UserDetail({ row, onBack, onChanged }) {
         </div>
         <div>
           <dt>Role</dt>
-          <dd>{who.role === 'admin' ? <span className="pill">admin</span> : 'user'}</dd>
+          <dd>{who.role === 'admin' ? <span className="pill pill-gold">admin</span> : 'user'}</dd>
         </div>
       </dl>
 
       {actionError && (
-        <p className="form-error" role="alert" data-testid="admin-user-action-error">
+        <p className="form-error sw-pop" role="alert" data-testid="admin-user-action-error">
           {actionError.message}
         </p>
       )}
 
       {statusOf(who) === 'deleted' && (
-        <div className="card card-danger">
+        <div className="card card-danger admin-closed sw-enter">
           <p className="card-desc">
             <strong>This account was closed by the person who owns it.</strong>{' '}
-            Nothing was erased — every expense and category is still attached to
+            Nothing was erased: every expense and category is still attached to
             it, and their email address is still held. Restoring it clears the
             closure and lets them sign in again.
           </p>
@@ -518,24 +556,30 @@ function UserDetail({ row, onBack, onChanged }) {
         <p className="entry-meta" aria-live="polite">Loading…</p>
       ) : (
         <>
-          <section className="cards" aria-label="Spending in the selected range">
-            <article className="card">
+          <section className="cards admin-figures sw-stagger"
+                   aria-label="Spending in the selected range">
+            <article className="card card-statement admin-figure-total">
               <p className="card-label">Total</p>
               {/* `rupees(total_paise)`, never the `total` string the response
                   also carries. That string is a plain decimal — 3790.49 — and
                   printing it would put an ungrouped number beside every
                   lakh-grouped one in the product (`SW-ADR-056`). The integer is
                   the value; the formatting is `lib/money.js`'s job. */}
-              <p className="card-value sw-num" data-testid="admin-user-total">
-                {rupees(data.total_paise)}
+              {/* An Odometer, so a period change ROLLS the figure in place
+                  rather than swapping it. Its text is `rupees(total_paise)`,
+                  exactly as before; the reels are aria-hidden decoration. */}
+              <p className="card-value sw-num">
+                <Odometer value={data.total_paise} format={rupees}
+                          data-testid="admin-user-total" />
               </p>
               <p className="entry-meta">{data.from} to {data.to}</p>
             </article>
 
             <article className="card">
               <p className="card-label">Entries</p>
-              <p className="card-value sw-num" data-testid="admin-user-count">
-                {data.count}
+              <p className="card-value sw-num">
+                <Odometer value={data.count} format={String} split={false}
+                          data-testid="admin-user-count" />
               </p>
               <p className="entry-meta">a count of expenses, not a list of them</p>
             </article>
@@ -549,9 +593,11 @@ function UserDetail({ row, onBack, onChanged }) {
                   taken — but ₹0.00 standing in for "no answer yet" reads as
                   "this person spends nothing", and that is a claim about
                   someone else's money that nothing here is entitled to make. */}
-              <p className="card-value sw-num" data-testid="admin-user-average">
+              <p className="card-value sw-num">
                 {data.daily_average_paise === null
-                  ? 'Not yet' : rupees(data.daily_average_paise)}
+                  ? <span data-testid="admin-user-average">Not yet</span>
+                  : <Odometer value={data.daily_average_paise} format={rupees}
+                              data-testid="admin-user-average" />}
               </p>
               <p className="entry-meta">over {days(data.days_elapsed)}</p>
             </article>
@@ -561,7 +607,7 @@ function UserDetail({ row, onBack, onChanged }) {
               need `by_category`; the response has no such field and no
               parameter asks for one, so this is the exact spot where the line
               `CR-001` draws stops being a rule and becomes a missing key. */}
-          <article className="card">
+          <article className="card admin-plot sw-enter">
             <h3 className="card-heading">Spending over time</h3>
             <LinePlot days={data.by_day} />
             {data.count === 0 && (
@@ -586,14 +632,14 @@ function Sessions() {
 
   return (
     <>
-      <p className="entry-meta">
+      <p className="entry-meta admin-intro">
         {/* `SW-ADR-106`: no IP, no user agent, and the response model has no
             field for either. Answering "who is signed in" does not require
             handing an administrator a location history. */}
         {data.total} live session{data.total === 1 ? '' : 's'}. SpendWise does not
         show where a session is signed in from.
       </p>
-      <div className="table-wrap">
+      <div className="table-wrap admin-table-wrap sw-enter">
         <table className="table" data-testid="admin-sessions">
           <thead>
             <tr>
@@ -628,11 +674,12 @@ function Audit() {
 
   return (
     <>
-      <p className="entry-meta">
+      <p className="entry-meta admin-intro">
         Every administrative action, and every read of these pages. Written in
         the same transaction as the change it records, and immutable at the
-        database — {data.total} entries.
+        database. {data.total} entries.
       </p>
+      <div className="card admin-audit-card sw-enter">
       <ul className="audit" data-testid="admin-audit">
         {data.items.map((row) => (
           <li key={row.id} className="audit-row">
@@ -648,6 +695,7 @@ function Audit() {
           </li>
         ))}
       </ul>
+      </div>
     </>
   )
 }

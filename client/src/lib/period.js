@@ -169,13 +169,27 @@ export function readCategory(search = window.location.search) {
   return Number.isInteger(n) && n > 0 ? n : null
 }
 
-export function writeState({ from, to, category }, { replace = false } = {}) {
+/**
+ * Each period entry is stamped with the id of the person who made it, so a
+ * Back press can tell whose history it is walking. After one person signs
+ * out and another signs in on the same tab, the earlier entries are still in
+ * the browser's history; replaying them would hand the new person the old
+ * one's range and (worse) their category ids.
+ */
+export function writeState({ from, to, category }, { replace = false, owner = null } = {}) {
   const p = new URLSearchParams()
   p.set('from', from)
   p.set('to', to)
   if (category === 'none') p.set('category', 'none')
   else if (category) p.set('category', String(category))
   const url = `${window.location.pathname}?${p.toString()}`
-  if (replace) window.history.replaceState(null, '', url)
-  else window.history.pushState(null, '', url)
+  const state = owner == null ? null : { swOwner: owner }
+  if (replace) window.history.replaceState(state, '', url)
+  else window.history.pushState(state, '', url)
+}
+
+/** True when the current history entry was written for someone other than `id`. */
+export function foreignEntry(id, state = window.history.state) {
+  const owner = state && typeof state === 'object' ? state.swOwner : undefined
+  return owner !== undefined && owner !== null && owner !== id
 }

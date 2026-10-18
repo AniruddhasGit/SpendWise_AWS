@@ -21,31 +21,68 @@ export class ApiError extends Error {
   }
 }
 
-// ── the single-redirect guard ──────────────────────────────────────────────
+// ── the single-redirect guard, and session EPOCHS ───────────────────────────
 // E3-S7 AC2: two concurrent 401s produce exactly ONE redirect. The dashboard
 // fires the summary and the entry list together, so an expired session returns
 // two 401s within a millisecond of each other; without this the app navigates,
 // then navigates again, and the second navigation wipes the reason banner and
 // the draft the first one saved.
+//
+// Three rules on top of that latch, each closing a reported glitch:
+//
+//   1. The guard starts DISARMED and is armed only by `startSession()`, after a
+//      successful me / login / register. A first visit is not a session.
+//   2. The four AUTH calls (login, register, me, logout) never fire it. Their
+//      401 means "wrong password" or "no session", not "your session ended",
+//      and a sign-in form that answers a typo with "Your session ended" is
+//      wrong in a way that depends on history, which is why it felt random.
+//   3. Every request belongs to the EPOCH it was sent in. Signing in, signing
+//      out and a session ending each start a new epoch and abort everything in
+//      flight. A response from an older epoch is DROPPED: its promise never
+//      settles, so the unmounting screen neither fires the handler (a late 401
+//      after a deliberate sign-out, or one that bounces the NEXT person out)
+//      nor flashes "Could not load" while it waits to be replaced. Every caller
+//      of a stale request belongs to a screen that is going away.
 let sessionEndedHandler = null
-let alreadyEnded = false
+let armed = false
+let epoch = 0
+let controller = new AbortController()
+const NEVER = new Promise(() => {})
 
 export function onSessionEnded(handler) {
   sessionEndedHandler = handler
 }
 
-/** Reset after a successful sign-in, so the NEXT expiry can fire again. */
-export function armSessionGuard() {
-  alreadyEnded = false
+/** Abort everything in flight and invalidate it. */
+function nextEpoch() {
+  epoch += 1
+  controller.abort()
+  controller = new AbortController()
 }
 
-function endSession(err) {
-  if (alreadyEnded) return
-  alreadyEnded = true
+/** A session is now known to exist: new epoch, guard armed. */
+export function startSession() {
+  nextEpoch()
+  armed = true
+}
+
+/** A deliberate sign-out: new epoch, guard disarmed BEFORE the logout call, so
+    nothing still in flight from the old screen can raise a false banner. */
+export function stopSession() {
+  nextEpoch()
+  armed = false
+}
+
+function endSession(err, sentIn) {
+  if (!armed || sentIn !== epoch) return
+  armed = false
+  nextEpoch()
   if (sessionEndedHandler) sessionEndedHandler(err)
 }
 
-async function request(method, path, body) {
+async function request(method, path, body, { auth = false } = {}) {
+  const sentIn = epoch
+  const { signal } = controller
   let response
   try {
     response = await fetch(path, {
@@ -53,8 +90,10 @@ async function request(method, path, body) {
       credentials: 'same-origin',
       headers: body === undefined ? {} : { 'Content-Type': 'application/json' },
       body: body === undefined ? undefined : JSON.stringify(body),
+      signal,
     })
   } catch (cause) {
+    if (signal.aborted || sentIn !== epoch) return NEVER
     // The network, not the server. Distinguished from a 500 because the retry
     // advice differs and because "Something went wrong" over a dropped wifi
     // connection sends people to look for a bug that is not there.
@@ -63,22 +102,25 @@ async function request(method, path, body) {
     throw err
   }
 
-  if (response.status === 204) return null
-
   let payload = null
-  try {
-    payload = await response.json()
-  } catch {
-    payload = null
+  if (response.status !== 204) {
+    try {
+      payload = await response.json()
+    } catch {
+      payload = null
+    }
   }
+  if (sentIn !== epoch) return NEVER
 
   if (!response.ok) {
     const err = new ApiError(response.status, payload)
-    if (response.status === 401) endSession(err)
+    if (response.status === 401 && !auth) endSession(err, sentIn)
     throw err
   }
   return payload
 }
+
+const AUTH = { auth: true }
 
 const q = (params) => {
   const search = new URLSearchParams()
@@ -90,10 +132,10 @@ const q = (params) => {
 }
 
 export const api = {
-  register: (body) => request('POST', '/api/auth/register', body),
-  login: (body) => request('POST', '/api/auth/login', body),
-  logout: () => request('POST', '/api/auth/logout'),
-  me: () => request('GET', '/api/auth/me'),
+  register: (body) => request('POST', '/api/auth/register', body, AUTH),
+  login: (body) => request('POST', '/api/auth/login', body, AUTH),
+  logout: () => request('POST', '/api/auth/logout', undefined, AUTH),
+  me: () => request('GET', '/api/auth/me', undefined, AUTH),
 
   updateMe: (body) => request('PATCH', '/api/auth/me', body),
   changePassword: (body) => request('POST', '/api/auth/password', body),

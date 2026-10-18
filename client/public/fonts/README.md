@@ -1,5 +1,26 @@
 # Self-hosted faces
 
+## Current: Geist, one file (2026-10-18, liquid-glass revision)
+
+| File | Family | Role | Licence | Source |
+|---|---|---|---|---|
+| `Geist-Variable.woff2` | Geist, variable `wght` 100–900 | every `--sw-font-*` token | SIL OFL 1.1 (`OFL-geist.txt`) | official release `vercel/geist-font` **v1.8.1**, `geist-font/Geist/webfonts/Geist[wght].woff2`, unmodified, renamed only |
+
+sha256 `9ce2d97863cab59a0c7522534112d6c42a4e25c0e6b2ab37766761b0f82cfbd6`.
+
+**One file, no subset split.** The release's `Geist[wght].ttf` was read with a cmap/GSUB reader:
+U+20B9 (₹) is present, and so is `tnum`. In a browser, `document.fonts.check('16px Geist', '₹')`
+returned `true` and the face reported `loaded`. Declared in `src/styles/glass.css`, preloaded in
+`index.html`. The OFL requires the licence to travel with the font, so `OFL-geist.txt` must not be
+pruned.
+
+## Legacy (no longer referenced by any token)
+
+The six Bricolage Grotesque / DM Sans / JetBrains Mono files below are still declared by
+`app.redesign.css`. A browser only fetches a face that some element uses, and nothing does any more,
+so they are not downloaded. They go with the legacy-CSS cleanup.
+
+
 Three families, six files. Added 2026-08-21 by `CR-002` / `SW-ADR-152`.
 
 `SW-ADR-020` rejected a CDN for the frontend on single-origin grounds, and the same reasoning

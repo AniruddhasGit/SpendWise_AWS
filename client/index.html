@@ -6,6 +6,12 @@
     <title>SpendWise</title>
     <meta name="description" content="See where your money went." />
     <meta name="color-scheme" content="light dark" />
+    <!-- The page's ONE face, self-hosted (SW-ADR-020). Preloaded so the first
+         paint is not set in a fallback and then reflowed. `crossorigin` is
+         required for a font preload even on the same origin. -->
+    <link rel="preload" href="/fonts/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin />
+    <meta name="theme-color" content="#f7f4ec" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#06140f" media="(prefers-color-scheme: dark)" />
   </head>
   <body>
     <!-- Skip link, first in the tab order. `SW-ADR-117`: a keyboard user should

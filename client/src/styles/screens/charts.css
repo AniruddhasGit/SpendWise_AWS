@@ -1,0 +1,177 @@
+/* Chart axes, ticks and hover tooltip. Owned by the charts work.
+ *
+ * Loaded AFTER dashboard.css (see main.jsx), so the few shared selectors here
+ * win by order. Everything is a token — the token linter greps this file for
+ * raw hex — and every label, line and chip is HTML positioned in percentages
+ * over `.plot-frame`, because the SVG stretches (`preserveAspectRatio="none"`)
+ * and anything drawn inside it would stretch with it.
+ *
+ * The frame must not clip: the tooltip and the top amount sit slightly outside
+ * it. `.plot-frame` is `position: relative` already (dashboard.css) and has no
+ * overflow, so this is just a reminder, not a rule. */
+
+/* ── the plot area ───────────────────────────────────────────────────────── */
+.plot-grid { stroke-width: 1; }
+/* The baseline doubles as the x axis: solid, and a touch stronger than the
+   dashed gridlines above it. */
+.plot-axisline {
+  stroke: var(--sw-border-strong);
+  stroke-dasharray: none;
+}
+
+/* ── y axis: amounts in the left gutter ──────────────────────────────────── */
+/* The container IS the gutter — its width is set inline to the plot's left
+   inset — so every amount right-aligns against the plot edge. */
+.plot-yaxis {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  pointer-events: none;
+}
+.plot-ytick {
+  position: absolute;
+  left: 0;
+  right: 0;
+  padding-right: var(--sw-space-2);
+  transform: translateY(-50%);
+  text-align: right;
+  white-space: nowrap;
+  overflow: visible;
+  color: var(--sw-ink-muted);
+  font-family: var(--sw-font-body);
+  font-size: var(--sw-text-xs);
+  font-variant-numeric: tabular-nums lining-nums;
+  line-height: 1;
+}
+
+/* ── x axis: dates under the baseline ────────────────────────────────────── */
+.plot-xaxis {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.plot-xtick {
+  position: absolute;
+  margin-top: var(--sw-space-1);
+  white-space: nowrap;
+  color: var(--sw-ink-muted);
+  font-family: var(--sw-font-body);
+  font-size: var(--sw-text-xs);
+  font-variant-numeric: tabular-nums lining-nums;
+  line-height: 1;
+}
+/* The extreme ticks tuck their edge to the point so they never clip; the rest
+   centre on it. */
+.plot-xtick[data-edge='mid']   { transform: translateX(-50%); }
+.plot-xtick[data-edge='start'] { transform: translateX(0); }
+.plot-xtick[data-edge='end']   { transform: translateX(-100%); }
+
+/* ── the cursor: crosshair, dot, tooltip ─────────────────────────────────── */
+.plot-crosshair {
+  position: absolute;
+  width: 0;
+  border-left: 1px dashed var(--sw-ink-faint);
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 1;
+  animation: sw-pop var(--sw-dur-press) var(--sw-ease-out);
+}
+
+/* A bead on the line at the read point — emerald on the daily plot, gold on
+   the total, each with a paper ring so it reads on the line (3:1). */
+.plot-cursor {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  margin: -5.5px 0 0 -5.5px;
+  border-radius: var(--sw-radius-full);
+  background: var(--sw-plot-line);
+  box-shadow: 0 0 0 3px var(--sw-paper-raised), 0 0 0 4px var(--sw-plot-line);
+  pointer-events: none;
+  z-index: 2;
+  animation: sw-pop var(--sw-dur-press) var(--sw-ease-out);
+}
+.plot-total .plot-cursor {
+  background: var(--sw-plot-gold);
+  box-shadow: 0 0 0 3px var(--sw-paper-raised), 0 0 0 4px var(--sw-plot-gold);
+}
+
+/* The readout: the day in full and the exact amount. A glass chip, placed by
+   the two custom properties the component computes so it never runs off an
+   edge or over the top of the frame. */
+.plot-tip {
+  position: absolute;
+  z-index: 4;
+  transform: translate(var(--tip-tx, -50%), var(--tip-ty, calc(-100% - var(--sw-space-3))));
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: max-content;
+  max-width: 16rem;
+  padding: var(--sw-space-2) var(--sw-space-3);
+  border: 1px solid var(--sw-border);
+  border-radius: var(--sw-radius-sm);
+  background: var(--sw-glass-strong);
+  -webkit-backdrop-filter: blur(var(--sw-glass-blur)) saturate(var(--sw-glass-saturate));
+  backdrop-filter: blur(var(--sw-glass-blur)) saturate(var(--sw-glass-saturate));
+  box-shadow: var(--sw-highlight), var(--sw-shadow-md);
+  pointer-events: none;
+  animation: sw-pop var(--sw-dur-press) var(--sw-ease-out);
+}
+.plot-tip-date {
+  color: var(--sw-ink-muted);
+  font-family: var(--sw-font-body);
+  font-size: var(--sw-text-xs);
+  line-height: var(--sw-leading-snug);
+  white-space: nowrap;
+}
+.plot-tip-val {
+  color: var(--sw-ink);
+  font-family: var(--sw-font-body);
+  font-size: var(--sw-text-md);
+  font-weight: var(--sw-weight-semibold);
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: var(--sw-track-tight);
+  line-height: var(--sw-leading-tight);
+  white-space: nowrap;
+}
+.plot-total .plot-tip-val { color: var(--sw-gold); }
+
+/* The peak bead steps aside while the cursor is reading, so the two never
+   stack on the same spot. */
+.plot-peak { transition: opacity var(--sw-dur-hover) ease; }
+.plot[data-reading='true'] .plot-peak { opacity: 0; }
+
+/* ── the hit + focus layer ───────────────────────────────────────────────── */
+/* Covers the plot area only, so a pointer's x maps straight to a day. It is
+   the accessible control now: it takes the focus ring (the one global
+   :focus-visible rule in tokens.css styles it — never restated here) and the
+   arrow keys. Transparent, above the overlays, so it keeps every event. */
+.plot-hit {
+  position: absolute;
+  z-index: 3;
+  border-radius: var(--sw-radius-sm);
+  background: none;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+/* ── phone ───────────────────────────────────────────────────────────────── */
+/* Fewer x ticks (first / middle / last) and slightly smaller labels so nothing
+   crowds the gutter on a narrow plot. */
+@media (max-width: 480px) {
+  .plot-xtick[data-optional='true'] { display: none; }
+  .plot-ytick,
+  .plot-xtick { font-size: calc(var(--sw-text-xs) - 1px); }
+  .plot-yaxis .plot-ytick { padding-right: var(--sw-space-1); }
+  .plot-tip-val { font-size: var(--sw-text-base); }
+}
+
+/* ── reduced motion ──────────────────────────────────────────────────────── */
+/* tokens.css already collapses every animation to ~0ms under this query; this
+   removes the peak's opacity transition too, so the swap is instant rather
+   than a fade nobody asked to see. */
+@media (prefers-reduced-motion: reduce) {
+  .plot-peak { transition: none; }
+}
