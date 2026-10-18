@@ -754,3 +754,28 @@ the only thing proved by hand · dev-role `ecr:PutImage` could forge a `uat-ok` 
 revoked, so any future database work needs a temporary security-group rule.
 
 - **Session closed 2026-09-13_0707 by ani87** → handoff: handoffs/HANDOFF_2026-09-13_0707_ani87.md
+
+---
+
+## Session 2026-10-18 — prod ship, public release, and a free always-on Render showcase
+
+Shipped the full client redesign (liquid-glass money theme, responsive, charts with axes + hover),
+backend security hardening (CSP/headers, openapi gated, no source maps, no Server banner, session.py
+passwords moved to env), and a serialization-500 fix for the summary (pure-ASGI retry of the one
+idempotent REPEATABLE READ; 640/640 under contention). Promoted dev→uat→main, deployed production
+(`sha-ac5370b`), then **shut AWS down** (RDS auto-wakes ~2026-10-25 — no re-stop schedule yet).
+
+Purged the old `tools/session.py` passwords from ALL git history (filter-repo on a mirror,
+force-pushed, backup bundle kept), verified 0 on public GitHub, and **made the repo public**. Renamed
+it `SpendWise` → **`SpendWise_AWS`**.
+
+Created a second repo, **`SpendWise`** — the always-on showcase: same container on **Render** (free,
+HTTPS) + a **Neon** Postgres (two-role RLS model, migrated). **LIVE at
+https://spendwise-bvp4.onrender.com**, verified end-to-end (register → 201), DB cleaned for real
+users. Render needed a payment card even for free tier.
+
+**Open / next:** add an RDS daily re-stop schedule (or accept the 7-day wake) · optional cleaner
+Render URL + demo data · finish the local `dev`→`spendwise_aws` folder rename (blocked by the running
+session) · delete the orphan RDS in account `545620235339`.
+
+- **Session closed 2026-10-18_1405 by ani87** → handoff: handoffs/HANDOFF_2026-10-18_1405_ani87.md
