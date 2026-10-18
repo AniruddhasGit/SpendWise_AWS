@@ -76,11 +76,14 @@ async def test_non_api_response_is_not_forced_no_store():
 
 
 async def test_openapi_is_not_public_by_default():
-    # LOG_LEVEL defaults to INFO in the test settings, so the schema route is not
-    # registered. The path then falls through to the SPA catch-all and returns
-    # the HTML shell — never the JSON schema. The point is that the schema is not
-    # served, not the exact status.
+    # LOG_LEVEL defaults to INFO, so the schema route is not registered. The path
+    # then falls through — to the SPA shell where the client is built, or to a
+    # generic error where it is not (as in the no-database CI job, which has no
+    # dist). Either way the OpenAPI schema itself is never served; assert on the
+    # body so the result does not depend on which fallback answered.
+    from app.main import app as _app
+    assert _app.openapi_url is None  # the route is simply not mounted at INFO
+
     r = await _get("/openapi.json")
-    assert "application/json" not in r.headers.get("content-type", "")
     assert '"openapi"' not in r.text
     assert '"paths"' not in r.text
