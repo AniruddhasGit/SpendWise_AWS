@@ -51,4 +51,5 @@ echo "[entrypoint] uvicorn on 0.0.0.0:8000, ${WORKERS} worker(s)"
 exec uvicorn app.main:app \
     --host 0.0.0.0 \
     --port 8000 \
-    --workers "${WORKERS}"
+    --workers "${WORKERS}" \
+    --no-server-header

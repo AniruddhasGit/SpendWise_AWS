@@ -190,3 +190,41 @@ async def unhandled_handler(_: Request, exc: Exception) -> JSONResponse:
         content=envelope(ApiError("INTERNAL")),
         headers={"Cache-Control": "no-store"},
     )
+
+
+# Internal header: `retry_idempotent_serialization` middleware reads it and
+# strips it before the response leaves. Never sent to a client.
+RETRYABLE_HEADER = "x-serialization-retryable"
+
+
+def is_serialization_failure(exc: BaseException) -> bool:
+    """True when `exc` (or a cause in its chain) is PostgreSQL SQLSTATE 40001 —
+    'could not serialize access'. A REPEATABLE READ snapshot that a concurrent
+    commit invalidated. Transient by definition: the same read on a fresh
+    snapshot succeeds, which is why the only correct response is to retry."""
+    seen = 0
+    cur: BaseException | None = exc
+    while cur is not None and seen < 10:
+        code = getattr(cur, "sqlstate", None) or getattr(cur, "pgcode", None)
+        if code == "40001" or type(cur).__name__ == "SerializationError":
+            return True
+        cur = cur.__cause__ or cur.__context__
+        seen += 1
+    return False
+
+
+async def dbapi_error_handler(request: Request, exc: Exception) -> JSONResponse:
+    """A serialization failure becomes a 503 carrying an internal retry marker.
+    The `retry_idempotent_serialization` middleware replays the (idempotent)
+    read and strips the marker, so this 503 NEVER reaches a client — on retry
+    success it sees 200, and if retries exhaust the middleware returns the same
+    opaque `INTERNAL` 500 as any other failure. No new error code is coined, so
+    the closed error contract is untouched. Any non-serialization database
+    error is the ordinary 500 straight away."""
+    if is_serialization_failure(exc):
+        return JSONResponse(
+            status_code=503,
+            content={},  # internal only; the middleware never forwards this body
+            headers={"Cache-Control": "no-store", RETRYABLE_HEADER: "1"},
+        )
+    return await unhandled_handler(request, exc)

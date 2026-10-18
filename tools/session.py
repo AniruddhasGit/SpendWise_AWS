@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import secrets
 import socket
 import subprocess
 import sys
@@ -29,9 +30,29 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 OUT = ROOT / "evidence" / "session"
-ADMIN = ("admin@spendwise.app", "REDACTED-ROTATED-SECRET")
-PERSON = ("you@spendwise.app", "REDACTED-ROTATED-SECRET")
-SCRATCH = ("scratch-leaver@spendwise.app", "REDACTED-ROTATED-SECRET")
+
+
+def _account(env_var: str, email: str) -> tuple[str, str]:
+    """An (email, password) pair whose password comes from the environment.
+
+    Passwords are NEVER hard-coded here (F-S4): this file is committed, so a
+    literal is a published credential. `reset_and_seed.py` prints the two it
+    generates; export them before running:
+
+        export SESSION_ADMIN_PW=...  SESSION_PERSON_PW=...
+
+    The scratch account is registered by this script, so its password is a
+    throwaway generated at runtime, never stored.
+    """
+    pw = os.environ.get(env_var)
+    if not pw:
+        sys.exit(f"set {env_var} to the {email} password (see reset_and_seed.py output)")
+    return (email, pw)
+
+
+ADMIN = _account("SESSION_ADMIN_PW", "admin@spendwise.app")
+PERSON = _account("SESSION_PERSON_PW", "you@spendwise.app")
+SCRATCH = ("scratch-leaver@spendwise.app", secrets.token_urlsafe(18))
 
 log: list[str] = []
 

@@ -17,10 +17,14 @@ from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 
 from app.core.errors import (
-    ApiError, api_error_handler, unhandled_handler, validation_exception_handler,
+    ApiError, api_error_handler, dbapi_error_handler, unhandled_handler,
+    validation_exception_handler,
 )
 from app.core.health import router as ops_router
 from app.core.ratelimit import general_limit_middleware
+from app.core.headers import security_headers_middleware
+from app.core.retry import SerializationRetryMiddleware
+from sqlalchemy.exc import DBAPIError
 from app.core.settings import get_settings
 from app.core.spa import mount as mount_client
 from app.modules.admin.router import router as admin_router
@@ -39,6 +43,10 @@ app = FastAPI(
     # Left on in development only until a record rules otherwise.
     docs_url="/docs" if settings.LOG_LEVEL == "DEBUG" else None,
     redoc_url=None,
+    # The schema is a surface too (F-S3). It was public in every environment
+    # because only docs_url was gated; openapi_url defaults to "/openapi.json".
+    # Tie it to the same switch as the docs that render it.
+    openapi_url="/openapi.json" if settings.LOG_LEVEL == "DEBUG" else None,
 )
 
 # ONE envelope for every non-2xx (`SW-ADR-051`). FastAPI's default
@@ -46,12 +54,29 @@ app = FastAPI(
 # RequestValidationError is handled rather than left to the framework.
 app.add_exception_handler(ApiError, api_error_handler)
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
+# Before the generic Exception handler: a serialization failure (SQLSTATE 40001)
+# becomes a 503 with an internal retry marker that the retry middleware acts on.
+# Registered for the specific class so its response flows back OUT through the
+# user middleware (the generic Exception handler runs outside them and could not
+# be retried). Everything else still falls to unhandled_handler.
+app.add_exception_handler(DBAPIError, dbapi_error_handler)
 app.add_exception_handler(Exception, unhandled_handler)
+
+# Transparent serialization retry for the idempotent REPEATABLE READ summary.
+# Added FIRST so it is the INNERMOST user middleware — a replay re-runs the read
+# (with a fresh session) but NOT the rate limiter above it. Pure ASGI, so it can
+# invoke the app more than once; BaseHTTPMiddleware cannot.
+app.add_middleware(SerializationRetryMiddleware)
 
 # SW-ADR-128's "everything else" limits. Registered as middleware rather than a
 # dependency because it governs every API route including ones not written yet —
 # a per-router dependency is a list someone has to remember to extend.
 app.middleware("http")(general_limit_middleware)
+
+# Security response headers (F-S1, F-S6). Registered AFTER the limit middleware
+# so it is the outermost layer: it stamps headers on every response, including a
+# 429 the limiter returns before any route runs.
+app.middleware("http")(security_headers_middleware)
 
 app.include_router(ops_router)
 app.include_router(auth_router)

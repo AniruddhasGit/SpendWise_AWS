@@ -20,6 +20,9 @@ export default defineConfig({
     // The API serves these from `/assets/`; the default hashed names are what
     // makes a long cache header safe on them and no-store correct on index.html.
     assetsDir: 'assets',
-    sourcemap: true,
+    // No source maps in the shipped bundle (F-S2): they republish the readable
+    // client source — component names, comments, structure — to anyone who
+    // opens devtools on the public site. Build them locally when debugging.
+    sourcemap: false,
   },
 })
