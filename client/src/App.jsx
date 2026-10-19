@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { AnimatePresence } from 'framer-motion'
 import { api, onSessionEnded, startSession, stopSession } from './lib/api.js'
 import { apply, stored } from './lib/theme.js'
+import Coinfall from './components/Coinfall.jsx'
 import Sidebar from './components/Sidebar.jsx'
 import Admin from './screens/Admin.jsx'
 import Categories from './screens/Categories.jsx'
@@ -117,6 +119,26 @@ export default function App() {
     }
   }, [principal?.id])
 
+  // ── Coinfall: the money-themed loading experience (SW-ADR-156) ──────────
+  // An overlay, not an early return, so the real page renders underneath and
+  // the loader simply fades off it. `loadPct` tracks real milestones; `ready`
+  // is the honest "app is up" signal (GET /api/auth/me answered).
+  // Skipped under an automated browser (Playwright sets navigator.webdriver):
+  // the overlay would obscure the Gate and the browser-observed gate (CV-16)
+  // signs in on the first paint. Real users (webdriver=false) get the loader.
+  const [showLoader, setShowLoader] = useState(
+    () => !(typeof navigator !== 'undefined' && navigator.webdriver),
+  )
+  const [replay, setReplay] = useState(false)
+  const [loadPct, setLoadPct] = useState(14)
+  useEffect(() => {
+    let live = true
+    setLoadPct((p) => Math.max(p, 32))               // JS parsed, React mounted
+    document.fonts?.ready?.then(() => { if (live) setLoadPct((p) => Math.max(p, 64)) })
+    return () => { live = false }
+  }, [])
+  useEffect(() => { if (!checking) setLoadPct(100) }, [checking])
+
   const chooseTheme = (next) => { setTheme(next); apply(next) }
 
   const signedIn = (p) => {
@@ -189,30 +211,28 @@ export default function App() {
     setView(next)
   }
 
+  let content
   if (checking) {
     // NOT the Gate's backdrop: a signed-in person reloading would see the
     // sign-in screen flash before their dashboard. The page ground only, and
     // a wordmark that fades in after 300ms, so a fast probe shows nothing.
-    return (
+    content = (
       <div className="boot" aria-busy="true">
         <span className="wordmark boot-mark" aria-hidden="true">SpendWise</span>
         <p className="visually-hidden" aria-live="polite">Checking your session.</p>
       </div>
     )
-  }
-
-  if (!principal) {
-    return (
+  } else if (!principal) {
+    content = (
       <Gate mode={mode} onMode={(m) => { setMode(m); setReason(null) }} reason={reason}
             autoFocus={gateFocus} onSignedIn={signedIn} />
     )
-  }
-
+  } else {
   // A `user` who somehow reaches the admin pane sees a refusal, not a blank —
   // and the server would refuse every request it made anyway (`E4-S1` AC3).
   const pane = view === 'admin' && principal.role !== 'admin' ? 'denied' : view
 
-  return (
+  content = (
     <div className="app">
       <Sidebar view={view} onView={go} principal={principal}
                theme={theme} onTheme={chooseTheme} onSignOut={() => signOut()}
@@ -275,5 +295,26 @@ export default function App() {
         </main>
       </div>
     </div>
+  )
+  }
+
+  return (
+    <>
+      {content}
+      {!principal && !showLoader && !replay && (
+        <button type="button" className="replay-chip" onClick={() => setReplay(true)}
+                aria-label="Replay the intro">↺ Replay intro</button>
+      )}
+      <AnimatePresence>
+        {showLoader && (
+          <Coinfall key="loader" progress={loadPct} ready={!checking}
+                    onEnter={() => setShowLoader(false)} />
+        )}
+        {replay && (
+          <Coinfall key="replay" replay progress={100} ready
+                    onEnter={() => setReplay(false)} />
+        )}
+      </AnimatePresence>
+    </>
   )
 }

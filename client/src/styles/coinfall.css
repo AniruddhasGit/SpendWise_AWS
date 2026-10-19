@@ -1,0 +1,257 @@
+/* COINFALL — the money-themed loading experience (SW-ADR-156).
+ *
+ * A short cinematic intro (a gold coin falls into a pool, the wordmark rises)
+ * then an interactive playground: ₹ coins rain, you fling them into your eight
+ * category vaults, a live donut fills and a total counts up — until the real
+ * app is ready, when it converges and hands off. Reused for the in-app
+ * preloader, the on-landing Replay, and (later) the always-on static front.
+ *
+ * Plain CSS on tokens; framer-motion drives transforms. Reduced motion:
+ * tokens.css collapses durations; this file also hides the falling coins and
+ * shows the final composed frame (see the @media block at the bottom).
+ */
+
+.coinfall {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  overflow: hidden;
+  color: #f3efe2;
+  /* A deep forest-to-black money sky, lit from below by gold. */
+  background:
+    radial-gradient(120% 80% at 50% 118%, rgba(201, 162, 39, 0.28), transparent 60%),
+    radial-gradient(90% 70% at 50% -10%, #0c2a1e, transparent 70%),
+    linear-gradient(180deg, #06140f 0%, #04100b 55%, #020a07 100%);
+  font-family: var(--sw-font, "Geist Variable", system-ui, sans-serif);
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: none;
+}
+
+.coinfall-stage {
+  position: relative;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+}
+
+/* ── the wordmark + tagline (intro) ─────────────────────────────────────── */
+.coinfall-hero {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  gap: 10px;
+  padding: 24px;
+  pointer-events: none;
+}
+.coinfall-mark {
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  font-size: clamp(2.2rem, 8vw, 4.4rem);
+  line-height: 1;
+  background: linear-gradient(180deg, #fbf4dd 0%, #e8c86a 60%, #c9a227 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 8px 30px rgba(201, 162, 39, 0.25));
+}
+.coinfall-tag {
+  font-size: clamp(0.9rem, 2.6vw, 1.15rem);
+  color: #a9c6b5;
+  letter-spacing: 0.01em;
+}
+
+/* ── a coin ──────────────────────────────────────────────────────────────── */
+.coin {
+  position: absolute;
+  width: var(--coin, 46px);
+  height: var(--coin, 46px);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: calc(var(--coin, 46px) * 0.42);
+  color: #5a4410;
+  background:
+    radial-gradient(circle at 34% 30%, #fff3c4 0%, #f2d175 38%, #d9ab34 68%, #a9811f 100%);
+  box-shadow:
+    inset 0 2px 3px rgba(255, 255, 255, 0.6),
+    inset 0 -3px 6px rgba(120, 85, 10, 0.5),
+    0 10px 22px rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(120, 85, 10, 0.35);
+  cursor: grab;
+  will-change: transform;
+}
+.coin:active { cursor: grabbing; }
+.coin--tagged { box-shadow: inset 0 2px 3px rgba(255,255,255,.6), inset 0 -3px 6px rgba(120,85,10,.5), 0 0 0 2px var(--tint, transparent), 0 10px 22px rgba(0,0,0,.45); }
+
+/* the big hero coin of the intro */
+.coin--hero {
+  position: absolute;
+  --coin: clamp(74px, 18vw, 120px);
+  left: 50%;
+  margin-left: calc(var(--coin) / -2);
+}
+
+/* ripple rings the hero coin makes when it lands */
+.coinfall-ripple {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 40px;
+  height: 40px;
+  margin: -20px 0 0 -20px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(233, 200, 106, 0.5);
+}
+
+/* ── the vaults (category jars) ─────────────────────────────────────────── */
+.coinfall-vaults {
+  display: flex;
+  gap: clamp(6px, 1.6vw, 14px);
+  justify-content: center;
+  flex-wrap: wrap;
+  padding: 14px clamp(12px, 4vw, 40px) 10px;
+}
+.vault {
+  position: relative;
+  width: clamp(54px, 9.5vw, 76px);
+  height: clamp(60px, 11vw, 88px);
+  border-radius: 12px 12px 14px 14px;
+  background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.02));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  overflow: hidden;
+  display: grid;
+  align-content: end;
+  justify-items: center;
+  padding-bottom: 6px;
+}
+.vault::before {            /* the fill level, tinted per category */
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: var(--fill, 0%);
+  background: var(--tint, #4a7c59);
+  opacity: 0.55;
+  transition: height 420ms var(--sw-ease-out, cubic-bezier(.2,0,0,1));
+}
+.vault-cap {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 7px;
+  background: var(--tint, #4a7c59);
+  opacity: 0.9;
+}
+.vault-name {
+  position: relative;
+  font-size: clamp(0.5rem, 1.5vw, 0.62rem);
+  color: #e7efe8;
+  text-align: center;
+  line-height: 1.05;
+  z-index: 1;
+  text-shadow: 0 1px 2px rgba(0,0,0,.6);
+}
+
+/* ── the live readout (donut + total) ───────────────────────────────────── */
+.coinfall-readout {
+  position: absolute;
+  top: clamp(12px, 3vh, 28px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: rgba(6, 20, 15, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+.coinfall-total {
+  font-weight: 650;
+  font-size: clamp(1.1rem, 4vw, 1.5rem);
+  font-variant-numeric: tabular-nums;
+  color: #fbf4dd;
+}
+.coinfall-donut { width: 42px; height: 42px; flex: none; }
+
+/* ── the progress rail + hint + buttons ─────────────────────────────────── */
+.coinfall-foot {
+  display: grid;
+  gap: 8px;
+  padding: 12px clamp(14px, 5vw, 48px) calc(14px + env(safe-area-inset-bottom, 0px));
+}
+.coinfall-hint {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.78rem;
+  color: #9fbdac;
+}
+.coinfall-rail {
+  position: relative;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+.coinfall-rail > span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #3f7d5c, #e8c86a);
+}
+.coinfall-skip, .coinfall-replay, .coinfall-enter {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  color: #e7efe8;
+  font: inherit;
+  font-size: 0.82rem;
+  padding: 7px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.coinfall-enter {
+  background: linear-gradient(180deg, #f2d175, #d9ab34);
+  color: #3a2c08;
+  font-weight: 600;
+  border-color: rgba(120, 85, 10, 0.4);
+}
+.coinfall-skip:hover, .coinfall-replay:hover { background: rgba(255,255,255,.12); }
+
+/* the on-landing replay chip (lives outside .coinfall) */
+.replay-chip {
+  position: fixed;
+  right: 14px;
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  z-index: 60;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--sw-ink, #16261d);
+  background: var(--sw-glass, rgba(255,255,255,.7));
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--sw-hairline, rgba(0,0,0,.1));
+  border-radius: 999px;
+  padding: 8px 14px;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0,0,0,.12);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .coin, .coinfall-ripple { display: none; }
+  .coinfall-hero { position: static; place-self: center; }
+}
