@@ -27,12 +27,13 @@ export function ThemeSwitch({ theme, onTheme, className = '' }) {
 }
 
 /**
- * The countdown while the server wakes up. It counts down from an estimate,
+ * The countdown while the server wakes up ("Render time", 60 seconds, with a
+ * note saying why). It counts down from an estimate,
  * opens the moment the server answers (early or late), and past zero says
  * "Almost there" rather than going negative. Shown only after a beat, so a
  * server that is already awake never flashes it.
  */
-const ESTIMATE_S = 45
+const ESTIMATE_S = 60
 const SHOW_AFTER_MS = 350
 
 export function Countdown({ since }) {
@@ -48,13 +49,19 @@ export function Countdown({ since }) {
   const ss = String(left % 60).padStart(2, '0')
   return (
     <div className="scene-countdown" role="status" aria-live="polite" data-testid="countdown">
-      <span className="scene-countdown-label">{left > 0 ? 'Opening in' : 'Almost there'}</span>
+      <span className="scene-countdown-label">{left > 0 ? 'Render time' : 'Almost there'}</span>
       <span className="scene-countdown-time" aria-hidden={left === 0 ? 'true' : undefined}>
         {left > 0 ? `${mm}:${ss}` : '…'}
       </span>
       <span className="scene-countdown-bar" aria-hidden="true">
         <span style={{ '--p': Math.min(1, waited / (ESTIMATE_S * 1000)) }} />
       </span>
+      {/* something to read while waiting (owner, 2026-10-21) */}
+      <p className="scene-countdown-note">
+        SpendWise runs on Render's free plan, which puts the server to sleep when nobody has
+        visited for a while. It is waking up now, which takes about a minute and only happens
+        for the first visitor. The page opens by itself the moment it is ready.
+      </p>
     </div>
   )
 }

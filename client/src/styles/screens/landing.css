@@ -392,6 +392,15 @@
   letter-spacing: 0.04em;
   font-variant-numeric: tabular-nums;
 }
+.scene-countdown-note {
+  max-width: 26rem;
+  margin: var(--sw-space-2) 0 0;
+  padding: 0 var(--sw-space-4);
+  font-size: var(--sw-text-sm);
+  line-height: 1.5;
+  text-align: center;
+  color: var(--sw-dusk-ink);
+}
 .scene-countdown-bar {
   width: 9rem;
   height: 2px;
