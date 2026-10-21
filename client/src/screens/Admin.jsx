@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
-import { days, longDate, rupees, shortDate } from '../lib/money.js'
+import { days, longDate, dollars, shortDate } from '../lib/money.js'
 import { PERIODS, identify, today } from '../lib/period.js'
 import Bars from '../components/charts/Bars.jsx'
 import LinePlot from '../components/charts/LinePlot.jsx'
@@ -176,7 +176,7 @@ function Overview() {
 
 /**
  * One figure in the overview strip. COUNTS only, so the count-up formats with
- * `String` and never with `rupees`: nothing on this tab is money. The final
+ * `String` and never with `dollars`: nothing on this tab is money. The final
  * figure is the real text from the first frame (tests read it at once).
  */
 function Stat({ label, value, hint, testId }) {
@@ -560,16 +560,16 @@ function UserDetail({ row, onBack, onChanged }) {
                    aria-label="Spending in the selected range">
             <article className="card card-statement admin-figure-total">
               <p className="card-label">Total</p>
-              {/* `rupees(total_paise)`, never the `total` string the response
+              {/* `dollars(total_paise)`, never the `total` string the response
                   also carries. That string is a plain decimal — 3790.49 — and
                   printing it would put an ungrouped number beside every
-                  lakh-grouped one in the product (`SW-ADR-056`). The integer is
+                  grouped one in the product (`SW-ADR-157`). The integer is
                   the value; the formatting is `lib/money.js`'s job. */}
               {/* An Odometer, so a period change ROLLS the figure in place
-                  rather than swapping it. Its text is `rupees(total_paise)`,
+                  rather than swapping it. Its text is `dollars(total_paise)`,
                   exactly as before; the reels are aria-hidden decoration. */}
               <p className="card-value sw-num">
-                <Odometer value={data.total_paise} format={rupees}
+                <Odometer value={data.total_paise} format={dollars}
                           data-testid="admin-user-total" />
               </p>
               <p className="entry-meta">{data.from} to {data.to}</p>
@@ -590,13 +590,13 @@ function UserDetail({ row, onBack, onChanged }) {
                   the same helper as the person's own summary: no day elapsed
                   means no average, never 0.00 (`SW-ADR-053`). None of the five
                   chips can build a wholly-future range, so the branch is rarely
-                  taken — but ₹0.00 standing in for "no answer yet" reads as
+                  taken — but $0.00 standing in for "no answer yet" reads as
                   "this person spends nothing", and that is a claim about
                   someone else's money that nothing here is entitled to make. */}
               <p className="card-value sw-num">
                 {data.daily_average_paise === null
                   ? <span data-testid="admin-user-average">Not yet</span>
-                  : <Odometer value={data.daily_average_paise} format={rupees}
+                  : <Odometer value={data.daily_average_paise} format={dollars}
                               data-testid="admin-user-average" />}
               </p>
               <p className="entry-meta">over {days(data.days_elapsed)}</p>

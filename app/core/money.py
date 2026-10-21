@@ -72,7 +72,7 @@ def parse_amount(raw: object) -> int:
 def to_display(paise: int) -> str:
     """Integer paise -> a two-place decimal string. `379049` -> `"3790.49"`.
 
-    No thousands separators. `en-IN` grouping (₹12,34,567.89) is the client's
+    No thousands separators. `en-US` grouping ($1,234,567.89) is the client's
     job, at render time only (`P-UND-07`) — a server that groups has committed
     to a locale it cannot know.
     """

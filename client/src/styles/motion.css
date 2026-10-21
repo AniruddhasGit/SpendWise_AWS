@@ -24,9 +24,18 @@
  * that rule does not touch, so nothing waits invisibly in a stagger.
  */
 
+/* THE entrance: a staggered blur-in ("focus-in"), the owner's reference reel
+   (2026-10-20). Each piece arrives out of focus and sharpens into place, in
+   reading order, on first load and on every screen change; the shell stays
+   still. Translation only, never a scale: a control measured mid-entrance
+   must already be its real size (44px targets, SW-ADR-117). A 0.985 scale
+   once made 44px buttons measure 43 for the first frames of the dashboard.
+   The filter is gone the moment the animation ends (fill: backwards), so it
+   never lingers as a Backdrop Root over glass. */
 @keyframes sw-rise {
-  from { opacity: 0; transform: translateY(10px) scale(0.985); }
-  to   { opacity: 1; transform: none; }
+  from { opacity: 0; filter: blur(14px); transform: translateY(10px); }
+  60%  { opacity: 1; }
+  to   { opacity: 1; filter: blur(0); transform: none; }
 }
 /* Transform ONLY: transform does not create a Backdrop Root, so glass inside
    an element moved by this keeps frosting the real page under it. */
@@ -54,7 +63,7 @@
 
 /* One element arriving. `--sw-delay` optionally offsets it. */
 .sw-enter {
-  animation: sw-rise var(--sw-dur-enter) var(--sw-ease-out) backwards;
+  animation: sw-rise var(--sw-dur-reveal) var(--sw-ease-out) backwards;
   animation-delay: var(--sw-delay, 0ms);
 }
 .sw-pop {
@@ -62,11 +71,19 @@
   animation-delay: var(--sw-delay, 0ms);
 }
 
+/* The same blur-in on a single element, ordered by `--sw-i` (set in the
+   markup, `style={{ '--sw-i': n }}`), for compositions whose reading order is
+   not their DOM order: the landing poster, the dashboard hero, the rail. */
+.sw-focus {
+  animation: sw-rise var(--sw-dur-focus) var(--sw-ease-out) backwards;
+  animation-delay: calc(var(--sw-i, 0) * var(--sw-stagger) + var(--sw-delay, 0ms));
+}
+
 /* Stagger the DIRECT children of a container. Indices are set here for the
    first eight children; past eight they share the last slot. A component
    can override with style={staggerStyle(i)} from lib/motion.js. */
 .sw-stagger > * {
-  animation: sw-rise var(--sw-dur-enter) var(--sw-ease-out) backwards;
+  animation: sw-rise var(--sw-dur-reveal) var(--sw-ease-out) backwards;
   animation-delay: calc(var(--sw-i, 0) * var(--sw-stagger) + var(--sw-delay, 0ms));
 }
 .sw-stagger > :nth-child(2) { --sw-i: 1; }
@@ -82,8 +99,8 @@
    in flow, so `innerText` reads the final figure on every frame — browser
    tests read totals the instant they render. While counting it is painted
    transparent, and the ticking digits are drawn by `::before` from data
-   attributes on three part spans (sign+rupee, rupees, paise), so the ticker
-   keeps the same rupee/paise styling as the value. Generated content is not
+   attributes on three part spans (sign+dollar, dollars, paise), so the ticker
+   keeps the same dollar/paise styling as the value. Generated content is not
    part of innerText or the a11y tree. */
 .sw-countup {
   position: relative;
@@ -147,9 +164,18 @@
 }
 .sw-odo-c::before { content: attr(data-c); }
 
+/* The theme switch: a liquid blob of the new theme grows from the control
+   that was pressed and floods the page (lib/theme.js drives the clip-path on
+   the new snapshot). The old snapshot just sits under it. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
 /* Reduced motion: no delays, no transforms, no shimmer. */
 @media (prefers-reduced-motion: reduce) {
-  .sw-route, .sw-enter, .sw-pop, .sw-stagger > * {
+  .sw-route, .sw-enter, .sw-pop, .sw-stagger > *, .sw-focus {
     animation: none;
   }
   .skeleton::after { animation: none; }

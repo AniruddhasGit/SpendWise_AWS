@@ -1,4 +1,4 @@
-import { rupees } from '../../lib/money.js'
+import { dollars } from '../../lib/money.js'
 
 /**
  * A small horizontal bar chart — used for the day-of-week pattern and for the
@@ -8,7 +8,7 @@ import { rupees } from '../../lib/money.js'
  * weekday names underneath either truncates them or rotates them 45°, and both
  * are worse than turning the chart.
  */
-export default function Bars({ rows, format = rupees, label, testId }) {
+export default function Bars({ rows, format = dollars, label, testId }) {
   if (!rows?.length) return null
   const peak = Math.max(1, ...rows.map((r) => r.value))
 

@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import { effective, THEMES } from '../lib/theme.js'
 
 const NARROW = '(max-width: 900px)'
 
@@ -17,7 +16,7 @@ function useNarrow() {
 }
 
 /**
- * The left rail. Navigation, appearance, and the way out.
+ * The left rail. Navigation and the way out.
  *
  * A `<nav>` with a list of real `<button>`s, not links: there is no router
  * (`SRC-001 §12.1` scopes v1 to a dashboard and a sign-in), so an `<a href>`
@@ -53,7 +52,7 @@ function Icon({ name }) {
   )
 }
 
-export default function Sidebar({ view, onView, principal, theme, onTheme,
+export default function Sidebar({ view, onView, principal,
                                  open, onClose, onSignOut, signingOut = false }) {
   const items = [
     { id: 'dashboard', label: 'Dashboard' },
@@ -110,9 +109,9 @@ export default function Sidebar({ view, onView, principal, theme, onTheme,
           not a div. */}
       {open && <div className="rail-scrim" aria-hidden="true" onClick={onClose} />}
 
-      <nav className={`rail${open ? ' is-open' : ''}`} aria-label="Sections"
+      <nav className={`rail${open ? ' is-open' : ''}`} aria-label="Sections" data-lenis-prevent=""
            data-testid="sidebar" inert={hidden ? '' : undefined}>
-        <div className="rail-brand">
+        <div className="rail-brand sw-focus">
           <span className="wordmark">SpendWise</span>
           <button type="button" className="icon-btn rail-close" onClick={onClose} ref={closeRef}
                   aria-label="Close menu" data-testid="rail-close">
@@ -124,8 +123,8 @@ export default function Sidebar({ view, onView, principal, theme, onTheme,
         </div>
 
         <ul className="rail-nav">
-          {items.map((it) => (
-            <li key={it.id}>
+          {items.map((it, i) => (
+            <li key={it.id} className="sw-focus" style={{ '--sw-i': i + 1 }}>
               <button
                 type="button"
                 className="rail-item"
@@ -142,33 +141,7 @@ export default function Sidebar({ view, onView, principal, theme, onTheme,
           ))}
         </ul>
 
-        <div className="rail-section">
-          <h2 className="rail-heading" id="appearance-label">Appearance</h2>
-          {/* A radiogroup, not three toggles. The three states are mutually
-              exclusive and "System" is the absence of an override rather than
-              a third colour — `aria-pressed` on three buttons would say they
-              can all be off, which they cannot. */}
-          <div className="segmented" role="radiogroup" aria-labelledby="appearance-label">
-            {THEMES.map((t) => (
-              <button
-                key={t}
-                type="button"
-                role="radio"
-                aria-checked={theme === t}
-                className="segment"
-                data-testid={`theme-${t}`}
-                onClick={() => onTheme(t)}
-              >
-                {t === 'system' ? 'System' : t === 'light' ? 'Light' : 'Dark'}
-              </button>
-            ))}
-          </div>
-          <p className="rail-hint" data-testid="theme-effective">
-            {theme === 'system'
-              ? `Following your device, currently ${effective(theme)}.`
-              : `Always ${theme}.`}
-          </p>
-        </div>
+        {/* Appearance lives in Settings only (owner, 2026-10-20). */}
 
         {/* Sign out lives HERE, beside the account it signs out of. It used to
             sit alone in a page footer, which is the one place a person does not

@@ -4,32 +4,36 @@
  * `DESIGN-SYSTEM.md §3`: "One shared formatter; no component invents its own."
  * `scripts/lint-tokens.mjs` greps for `toLocaleString` and `Intl.NumberFormat`
  * anywhere else in `src/` and fails the build — because the failure mode is not
- * a wrong number, it is ₹1,234,567.89 on one screen and ₹12,34,567.89 on the
+ * a wrong number, it is $1,234,567.89 on one screen and $1.234.567,89 on the
  * next, which reads as a bug in the arithmetic.
+ *
+ * Amounts are US dollars (`SW-ADR-157`). The integer field is still named
+ * `*_paise` on the wire and in the database: it holds cents, 100 to the unit,
+ * exactly as before, and renaming a contract field is not a display change.
  *
  * **The client never divides by 100.** The server sends integer paise and a
  * plain decimal string; splitting the integer with `%` and `/` on integers is
  * exact, and `paise / 100` is a float the moment the number gets large.
  */
 
-// `en-IN` groups by lakh and crore: ₹12,34,567.89, not ₹1,234,567.89
-// (`SW-ADR-056`). Constructed once — a formatter per render is measurably slow
+// `en-US` groups by thousands: $1,234,567.89 (`SW-ADR-157`, which replaced
+// `SW-ADR-056`'s rupees and lakh grouping). Constructed once — a formatter per render is measurably slow
 // and there is nothing per-call about it.
-const GROUPER = new Intl.NumberFormat('en-IN', { useGrouping: true })
+const GROUPER = new Intl.NumberFormat('en-US', { useGrouping: true })
 
 /**
- * 758100 -> "₹7,581.00". Integer paise in, display string out.
+ * 758100 -> "$7,581.00". Integer paise in, display string out.
  */
-export function rupees(paise) {
+export function dollars(paise) {
   if (paise === null || paise === undefined) return null
   const negative = paise < 0
   const abs = Math.abs(paise)
   // Integer arithmetic throughout. `Math.trunc(abs / 100)` is exact for every
-  // value below 2^53 paise, which is ₹90 trillion — comfortably past the
+  // value below 2^53 paise, which is $90 trillion — comfortably past the
   // 10,000,000,000.00 ceiling the contract puts on a single amount.
   const whole = Math.trunc(abs / 100)
   const fraction = abs % 100
-  const body = `₹${GROUPER.format(whole)}.${String(fraction).padStart(2, '0')}`
+  const body = `$${GROUPER.format(whole)}.${String(fraction).padStart(2, '0')}`
   return negative ? `-${body}` : body
 }
 
@@ -82,7 +86,7 @@ export function shortDate(iso) {
  */
 export function longDate(iso) {
   const [y, m, d] = iso.split('-').map(Number)
-  const weekday = new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('en-IN', {
+  const weekday = new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('en-US', {
     weekday: 'long', timeZone: 'UTC',
   })
   return `${weekday}, ${Number(d)} ${MONTHS[m - 1]} ${y}`

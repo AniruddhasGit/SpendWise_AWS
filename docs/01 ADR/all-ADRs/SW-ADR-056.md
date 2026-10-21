@@ -1,11 +1,14 @@
 # SW-ADR-056 — Money is formatted with the en-IN grouping convention
 
+> **⚠ SUPERSEDED 2026-10-20 by `SW-ADR-157`.** The owner moved the display to US dollars with
+> `en-US` grouping (`$1,234,567.89`). One shared formatter still stands.
+
 | Field | Value |
 |---|---|
 | ADR | `SW-ADR-056` |
 | Pack | `SPENDWISE_V1` |
 | Type | UX_CONTRACT |
-| Decision status | **APPROVED** |
+| Decision status | **SUPERSEDED** by `SW-ADR-157` |
 | Decision outcome | APPROVED_FOR_IMPLEMENTATION |
 | Decided by | BUILD_SESSION (under `SW-ADR-015`) |
 | Decision date | 2026-08-05 |

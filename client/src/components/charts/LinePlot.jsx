@@ -1,5 +1,5 @@
 import { useId, useRef, useState } from 'react'
-import { longDate, rupees, shortDate } from '../../lib/money.js'
+import { longDate, dollars, shortDate } from '../../lib/money.js'
 import { splitMoney } from '../../lib/motion.js'
 
 /**
@@ -25,25 +25,25 @@ import { splitMoney } from '../../lib/motion.js'
  * announced through a live region — the amounts in words, which a ring cannot do.
  */
 
-// A compact Indian label for a y-axis tick: ₹20.8k, ₹1.0L, ₹3.2Cr — so a long
+// A compact label for a y-axis tick: $20.8k, $1.0M, $3.2B — so a long
 // amount never overflows the gutter. It is driven by the SAME `format` prop the
 // caller passes, so the admin reuse (which passes a count, not money) keeps its
-// plain number and never grows a rupee sign. Full precision stays in the tooltip.
+// plain number and never grows a dollar sign. Full precision stays in the tooltip.
 function compact(value, format) {
   const full = format(value)
   const p = splitMoney(full)
   // Not money (a count, a percentage): show exactly what the formatter returned.
-  if (!p || p.cur !== '₹') return full
+  if (!p || p.cur !== '$') return full
   const n = Number(p.int.replace(/,/g, '')) + (p.frac ? Number(p.frac) : 0)
-  const abbr = (v, suffix) => `${p.sign}₹${v.toFixed(1)}${suffix}`
-  if (n >= 1e7) return abbr(n / 1e7, 'Cr')   // crore
-  if (n >= 1e5) return abbr(n / 1e5, 'L')    // lakh
+  const abbr = (v, suffix) => `${p.sign}$${v.toFixed(1)}${suffix}`
+  if (n >= 1e9) return abbr(n / 1e9, 'B')    // billion
+  if (n >= 1e6) return abbr(n / 1e6, 'M')    // million
   if (n >= 1e3) return abbr(n / 1e3, 'k')    // thousand
-  return `${p.sign}₹${p.int}`                // small: the whole rupees, grouped
+  return `${p.sign}$${p.int}`                // small: the whole dollars, grouped
 }
 
 export default function LinePlot({ days, cumulative = false, height = 180,
-                                  format = rupees, noun = 'spending' }) {
+                                  format = dollars, noun = 'spending' }) {
   // A gradient needs a document-unique id: the dashboard draws two of these
   // and the admin overview a third. `useId` output contains colons, which are
   // not valid inside `url(#…)`, so they are stripped.
@@ -249,8 +249,8 @@ export default function LinePlot({ days, cumulative = false, height = 180,
       </div>
 
       {/* The caption is FORMATTED BY THE CALLER. It was once hard-wired to
-          `rupees()`, and the admin overview reuses this plot for a count of
-          new accounts — so two signups rendered as "₹0.02", a currency symbol
+          `dollars()`, and the admin overview reuses this plot for a count of
+          new accounts — so two signups rendered as "$0.02", a currency symbol
           on a number that is not money, on the one screen that must never. */}
       <figcaption className="entry-meta">
         {cumulative

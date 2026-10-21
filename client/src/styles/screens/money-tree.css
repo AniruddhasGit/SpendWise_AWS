@@ -1,0 +1,193 @@
+/* The money tree (SW-ADR-156). One still image, a frosted glass ground the
+   roots fade into, and a canvas of falling bills on top. The landing variant
+   adds the atmosphere: mist on the ground, the poster's orbit lines, and a
+   breeze that sways the tree (driven from MoneyTree.jsx through --mt-sway).
+
+   Layer order inside .mt, back to front: glow, orbits, tree, ground glass,
+   mist, bills. Nothing here touches .app or .gate (GOTCHA: stacking). */
+
+.mt {
+  --mt-glow: rgb(255 250 240 / 0.75);
+  --mt-mist: rgb(255 255 255 / 0.85);
+  --mt-ground-shadow: rgb(11 42 28 / 0.22);
+  --mt-bill-shadow: rgb(11 42 28 / 0.20);
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+:root[data-theme="dark"] .mt {
+  --mt-glow: rgb(249 235 215 / 0.16);
+  --mt-mist: rgb(205 232 214 / 0.16);
+  --mt-ground-shadow: rgb(0 0 0 / 0.55);
+  --mt-bill-shadow: rgb(0 0 0 / 0.45);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .mt {
+    --mt-glow: rgb(249 235 215 / 0.16);
+    --mt-mist: rgb(205 232 214 / 0.16);
+    --mt-ground-shadow: rgb(0 0 0 / 0.55);
+    --mt-bill-shadow: rgb(0 0 0 / 0.45);
+  }
+}
+
+.mt-stage {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  width: 100%;
+  z-index: 1;
+}
+/* a soft pool of light behind the canopy: lifts the dark-green ink off a dark
+   page, and reads as late daylight on the ivory one */
+.mt-stage::before {
+  content: "";
+  position: absolute;
+  /* never wider than the tree: a pseudo-element past the window's edge widens
+     the page on a phone, and no bounding-box check would see it */
+  inset: -4% 0 18%;
+  z-index: -1;
+  background: radial-gradient(ellipse 50% 46% at 50% 44%, var(--mt-glow), transparent 72%);
+  pointer-events: none;
+  /* no halo behind the tree, anywhere (owner, 2026-10-21) */
+  display: none;
+}
+
+.mt-tree {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transform-origin: 50% 73.5%;
+  transform: rotate(var(--mt-sway, 0deg));
+  /* the roots fade out a little below the ground line */
+  -webkit-mask-image: linear-gradient(to bottom, rgb(0 0 0) 0, rgb(0 0 0) 76%, rgb(0 0 0 / 0.4) 86%, transparent 96%);
+  mask-image: linear-gradient(to bottom, rgb(0 0 0) 0, rgb(0 0 0) 76%, rgb(0 0 0 / 0.4) 86%, transparent 96%);
+  pointer-events: none;
+}
+
+/* The ground: a disc of frosted glass seen in perspective. Its top edge sits
+   where the trunk meets the roots; everything under it (the roots) is blurred
+   and tinted, then the disc itself feathers out. */
+.mt-ground {
+  position: absolute;
+  left: 4%;
+  right: 4%;
+  top: 71.5%;
+  height: 24%;
+  border-radius: 50%;
+  background:
+    radial-gradient(ellipse 50% 22% at 50% 9%, rgb(255 255 255 / 0.55), transparent 70%),
+    radial-gradient(ellipse at 50% 32%, var(--sw-glass-strong), var(--sw-glass) 50%, transparent 74%);
+  -webkit-backdrop-filter: blur(3px) saturate(130%);
+  backdrop-filter: blur(3px) saturate(130%);
+  -webkit-mask-image: radial-gradient(ellipse 50% 50% at 50% 38%, rgb(0 0 0) 46%, transparent 74%);
+  mask-image: radial-gradient(ellipse 50% 50% at 50% 38%, rgb(0 0 0) 46%, transparent 74%);
+  box-shadow: 0 22px 44px -20px var(--mt-ground-shadow);
+  pointer-events: none;
+}
+/* the glass edge catching the light */
+.mt-ground::before {
+  content: "";
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  top: 6%;
+  height: 10%;
+  border-radius: 50%;
+  border-top: 1px solid var(--sw-glass-border);
+  opacity: 0.9;
+}
+
+.mt-bills {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* ── landing atmosphere ─────────────────────────────────────────────────── */
+
+.mt-atmos .mt-tree { will-change: transform; }
+
+.mt-mist {
+  position: absolute;
+  inset: 62% 0 -6%;
+  z-index: 2;
+  pointer-events: none;
+  overflow: visible;
+}
+.mt-mist span {
+  position: absolute;
+  height: 46%;
+  width: 70%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 50%, var(--mt-mist), transparent 68%);
+  filter: blur(14px);
+}
+.mt-mist-a { left: 0; top: 30%; width: 62%; animation: mt-drift 28s ease-in-out infinite alternate; }
+.mt-mist-b { left: 30%; top: 44%; width: 62%; animation: mt-drift 34s ease-in-out -9s infinite alternate-reverse; }
+.mt-mist-c { left: 6%; top: 58%; width: 84%; animation: mt-drift 41s ease-in-out -17s infinite alternate; }
+
+/* small enough that no layer ever crosses the window edge (the 375px rule
+   counts every box, clipped or not) */
+@keyframes mt-drift {
+  from { transform: translateX(-5%); }
+  to   { transform: translateX(5%); }
+}
+
+/* The poster's orbit lines and spark stars: behind the tree, slowly turning. */
+.mt-orbits {
+  position: absolute;
+  left: -3%;
+  top: -4%;
+  width: 106%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  z-index: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+.mt-orbit ellipse {
+  fill: none;
+  stroke: var(--sw-brand-vermilion);
+  stroke-width: 1.6;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.8;
+}
+.mt-orbit {
+  transform-box: view-box;
+  transform-origin: 50% 38%;
+}
+.mt-orbit-a { transform: rotate(-11deg); animation: mt-orbit-a 46s ease-in-out infinite alternate; }
+.mt-orbit-b { transform: rotate(14deg); animation: mt-orbit-b 58s ease-in-out infinite alternate; }
+.mt-orbit-c { transform: rotate(-3deg); animation: mt-orbit-c 39s ease-in-out infinite alternate; }
+@keyframes mt-orbit-c { to { transform: rotate(-16deg); } }
+@keyframes mt-orbit-a { to { transform: rotate(-4deg); } }
+@keyframes mt-orbit-b { to { transform: rotate(22deg); } }
+
+.mt-spark {
+  fill: var(--sw-brand-vermilion);
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: mt-twinkle 5.5s ease-in-out infinite;
+}
+.mt-spark-1 { animation-delay: -1.4s; }
+.mt-spark-2 { animation-delay: -2.9s; }
+.mt-spark-3 { animation-delay: -4.1s; }
+.mt-spark-4 { animation-delay: -0.7s; }
+.mt-spark-5 { animation-delay: -3.5s; }
+@keyframes mt-twinkle {
+  0%, 100% { transform: scale(0.55); opacity: 0.55; }
+  50%      { transform: scale(1); opacity: 1; }
+}
+
+/* reduced motion is instant: the scene holds still at its resting state */
+@media (prefers-reduced-motion: reduce) {
+  .mt-tree { transform: none; }
+  .mt-mist span, .mt-orbit, .mt-spark { animation: none; }
+}

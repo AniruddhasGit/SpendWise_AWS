@@ -2301,3 +2301,67 @@ examined an empty list.
 
 ---
 
+### A decorative glow widened the phone page by 11px, and no bounding-box check could see it
+
+**Believed.** The overflow audit was complete: a script walked every element at 375px, found nothing whose `getBoundingClientRect().right` passed the window, so nothing could be making the page scroll sideways.
+
+**Actually.** `scrollWidth` was 386 against a 375 window. The culprit was the soft glow behind the money tree, drawn by `.mt-stage::before` with `inset: -4% -8% 18%`. Pseudo-elements are not in `querySelectorAll`, so every element-walking check skipped it, while its box still counted toward the page's scrollable width. On a phone the dashboard's tree sits near the right gutter, and 8% past its side was 11px past the window.
+
+**Caught by.** `test_nothing_overflows_at_375px`, which measures `scrollWidth - clientWidth` rather than walking elements, failing on the branch's first browser run (2026-10-20). Fixed by keeping the glow inside the tree's own width (`inset: -4% 0 18%`).
+
+> **Lesson.** An audit that enumerates elements cannot see pseudo-elements, so it can report "nothing overflows" while the page overflows. Measure the outcome (`scrollWidth` against the viewport), not just the parts you can list, and keep decoration inside its host's width unless something clips it on purpose.
+
+`client/src/styles/screens/money-tree.css (.mt-stage::before) · tests/browser/test_the_website.py`
+
+---
+
+### Eleven browser criteria failed on untouched main, because a fresh Chromium enforces the CSP against the test tool's own predicates
+
+**Believed.** The browser criteria that call `page.wait_for_function("...")` with a string were a stable part of the gate, and a red run on a feature branch meant the feature had broken something.
+
+**Actually.** The app's CSP is `script-src 'self'` with no `'unsafe-eval'`, which is correct. Playwright evaluates a STRING predicate inside the page, and the Chromium build current on 2026-10-20 refuses that under this CSP (`EvalError: Evaluating a string as JavaScript violates ... 'unsafe-eval'`). It fails identically with Playwright 1.64 and with the recorded 1.62.0 (`docs/30 Deployment/RUNTIME_VERSIONS.md`). Running the same criteria against untouched `main` (commit c331e94, built in a separate worktree) reproduced every one of these failures. The feature branch was not the cause.
+
+**Caught by.** Refusing to read the branch's red run as either "my change broke it" or "it's flaky", and building untouched main to get a baseline before trusting either story.
+
+> **Lesson.** Before attributing a red run to your change, run the same tests on the code without your change, in the same environment. An environment that has drifted since the last green (a new browser build here) fails the baseline too. The difference between the two runs is the only signal that belongs to your change. The fix here is not to loosen the CSP or edit the criteria, but to pin the browser build the gate was last green on. Rewriting those predicates as JS function strings (`"() => ..."`) might avoid the in-page `eval`; that is **unverified** and was not tried.
+
+`tests/browser/test_the_shell.py · tests/browser/test_the_website.py · app/core/headers.py:28-39 · session 2026-10-20`
+
+> **Correction, same day (2026-10-20), to the entry above on the CSP failures.** The cause was not a
+> newer browser build. `script-src 'self'` arrived in `app/core/headers.py` on **2026-10-18**
+> ("Harden the service and fix the summary's serialization 500"), and the browser suite, last run
+> green on 2026-09-01, was not re-run after that hardening. Playwright polls a bare EXPRESSION string
+> with an in-page `eval`, which the CSP refuses as soon as the predicate is false on its first check.
+> **Verified** against the running app: the same check written as a FUNCTION string (`"() => (...)"`)
+> polls without `eval` and passes. All 18 expression predicates were wrapped verbatim, no assertion
+> changed. The broader lesson stands, with one addition: a security change (a CSP, a header, a
+> permission) is a change to every test that drives the browser, and the browser suite must be re-run
+> as part of it.
+
+---
+
+### The landing page measured 833px too wide at 375px once, in one full browser run, and never again
+
+**Believed.** The gloomy landing (SW-ADR-159) was proven to fit a phone: `.landing` and `.landing-scene` both clip horizontally, and the 375px test had passed on that build.
+
+**Actually.** Unexplained, and recorded as unexplained. In one full run on 2026-10-20 (the Appearance move, a change that does not touch the landing), `test_the_landing_page_does_not_overflow_at_375px` read `scrollWidth - clientWidth = 833`. The same test passed three times in isolation, the next full run was 57/57, and a probe of the live site at 375px with mobile emulation, sampled every 100ms for 1.2s across six loads, never saw any overflow. One unverified guess: under suite load the test measured before the stylesheet applied, when the unclipped tree reflection image lays out at its natural width.
+
+**Caught by.** That test, measuring `scrollWidth` rather than walking elements (the lesson of the entry above).
+
+> **Lesson.** An intermittent red is still a red. If it comes back, capture `getComputedStyle` of `.landing` and the widest box at the moment of failure before re-running anything.
+
+`client/src/styles/screens/landing.css · tests/browser/test_the_website.py`
+
+---
+
+### The sign-in card stayed invisible: GSAP read a CSS entrance's first frame as the card's resting state
+
+**Believed.** A GSAP `from()` entrance on `.gate-card` would end where the card naturally rests, fully visible and unmoved.
+
+**Actually.** `glass.css` already gave `.gate-card` a CSS `sw-rise` animation that starts at `opacity: 0; translateY(10px)`. Both started on the same frame, so GSAP measured the card's "current" style mid-CSS-animation and recorded opacity 0, y 10px as its end values. The card animated in, then settled at 0% opacity. It was found on 2026-10-21 by a frame-by-frame trace of the card's inline style during the landing-to-sign-in carry (SW-ADR-160).
+
+**Caught by.** Flow screenshots (the card was missing on the finished sign-in page), then a per-frame trace of `.gate-card`'s style. The browser tests passed through it, because Playwright treats an opacity-0 element as visible. Fixed by switching the CSS rise off where GSAP owns the entrance (`.gate.scene .gate-card { animation: none }`).
+
+> **Lesson.** Never let a CSS animation and a GSAP `from()` start on the same element in the same frame. GSAP reads the computed style, which mid-animation is the keyframe, not the resting state. One owner per element's entrance. A visible-in-the-DOM check does not prove a human can see it, so look at the screenshot.
+
+`client/src/screens/Gate.jsx · client/src/styles/glass.css (.gate-card) · client/src/styles/screens/shell.css`

@@ -25,12 +25,31 @@ import pytest
 pytestmark = [pytest.mark.browser, pytest.mark.db]
 
 PASSWORD = "correct-horse-battery-staple"
-A_TOTAL = "₹3,790.49"
+
+# Every `wait_for_function` predicate is a FUNCTION string, `"() => (" <expression> ")"`.
+# The app's CSP (`script-src 'self'`, app/core/headers.py, since 2026-10-18) refuses
+# the in-page `eval` Playwright uses to poll a bare EXPRESSION string, so an expression
+# that is false on the first check fails with an EvalError instead of waiting. A
+# function string is polled without `eval` (verified 2026-10-20). The expression inside
+# the wrapper is unchanged; do not "simplify" the wrapper away.
+A_TOTAL = "$3,790.49"
+
+
+async def _open_gate(page, *, register=False):
+    """The front door is the landing page on a fresh tab (SW-ADR-156); a tab
+    that has held a session reloads straight to the sign-in form. Either way,
+    end on the form, in the requested mode."""
+    await page.goto("/")
+    await page.wait_for_selector('[data-testid="landing-sign-in"], #email')
+    if await page.get_by_test_id("landing-sign-in").count():
+        await page.get_by_test_id("landing-start" if register else "landing-sign-in").click()
+        await page.wait_for_selector("#email")
+    elif register:
+        await page.get_by_test_id("gate-switch").click()
 
 
 async def _register(page, email, name="Test Person"):
-    await page.goto("/")
-    await page.get_by_test_id("gate-switch").click()
+    await _open_gate(page, register=True)
     await page.fill("#display_name", name)
     await page.fill("#email", email)
     await page.fill("#password", PASSWORD)
@@ -39,8 +58,7 @@ async def _register(page, email, name="Test Person"):
 
 
 async def _sign_in(page, email, password):
-    await page.goto("/")
-    await page.wait_for_selector("#email")
+    await _open_gate(page)
     await page.fill("#email", email)
     await page.fill("#password", password)
     await page.get_by_test_id("gate-submit").click()
@@ -48,6 +66,47 @@ async def _sign_in(page, email, password):
 
 
 # ── a. register, land, and the cookie ──────────────────────────────────────
+async def test_the_front_door_is_the_landing_page_and_sign_in_opens_the_form(
+        page, clean_db) -> None:
+    """SW-ADR-156. A fresh visit opens on the landing page, not the form; its
+    one Sign in action leads to the form, and the form leads back."""
+    await page.goto("/")
+    await page.wait_for_selector('[data-testid="landing-sign-in"]', timeout=15000)
+    assert await page.locator("#email").count() == 0, "the form showed before it was asked for"
+    # the tree is on the stage, and its picture is a real, loaded image
+    loaded = await page.evaluate(
+        "() => { const i = document.querySelector('.mt-tree');"
+        " return Boolean(i && i.complete && i.naturalWidth > 0) }")
+    assert loaded, "the money tree image did not load"
+
+    await page.get_by_test_id("landing-sign-in").click()
+    await page.wait_for_selector("#email")
+    await page.get_by_test_id("gate-back").click()
+    await page.wait_for_selector('[data-testid="landing-start"]')
+    await page.get_by_test_id("landing-start").click()
+    # "Create your account" opens the form in sign-up mode
+    await page.wait_for_selector("#display_name")
+
+
+async def test_the_landing_page_does_not_overflow_at_375px(phone, clean_db) -> None:
+    """E3-S8 AC1 holds on the front door too: no box past the window's edge,
+    including the drifting mist and the orbit lines."""
+    await phone.goto("/")
+    await phone.wait_for_selector('[data-testid="landing-sign-in"]', timeout=15000)
+    overflow = await phone.evaluate(
+        "document.documentElement.scrollWidth - document.documentElement.clientWidth")
+    assert overflow <= 0, f"the landing page is {overflow}px wider than a 375px window"
+    past = await phone.evaluate("""() => {
+        const w = window.innerWidth
+        const all = [...document.querySelectorAll('.landing *')]
+        return all.filter((e) => { const r = e.getBoundingClientRect(); return r.width && r.right > w + 0.5 })
+                  .map((e) => e.className.baseVal ?? e.className)
+    }""")
+    examined = await phone.evaluate("document.querySelectorAll('.landing *').length")
+    assert examined > 10, "examined nothing: the landing page did not render"
+    assert past == [], f"boxes past the right edge at 375px: {past}"
+
+
 async def test_a_person_can_sign_up_and_lands_on_their_dashboard(page, clean_db) -> None:
     await _register(page, "browser-a@spendwise.test", "Asha")
 
@@ -120,7 +179,7 @@ async def test_an_expense_added_through_the_form_appears_without_a_reload(
     await page.get_by_test_id("panel-submit").click()
 
     await page.wait_for_selector('[data-testid="entries"]', timeout=20000)
-    assert await page.get_by_test_id("total").inner_text() == "₹1,250.00"
+    assert await page.get_by_test_id("total").inner_text() == "$1,250.00"
     assert await page.get_by_test_id("count").inner_text() == "1"
     listed = await page.get_by_test_id("entries").inner_text()
     assert "Weekly shop" in listed
@@ -160,7 +219,7 @@ async def test_escape_closes_the_panel_and_focus_returns_to_the_trigger(
     # subtree cannot take focus at all. Reading `activeElement` the instant the
     # panel detaches races that by one tick and reports <body>.
     await page.wait_for_function(
-        "document.activeElement?.dataset?.testid === 'first-add'", timeout=5000)
+        "() => (" "document.activeElement?.dataset?.testid === 'first-add'" ")", timeout=5000)
 
 
 async def test_the_background_is_inert_while_the_panel_is_open(page, clean_db) -> None:
@@ -199,7 +258,7 @@ async def test_the_day_one_gate_is_visible_in_the_browser(page, seeded) -> None:
     """**Art IX.4, in a real browser.**
 
     Person A, seeded through the real endpoints, on 2026-08-05. The daily
-    average is 379049 / 5 = 75810 paise, and the screen must say ₹758.10.
+    average is 379049 / 5 = 75810 paise, and the screen must say $758.10.
 
     Not 758.09 (truncated instead of rounding half-up) and not 947.62 (divided
     by the row count rather than days elapsed). Both are asserted, because both
@@ -211,9 +270,9 @@ async def test_the_day_one_gate_is_visible_in_the_browser(page, seeded) -> None:
     await average.wait_for()
     text = await average.inner_text()
 
-    assert text == "₹758.10", f"the screen says {text!r}"
-    assert text != "₹758.09", "truncated instead of rounding half-up"
-    assert text != "₹947.62", "divided by the row count, not days elapsed"
+    assert text == "$758.10", f"the screen says {text!r}"
+    assert text != "$758.09", "truncated instead of rounding half-up"
+    assert text != "$947.62", "divided by the row count, not days elapsed"
 
     assert await page.get_by_test_id("total").inner_text() == A_TOTAL
     assert await page.get_by_test_id("count").inner_text() == "4"
@@ -226,10 +285,10 @@ async def test_the_day_one_gate_is_visible_in_the_browser(page, seeded) -> None:
     assert "758.10" in await page.content()
 
 
-async def test_the_money_is_formatted_en_in(page, seeded) -> None:
-    """`SW-ADR-056`: ₹12,34,567.89, not ₹1,234,567.89. The seeded total is
-    below a lakh, so this asserts the symbol and the thousands separator; the
-    lakh/crore grouping is proved arithmetically in the pure tests."""
+async def test_the_money_is_formatted_en_us(page, seeded) -> None:
+    """`SW-ADR-157` (which replaced `SW-ADR-056`'s rupees): US dollars,
+    grouped by thousands, $1,234,567.89. The seeded total is below a million,
+    so this asserts the symbol and the thousands separator."""
     await _sign_in(page, seeded["A"]["email"], seeded["A"]["password"])
     total = page.get_by_test_id("total")
     await total.wait_for()
@@ -244,7 +303,7 @@ async def test_person_b_sees_their_own_much_smaller_number(page, seeded) -> None
 
     total = page.get_by_test_id("total")
     await total.wait_for()
-    assert await total.inner_text() == "₹1,250.00"
+    assert await total.inner_text() == "$1,250.00"
     assert await page.get_by_test_id("count").inner_text() == "2"
 
     body = await page.content()
@@ -303,7 +362,7 @@ async def test_enter_filters_and_escape_clears_it_without_a_mouse(page,
     await page.locator(".band").first.focus()
     await page.keyboard.press("Enter")
     await page.wait_for_function(
-        f"document.querySelector('[data-testid=total]').innerText !== {whole_total!r}",
+        "() => (" f"document.querySelector('[data-testid=total]').innerText !== {whole_total!r}" ")",
         timeout=15000)
 
     assert await page.get_by_test_id("total").inner_text() != whole_total
@@ -316,7 +375,7 @@ async def test_enter_filters_and_escape_clears_it_without_a_mouse(page,
 
     await page.keyboard.press("Escape")
     await page.wait_for_function(
-        f"document.querySelector('[data-testid=total]').innerText === {whole_total!r}",
+        "() => (" f"document.querySelector('[data-testid=total]').innerText === {whole_total!r}" ")",
         timeout=15000)
     assert await page.locator(".band").first.get_attribute("aria-pressed") == "false"
 
@@ -333,7 +392,7 @@ async def test_each_band_announces_its_category_amount_and_percentage(page,
         "[...document.querySelectorAll('.band')].map(b => b.getAttribute('aria-label'))")
     assert names
     for name in names:
-        assert re.fullmatch(r".+: ₹[\d,]+\.\d{2}, \d+% of total", name), name
+        assert re.fullmatch(r".+: \$[\d,]+\.\d{2}, \d+% of total", name), name
 
 
 async def test_selection_is_never_signalled_by_colour_alone(page, seeded) -> None:
@@ -349,7 +408,7 @@ async def test_selection_is_never_signalled_by_colour_alone(page, seeded) -> Non
     # the attribute flips reads 1 for every band and reports both cues missing
     # when both are present — which is what the first version of this test did.
     await page.wait_for_function(
-        "getComputedStyle(document.querySelectorAll('.band')[1]).opacity !== '1'",
+        "() => (" "getComputedStyle(document.querySelectorAll('.band')[1]).opacity !== '1'" ")",
         timeout=5000)
 
     chosen_opacity = await page.evaluate(
@@ -376,7 +435,7 @@ async def test_the_period_lives_in_the_url_and_survives_a_reload(page,
     assert "to=2026-08-31" in page.url
 
     await page.get_by_test_id("period-last-month").click()
-    await page.wait_for_function("location.search.includes('from=2026-07-01')",
+    await page.wait_for_function("() => (" "location.search.includes('from=2026-07-01')" ")",
                                  timeout=15000)
 
     await page.reload()
@@ -393,15 +452,15 @@ async def test_the_back_button_returns_to_the_previous_period(page, seeded) -> N
     await page.wait_for_selector('[data-testid="headline"]')
 
     await page.get_by_test_id("period-last-month").click()
-    await page.wait_for_function("location.search.includes('from=2026-07-01')",
+    await page.wait_for_function("() => (" "location.search.includes('from=2026-07-01')" ")",
                                  timeout=15000)
 
     await page.go_back()
-    await page.wait_for_function("location.search.includes('from=2026-08-01')",
+    await page.wait_for_function("() => (" "location.search.includes('from=2026-08-01')" ")",
                                  timeout=15000)
     assert await page.get_by_test_id("whoami").is_visible(), "Back left the application"
     await page.wait_for_function(
-        f"document.querySelector('[data-testid=total]')?.innerText === {A_TOTAL!r}",
+        "() => (" f"document.querySelector('[data-testid=total]')?.innerText === {A_TOTAL!r}" ")",
         timeout=15000)
 
 
@@ -490,7 +549,7 @@ async def test_a_failed_summary_shows_an_error_and_never_renders_zero(page,
 
     body = await page.content()
     assert "0.00" not in body, "a zero total was rendered over a failed request"
-    assert "₹0" not in body
+    assert "$0" not in body
     assert await page.locator('[data-testid="total"]').count() == 0
 
     # Retry, with the route restored, comes back to the SAME period.
@@ -561,7 +620,7 @@ async def test_a_half_typed_expense_survives_the_session_ending(page, seeded) ->
     # the two to land in different frames. The same race as the ribbon's
     # opacity transition and the focus restore, and the same fix.
     await page.wait_for_function(
-        "document.querySelector(\"input[name='amount']\")?.value === '432.10'",
+        "() => (" "document.querySelector(\"input[name='amount']\")?.value === '432.10'" ")",
         timeout=5000)
     assert await page.input_value("input[name='description']") == "Half typed"
 
@@ -583,7 +642,7 @@ async def test_a_filter_matching_nothing_is_a_different_state_from_a_new_account
     assert await page.get_by_test_id("state-no-matches").is_visible()
     # The headline still shows — a filtered zero is a real, correct zero, and
     # the state that must never show 0.00 is the FAILED one, not this.
-    assert await page.get_by_test_id("total").inner_text() == "₹0.00"
+    assert await page.get_by_test_id("total").inner_text() == "$0.00"
 
 
 # ── editing and deleting, through the screen ───────────────────────────────
@@ -598,9 +657,9 @@ async def test_an_expense_can_be_edited_and_the_total_follows(page, seeded) -> N
     await page.get_by_test_id("panel-submit").click()
 
     expected = 379049 - first["amount_paise"] + 100
-    want = f"₹{expected // 100:,}.{expected % 100:02d}"
+    want = f"${expected // 100:,}.{expected % 100:02d}"
     await page.wait_for_function(
-        f"document.querySelector('[data-testid=total]').innerText === {want!r}",
+        "() => (" f"document.querySelector('[data-testid=total]').innerText === {want!r}" ")",
         timeout=20000)
 
 
@@ -622,7 +681,7 @@ async def test_deleting_asks_first_and_names_the_amount(page, seeded) -> None:
     await page.wait_for_timeout(1000)
 
     assert messages, "no confirmation was shown before a delete"
-    assert "₹" in messages[0], "the confirm did not name the amount"
+    assert "$" in messages[0], "the confirm did not name the amount"
     assert await page.get_by_test_id("total").inner_text() == A_TOTAL, "dismiss deleted it"
 
     async def accept(d):
@@ -631,7 +690,7 @@ async def test_deleting_asks_first_and_names_the_amount(page, seeded) -> None:
     page.once("dialog", accept)
     await page.get_by_test_id(f"delete-{first['id']}").click()
     await page.wait_for_function(
-        "document.querySelector('[data-testid=count]').innerText === '3'", timeout=20000)
+        "() => (" "document.querySelector('[data-testid=count]').innerText === '3'" ")", timeout=20000)
 
 
 # ── the ops endpoints, over a real socket ──────────────────────────────────

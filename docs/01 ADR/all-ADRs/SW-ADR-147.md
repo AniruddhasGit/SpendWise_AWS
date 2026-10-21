@@ -1,5 +1,11 @@
 # SW-ADR-147 — Two themes, glass surfaces, and contrast that is computed for all of them
 
+> **⚠ AMENDED 2026-10-20 by `SW-ADR-156`.**
+> The palette and display face are the owner's festival-poster revision (ivory, emerald,
+> vermilion; Big Shoulders Display). Values only: every token name, the two themes, the appearance
+> control, the two surface tiers (content opaque, chrome translucent) and contrast computed for both
+> themes all stand, and `contrast.py` passes 26/26 in each.
+
 > **⚠ AMENDED 2026-08-27 by `SW-ADR-154`.**
 > Clause **D** below — *"glass alpha is a measured floor, not a taste"* — pinned the floor to a
 > specific alpha (`0.78`). The client's Swiss restyle sets every glass alpha to `1` and the blur to
@@ -19,7 +25,7 @@
 | Decision outcome | APPROVED_FOR_IMPLEMENTATION |
 | Supersedes | — |
 | Amends | — |
-| Amended by | `SW-ADR-154` (clause D, 2026-08-27) |
+| Amended by | `SW-ADR-154` (clause D, 2026-08-27) · `SW-ADR-156` (palette and display face, 2026-10-20) |
 | Raised by | Client request, 2026-08-06: a sidebar shell, an appearance control, and "a greenish glassmorphism going on" |
 | Decided by | BUILD_SESSION (under `SW-ADR-015`) |
 | Decision date | 2026-08-06 |

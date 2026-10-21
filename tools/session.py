@@ -60,15 +60,14 @@ log: list[str] = []
 def note(ok: bool, what: str) -> None:
     """Record and print one observation.
 
-    The rupee sign is stripped ON THE WAY TO THE CONSOLE only. This runs on a
-    Windows console at cp1252, which cannot encode U+20B9 and raises rather
-    than degrading — so a session that was passing every check died reporting
-    the first amount it saw. The LOG keeps the real string; only stdout is
-    transliterated, because the terminal's limitation is not the product's.
+    Anything a Windows console at cp1252 cannot encode is replaced ON THE WAY
+    TO THE CONSOLE only (it raises rather than degrading, which once killed a
+    passing session at the first rupee sign). The dollar sign (`SW-ADR-157`)
+    is ASCII, so this now only guards names and notes. The LOG keeps the real
+    string, because the terminal's limitation is not the product's.
     """
     log.append(f"  {'PASS' if ok else 'FAIL'}  {what}")
-    print(log[-1].encode("ascii", "replace").decode("ascii").replace("?", "Rs.", 1)
-          if "₹" in log[-1] else log[-1])
+    print(log[-1].encode("ascii", "replace").decode("ascii"))
 
 
 def _free_port() -> int:
@@ -140,7 +139,7 @@ async def main() -> int:
             await sign_in(page, PERSON)
             await page.wait_for_selector('[data-testid="total"]', timeout=20000)
             total = await page.get_by_test_id("total").inner_text()
-            note(total.startswith("₹") and total != "₹0.00",
+            note(total.startswith("$") and total != "$0.00",
                  f"person signs in and sees a real total: {total}")
             await shot(page, "01-person-dashboard")
 
@@ -188,14 +187,14 @@ async def main() -> int:
             await page.get_by_test_id("nav-admin").click()
             await page.wait_for_selector('[data-testid="admin-overview"]', timeout=25000)
             overview = await page.inner_text("main")
-            note("₹" not in overview, "the admin overview shows no money at all")
+            note("$" not in overview, "the admin overview shows no money at all")
             note("closed" in overview, "the overview separates paused from closed")
             await shot(page, "04-admin-overview")
 
             await page.get_by_test_id("admin-tab-accounts").click()
             await page.wait_for_selector('[data-testid="admin-users"]', timeout=20000)
             table = await page.inner_text('[data-testid="admin-users"]')
-            note("₹" not in table, "the accounts table shows counts, never amounts")
+            note("$" not in table, "the accounts table shows counts, never amounts")
             note("scratch-leaver" in table, "the closed account is still findable")
             await shot(page, "05-admin-accounts")
 
@@ -222,9 +221,9 @@ async def main() -> int:
 
             spend_total = await page.get_by_test_id("admin-user-total").inner_text()
             spend_avg = await page.get_by_test_id("admin-user-average").inner_text()
-            note(spend_total.startswith("₹") and spend_total != "₹0.00",
+            note(spend_total.startswith("$") and spend_total != "$0.00",
                  f"the admin sees the person's total: {spend_total}")
-            note(spend_avg.startswith("₹"), f"and their daily average: {spend_avg}")
+            note(spend_avg.startswith("$"), f"and their daily average: {spend_avg}")
 
             pane = await page.inner_text('[data-testid="admin-user-detail"]')
             leaked = [c for c in ("Groceries", "Transport", "Health", "Rent",

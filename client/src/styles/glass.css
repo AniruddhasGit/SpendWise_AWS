@@ -196,7 +196,7 @@ table { border-collapse: collapse; width: 100%; }
 
 .card-hero-value {
   /* The number is mono and tabular, so it cannot reflow. A full-width row is
-     what keeps a crore-sized figure inside its card at every width; this is
+     what keeps a billion-sized figure inside its card at every width; this is
      the belt to that pair of braces. */
   overflow-wrap: anywhere;
 }
@@ -933,8 +933,8 @@ body {
 
 /* ── 0. the face, and the generated guilloché ─────────────────────────────── */
 /* Geist, variable wght 100–900, the FULL file from the official release
-   (vercel/geist-font v1.8.1). One file, no unicode-range split: ₹ (U+20B9)
-   is in it, and a latin-only subset would draw every rupee sign from a
+   (vercel/geist-font v1.8.1). One file, no unicode-range split: $ (U+20B9)
+   is in it, and a latin-only subset would draw every dollar sign from a
    fallback font beside Geist digits. Licence: public/fonts/OFL-geist.txt. */
 @font-face {
   font-family: "Geist";
@@ -943,6 +943,39 @@ body {
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
+}
+
+/* Big Shoulders Display, variable wght 100–900 (Fontsource 5.2.5), the
+   condensed poster face for headlines and the big total (SW-ADR-156). It has
+   no $, so the dollar sign falls through to Geist on purpose. Licence:
+   public/fonts/OFL-bigshouldersdisplay.txt. */
+@font-face {
+  font-family: "Big Shoulders Display";
+  src: url("/fonts/BigShouldersDisplay-latin.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Big Shoulders Display";
+  src: url("/fonts/BigShouldersDisplay-latin-ext.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* The poster's extruded block lettering (SW-ADR-156): offset copies in
+   --sw-extrude, sized in em so the depth scales with the type and the letters
+   never smear into each other. The glyphs stay real text. */
+.sw-extruded {
+  letter-spacing: 0.015em;
+  text-shadow:
+    0.01em 0.01em 0 var(--sw-extrude), 0.02em 0.02em 0 var(--sw-extrude),
+    0.03em 0.03em 0 var(--sw-extrude), 0.04em 0.04em 0 var(--sw-extrude),
+    0.05em 0.05em 0 var(--sw-extrude),
+    0.08em 0.12em 0.22em rgb(11 42 28 / 0.18);
 }
 
 /* ── 1. the page ─────────────────────────────────────────────────────────── */
@@ -1206,13 +1239,13 @@ body::after {
 }
 
 /* <Money> / splitMoney() (lib/motion.js) wrap the three parts of a figure:
-     <span class="sw-money"><span class="sw-money-cur">₹</span>7,581<span class="sw-money-frac">.00</span></span>
+     <span class="sw-money"><span class="sw-money-cur">$</span>7,581<span class="sw-money-frac">.00</span></span>
    The parts are inline with no whitespace between them, so innerText is the
-   exact formatter output ("₹7,581.00") — tests read it verbatim.
-   See the display-size rule below for the raised rupee and superscript paise. */
+   exact formatter output ("$7,581.00") — tests read it verbatim.
+   See the display-size rule below for the raised dollar and superscript paise. */
 .sw-money { white-space: nowrap; }
 .sw-money-frac { font-weight: var(--sw-weight-regular); }
-/* DISPLAY sizes only (>= ~28px): the ₹ set lighter and raised, the paise as a
+/* DISPLAY sizes only (>= ~28px): the $ set lighter and raised, the paise as a
    superscript. At body size both would fall under the 12px floor, so ledger
    rows and table cells keep the plain figure. Add `.sw-money-lg` to any other
    display-size figure. */

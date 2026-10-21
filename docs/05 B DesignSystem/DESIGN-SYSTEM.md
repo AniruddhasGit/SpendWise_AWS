@@ -4,7 +4,7 @@
 |---|---|
 | Version | v0.1-draft · **binding UX standard** |
 | Decision status | NOT_DECIDED (fail-closed) |
-| Sources | `SRC-001 §9.2`, `§9.4` · `SW-ADR-092` (categories) · `SW-ADR-117` (accessibility) · `SW-ADR-109` (ribbon) · `SW-ADR-056` (money format) |
+| Sources | `SRC-001 §9.2`, `§9.4` · `SW-ADR-092` (categories) · `SW-ADR-117` (accessibility) · `SW-ADR-109` (ribbon) · `SW-ADR-157` (money format) |
 | Conformance target | **WCAG 2.1 AA** (`SW-ADR-117`) |
 
 > **This binds front-end engineering only. It is NOT a schema source.**
@@ -61,6 +61,27 @@ That is the whole brief. Everything below is that sentence made testable.
 
 **No component ever references a raw hex.** Components reference semantic tokens; tokens hold
 the hex. This is enforceable by grep and is checked in this goal's Definition of Done.
+
+### Current values: the Festival Poster (`SW-ADR-156`, 2026-10-20)
+
+The owner's palette: **Warm Ivory `#F9EBD7`, Emerald `#046A38`, Vermilion `#E34222`**. Values moved;
+no token name changed. `CONTRAST.md` (regenerated) has every measured pair: light 26/26, dark 26/26.
+
+| Token | Value (light / dark) | Use |
+|---|---|---|
+| `--sw-paper` | `#fbf0e0` / `#0a1c13` | the page ground. The owner's ivory lifted 2%: on `#f9ebd7` the frozen uncategorised band measures 2.89:1, under its 3:1 floor (`SW-ADR-156`). |
+| `--sw-bg-1` | `#f9ebd7` / `#0a1c13` | the backdrop ground: the owner's exact ivory is what surrounds every surface. |
+| `--sw-paper-raised` · `-sunken` | `#fdf6ec` · `#f2e1c7` / `#10271b` · `#07140d` | content tier (opaque) and wells. |
+| `--sw-ink` · `-muted` · `-faint` | `#0b2a1c` · `#3c5446` · `#8b8a76` / `#f9ebd7` · `#c4bba6` · `#7f8a7b` | text: deep emerald-black on ivory, ivory on night green. |
+| `--sw-pine` · `-deep` · `-soft` | `#046a38` · `#03522b` · `#e1e8cf` / `#5fd59a` · `#8ae6b6` · `#12382a` | **the accent: emerald.** |
+| `--sw-gold` · `-fill` · `-deep` · `-soft` | `#b3301a` · `#e34222` · `#c4361a` · `#fadccf` / `#ff8f73` · `#e34222` · `#c4361a` · `#3a1a12` | **vermilion** now, under the old names: the second voice, money leaving. |
+| `--sw-danger` · `-soft` | `#b3301a` · `#f8d6c8` / `#ff8466` · `#3b1a12` | overspend, destructive, errors; also the poster's vermilion statement text. |
+| `--sw-extrude` | `#0b2a1c` / `#046a38` | the depth of the poster's extruded lettering (`.sw-extruded`). |
+| `--sw-brand-ivory` · `-emerald` · `-emerald-deep` · `-vermilion` · `-vermilion-deep` | constant in both themes | **printed objects only** (the money tree's bills: paper is paper in either theme). Never page text. |
+| `--sw-glass*` | ivory glass `rgb(253 246 236 / .62)` / night glass `rgb(16 40 28 / .66)` | chrome tier only (`SW-ADR-147`, `SW-ADR-154`). |
+
+The table below is the previous revision's ("new money", 2026-10-18), kept for the record; where it
+and the table above disagree, the table above is current.
 
 | Token | Value (light / dark) | Use |
 |---|---|---|
@@ -259,6 +280,11 @@ danger-soft 5.23 / 6.95. The coin rim (`--sw-border-strong`) on `--sw-paper-sunk
 
 ## §3 — Type
 
+**Display face since 2026-10-20 (`SW-ADR-156`): Big Shoulders Display**, variable wght 100–900,
+Fontsource 5.2.5, SIL OFL 1.1, self-hosted as `client/public/fonts/BigShouldersDisplay-latin(-ext).woff2`
+with `OFL-bigshouldersdisplay.txt` beside them. It is the poster's condensed block face: headlines,
+the dashboard total, the landing statement. It has its own `$` (the money sign since `SW-ADR-157`) and no `₹`. Body text stays Geist, below.
+
 Liquid-glass revision: **one family**, Geist. It is variable (wght 100–900), from the official
 release `vercel/geist-font` v1.8.1, licensed under the SIL OFL 1.1. It is self-hosted as
 `client/public/fonts/Geist-Variable.woff2`, with `OFL-geist.txt` beside it. The release's
@@ -279,12 +305,12 @@ Their files remain in `public/fonts/` until the legacy CSS is cleaned up, and no
 | 2xl | `--sw-text-2xl` | 2.25rem | 1.1 | -0.035em | 600 | page titles |
 | 3xl | `--sw-text-3xl` | clamp(2.75rem, 6vw, 4.5rem) | 1.0 | -0.035em | 600 | the hero total |
 
-Nothing is set below 12px. Nothing is uppercased. There is no `// ` prefix, and no mono "terminal"
+Nothing is set below 12px. Nothing is uppercased except the poster lines in Big Shoulders Display (headlines, the total's label, the landing statement; `SW-ADR-156`). There is no `// ` prefix, and no mono "terminal"
 label anywhere. Titles use `text-wrap: balance`. **Every number is tabular**: `.sw-num`, and every
 numeric class in glass.css, sets `font-variant-numeric: tabular-nums`. `--sw-font-mono` keeps its
 name for `.sw-num` and resolves to Geist.
 
-Money is formatted `en-IN`, as ₹12,34,567.89 (`SW-ADR-056`), by `lib/money.js` and nothing else.
+Money is formatted in US dollars, `en-US`, as $1,234,567.89 (`SW-ADR-157`), by `dollars()` in `lib/money.js` and nothing else.
 
 ---
 
@@ -366,7 +392,7 @@ rather than a picture:
 - **Each band is a native `<button>`.**
 - **One Tab stop for the whole ribbon** (roving tabindex). `←`/`→` move between bands,
   `Home`/`End` jump to first/last, `Enter`/`Space` toggles the filter, `Escape` clears it.
-- Accessible name per band: `"{Category}: ₹{amount}, {pct}% of total"`.
+- Accessible name per band: `"{Category}: ${amount}, {pct}% of total"`.
 - `aria-pressed` reflects selection.
 - **Selection is never colour-only** — the active band gains an outline marker *and* the others
   dim. Two cues, so it survives colour blindness and a monochrome screen.
@@ -558,10 +584,10 @@ It has ISO 7810 proportions, `max-width: 440px`, and is a size container. Set it
 sheet; never its padding.
 
 **Money**
-- `.sw-money` (tabular lining figures, nowrap). The parts are `.sw-money-cur` (₹) and
+- `.sw-money` (tabular lining figures, nowrap). The parts are `.sw-money-cur` ($) and
   `.sw-money-frac` (paise), produced by `<Money>`, `<CountUp>` and `<Odometer>`.
 - **Display sizes only**: inside `.sw-total`, `.sw-bankcard-value`, `.card-hero-value` or
-  `.sw-money-lg`, the ₹ is set lighter and raised and the paise become a superscript. At body size
+  `.sw-money-lg`, the $ is set lighter and raised and the paise become a superscript. At body size
   both stay plain (the 12px floor).
 - `.sw-total` is THE big number, one per screen (`--sw-text-hero`). `.sw-total-gold` makes it gold.
 - `.sw-pos` (emerald), `.sw-neg` (ink), `.sw-over` (coral), `.sw-gold`. On a bank card `.sw-pos` and
@@ -647,17 +673,17 @@ keyboard-initiated action.
 - `staggerStyle(i, max = 8)` returns `{ '--sw-delay': … }` for `.sw-enter`/`.sw-pop` items that are
   not direct children.
 - `tokenMs('--sw-dur-count', 900)` reads a duration token in ms.
-- `splitMoney("₹7,581.00")` returns `{ sign, cur, int, frac }`, or `null` for non-money strings.
-- `<Money paise={758100} />` renders a styled figure. Alternatives: `text="₹…"` for an
+- `splitMoney("$7,581.00")` returns `{ sign, cur, int, frac }`, or `null` for non-money strings.
+- `<Money paise={758100} />` renders a styled figure. Alternatives: `text="$…"` for an
   already-formatted string, or `sign` to prefix "+" on a positive amount (income). Extra props go on
   the root.
 - `<CountUp value={paise} className="sw-total" data-testid="total" />`
-  - `format` defaults to `rupees`. Pass `split={false}` for a non-money figure, with its own
+  - `format` defaults to `dollars`. Pass `split={false}` for a non-money figure, with its own
     `format`.
   - It counts from the on-screen value to the new one: expo ease-out, 900ms, resumable.
   - It does not count under reduced motion or in a hidden tab.
-  - `innerText` is always the final string (observed in the specimen: the ticker showed ₹7,533.99
-    while `innerText` read ₹7,581.00).
+  - `innerText` is always the final string (observed in the specimen: the ticker showed $7,533.99
+    while `innerText` read $7,581.00).
 - `<Odometer value={paise} className="card-value" />` rolls each digit reel to its new value when
   `value` changes, right to left, 18ms apart, 520ms. Nothing rolls on first render. The real string
   is a visually hidden text node, which is the `innerText` and the accessible name; the reels are
@@ -736,6 +762,8 @@ Recipes:
 |---|---|---|
 | guilloché waves + rosette | everywhere | **Generated**, not downloaded: two SVG masks embedded in glass.css (≈18.7KB, no colour). Geometry: a hypotrochoid R100/r36/d52 in two phases plus 3 modulated rings, and 2×10 crossing amplitude-modulated sine lines in a seamless 360×180 tile. The generator script was a session scratch file and is **not in the repo**; committing it under `tools/` is outstanding. |
 | `grain-256.webp` | everywhere | `body::after`, tiled, 5% soft-light (light) / 6% overlay (dark) |
+| `assets/tree/money-tree.webp` | landing, sign-in, dashboard | **The money tree** (`SW-ADR-156`): a poster-print bonsai with banknote leaves, generated with Runway and cleaned locally (fruit removed, cut out, bill interiors refilled). 1200px WebP with alpha, ≈335KB. Provenance (prompt, references, post-processing) in `money-tree.webp.json` beside it. Drawn by `<MoneyTree>`; never behind text. |
+| `assets/brand/mark.svg` | every wordmark, browser-tab icon | **The SpendWise mark** (owner's choice, option B, 2026-10-20): the money tree as a round emerald badge, with an S-curved ivory trunk, three bill leaves and one vermilion bill falling. It is hand-written SVG in the three brand inks, the same in both themes. It replaces the earlier coin dot, drawn by `.wordmark::before` in `shell.css`. |
 | `liquid-violet-*`, `pearl-holo-*`, `ink-lightwave-*`, `liquid-chrome-*` | **retired** | Violet or iridescent; nothing references them. They remain in `client/public/assets/bg/` until their owner deletes them, and are served only if requested. |
 | `ink-blobs-*` | **retired** | Amber and teal; nothing references it. |
 

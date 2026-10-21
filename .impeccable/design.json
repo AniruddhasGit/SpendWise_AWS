@@ -1,0 +1,1595 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-20T02:28:11+00:00",
+  "title": "Design System: SpendWise",
+  "extensions": {
+    "colorMeta": {
+      "paper": {
+        "role": "neutral",
+        "displayName": "Lifted Ivory Paper",
+        "purpose": "--sw-paper, light",
+        "canonical": "#fbf0e0",
+        "oklch": "oklch(95.9% 0.024 77.5)",
+        "tonalRamp": [
+          "#0f0a05",
+          "#2a241b",
+          "#484136",
+          "#696053",
+          "#8a8173",
+          "#aca497",
+          "#d0c8bc",
+          "#f4ede3"
+        ]
+      },
+      "paper-dark": {
+        "role": "neutral",
+        "displayName": "Night Green Paper",
+        "purpose": "--sw-paper, dark",
+        "canonical": "#0a1c13",
+        "oklch": "oklch(20.8% 0.030 160.4)",
+        "tonalRamp": [
+          "#050e08",
+          "#1b2921",
+          "#36463d",
+          "#53675c",
+          "#74887d",
+          "#98aaa0",
+          "#bdcec4",
+          "#e4f3ea"
+        ]
+      },
+      "bg-ivory": {
+        "role": "neutral",
+        "displayName": "Owner's Ivory",
+        "purpose": "--sw-bg-1, light: the backdrop ground",
+        "canonical": "#f9ebd7",
+        "oklch": "oklch(94.6% 0.031 77.0)",
+        "tonalRamp": [
+          "#100a03",
+          "#2b2419",
+          "#4a4033",
+          "#6b5f4f",
+          "#8c806f",
+          "#aea393",
+          "#d2c8b9",
+          "#f6ede0"
+        ]
+      },
+      "bg-ivory-dark": {
+        "role": "neutral",
+        "displayName": "Night Ground",
+        "purpose": "--sw-bg-1, dark",
+        "canonical": "#0a1c13",
+        "oklch": "oklch(20.8% 0.030 160.4)",
+        "tonalRamp": [
+          "#050e08",
+          "#1b2921",
+          "#36463d",
+          "#53675c",
+          "#74887d",
+          "#98aaa0",
+          "#bdcec4",
+          "#e4f3ea"
+        ]
+      },
+      "paper-raised": {
+        "role": "neutral",
+        "displayName": "Raised Paper",
+        "purpose": "--sw-paper-raised: the opaque content tier",
+        "canonical": "#fdf6ec",
+        "oklch": "oklch(97.6% 0.015 77.1)",
+        "tonalRamp": [
+          "#0d0b07",
+          "#28241f",
+          "#46413a",
+          "#666058",
+          "#878179",
+          "#aaa49c",
+          "#cdc8c1",
+          "#f2eee7"
+        ]
+      },
+      "paper-raised-dark": {
+        "role": "neutral",
+        "displayName": "Raised Night Paper",
+        "purpose": "--sw-paper-raised, dark",
+        "canonical": "#10271b",
+        "oklch": "oklch(25.0% 0.037 159.2)",
+        "tonalRamp": [
+          "#030e08",
+          "#192920",
+          "#34473c",
+          "#50685a",
+          "#71897b",
+          "#95ab9e",
+          "#bbcfc3",
+          "#e2f4e9"
+        ]
+      },
+      "paper-sunken": {
+        "role": "neutral",
+        "displayName": "Sunken Paper",
+        "purpose": "--sw-paper-sunken: wells, tracks, disabled",
+        "canonical": "#f2e1c7",
+        "oklch": "oklch(91.7% 0.039 78.6)",
+        "tonalRamp": [
+          "#110a02",
+          "#2d2314",
+          "#4c402e",
+          "#6d5f49",
+          "#8f806a",
+          "#b1a38e",
+          "#d4c7b5",
+          "#f8eddc"
+        ]
+      },
+      "paper-sunken-dark": {
+        "role": "neutral",
+        "displayName": "Sunken Night",
+        "purpose": "--sw-paper-sunken, dark",
+        "canonical": "#07140d",
+        "oklch": "oklch(17.6% 0.024 159.6)",
+        "tonalRamp": [
+          "#060d09",
+          "#1e2822",
+          "#39453e",
+          "#57655d",
+          "#77877e",
+          "#9ba9a1",
+          "#c0cdc5",
+          "#e6f2eb"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Forest Ink",
+        "purpose": "--sw-ink",
+        "canonical": "#0b2a1c",
+        "oklch": "oklch(25.7% 0.045 161.0)",
+        "tonalRamp": [
+          "#010f07",
+          "#152a20",
+          "#2f493b",
+          "#4b6959",
+          "#6c8b7a",
+          "#91ad9d",
+          "#b7d0c2",
+          "#def5e8"
+        ]
+      },
+      "ink-dark": {
+        "role": "neutral",
+        "displayName": "Ivory Ink",
+        "purpose": "--sw-ink, dark",
+        "canonical": "#f9ebd7",
+        "oklch": "oklch(94.6% 0.031 77.0)",
+        "tonalRamp": [
+          "#100a03",
+          "#2b2419",
+          "#4a4033",
+          "#6b5f4f",
+          "#8c806f",
+          "#aea393",
+          "#d2c8b9",
+          "#f6ede0"
+        ]
+      },
+      "ink-muted": {
+        "role": "neutral",
+        "displayName": "Muted Ink",
+        "purpose": "--sw-ink-muted",
+        "canonical": "#3c5446",
+        "oklch": "oklch(42.2% 0.037 158.7)",
+        "tonalRamp": [
+          "#030e08",
+          "#192920",
+          "#34473c",
+          "#50685a",
+          "#71897b",
+          "#95ab9e",
+          "#bbcfc3",
+          "#e2f4e9"
+        ]
+      },
+      "ink-muted-dark": {
+        "role": "neutral",
+        "displayName": "Muted Ivory Ink",
+        "purpose": "--sw-ink-muted, dark",
+        "canonical": "#c4bba6",
+        "oklch": "oklch(79.4% 0.031 87.6)",
+        "tonalRamp": [
+          "#0f0b03",
+          "#2a2418",
+          "#484132",
+          "#68614f",
+          "#8a826f",
+          "#aca493",
+          "#cfc9b9",
+          "#f4eee0"
+        ]
+      },
+      "ink-faint": {
+        "role": "neutral",
+        "displayName": "Faint Ink",
+        "purpose": "--sw-ink-faint: placeholder and disabled only",
+        "canonical": "#8b8a76",
+        "oklch": "oklch(62.9% 0.029 104.9)",
+        "tonalRamp": [
+          "#0c0c04",
+          "#26261a",
+          "#444334",
+          "#636250",
+          "#848471",
+          "#a7a695",
+          "#cbcaba",
+          "#f0efe1"
+        ]
+      },
+      "ink-faint-dark": {
+        "role": "neutral",
+        "displayName": "Faint Ink (dark)",
+        "purpose": "--sw-ink-faint, dark",
+        "canonical": "#7f8a7b",
+        "oklch": "oklch(62.0% 0.026 137.3)",
+        "tonalRamp": [
+          "#080d06",
+          "#21271e",
+          "#3d453a",
+          "#5b6557",
+          "#7c8678",
+          "#9fa89b",
+          "#c3ccc0",
+          "#e9f1e7"
+        ]
+      },
+      "pine": {
+        "role": "primary",
+        "displayName": "Poster Emerald",
+        "purpose": "--sw-pine: the accent",
+        "canonical": "#046a38",
+        "oklch": "oklch(46.1% 0.116 153.6)",
+        "tonalRamp": [
+          "#001300",
+          "#00300f",
+          "#005028",
+          "#207343",
+          "#479563",
+          "#73b788",
+          "#9edaaf",
+          "#c9fed8"
+        ]
+      },
+      "pine-dark": {
+        "role": "primary",
+        "displayName": "Night Emerald",
+        "purpose": "--sw-pine, dark",
+        "canonical": "#5fd59a",
+        "oklch": "oklch(79.0% 0.137 159.0)",
+        "tonalRamp": [
+          "#001400",
+          "#003211",
+          "#00532a",
+          "#007645",
+          "#1f9965",
+          "#5cbb8a",
+          "#8ddeb1",
+          "#bcffd9"
+        ]
+      },
+      "pine-deep": {
+        "role": "primary",
+        "displayName": "Emerald Deep",
+        "purpose": "--sw-pine-deep: primary hover",
+        "canonical": "#03522b",
+        "oklch": "oklch(38.6% 0.095 154.1)",
+        "tonalRamp": [
+          "#001201",
+          "#002e14",
+          "#164e2e",
+          "#317049",
+          "#549269",
+          "#7cb48e",
+          "#a6d7b4",
+          "#d0fbdc"
+        ]
+      },
+      "pine-deep-dark": {
+        "role": "primary",
+        "displayName": "Emerald Deep (dark)",
+        "purpose": "--sw-pine-deep, dark",
+        "canonical": "#8ae6b6",
+        "oklch": "oklch(85.4% 0.112 160.0)",
+        "tonalRamp": [
+          "#001302",
+          "#003016",
+          "#005130",
+          "#11734c",
+          "#3e966c",
+          "#6db891",
+          "#99dab7",
+          "#c5fede"
+        ]
+      },
+      "pine-soft": {
+        "role": "primary",
+        "displayName": "Emerald Wash",
+        "purpose": "--sw-pine-soft: focus halo, selected legend",
+        "canonical": "#e1e8cf",
+        "oklch": "oklch(91.9% 0.034 119.8)",
+        "tonalRamp": [
+          "#0a0c04",
+          "#232719",
+          "#404433",
+          "#5f6450",
+          "#808570",
+          "#a2a894",
+          "#c7ccba",
+          "#ecf1e1"
+        ]
+      },
+      "pine-soft-dark": {
+        "role": "primary",
+        "displayName": "Emerald Wash (dark)",
+        "purpose": "--sw-pine-soft, dark",
+        "canonical": "#12382a",
+        "oklch": "oklch(30.9% 0.050 165.9)",
+        "tonalRamp": [
+          "#000f08",
+          "#112b21",
+          "#2b493d",
+          "#476a5b",
+          "#678c7c",
+          "#8dae9f",
+          "#b3d1c3",
+          "#dbf6e9"
+        ]
+      },
+      "on-pine": {
+        "role": "primary",
+        "displayName": "On Emerald",
+        "purpose": "--sw-on-pine",
+        "canonical": "#ffffff",
+        "oklch": "oklch(100.0% 0.000 89.9)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "on-pine-dark": {
+        "role": "primary",
+        "displayName": "On Emerald (dark)",
+        "purpose": "--sw-on-pine, dark",
+        "canonical": "#06140d",
+        "oklch": "oklch(17.5% 0.025 161.4)",
+        "tonalRamp": [
+          "#060d09",
+          "#1d2822",
+          "#38463e",
+          "#56665d",
+          "#76877e",
+          "#9aa9a1",
+          "#bfcdc5",
+          "#e6f2eb"
+        ]
+      },
+      "positive": {
+        "role": "primary",
+        "displayName": "Positive",
+        "purpose": "--sw-positive",
+        "canonical": "#046a38",
+        "oklch": "oklch(46.1% 0.116 153.6)",
+        "tonalRamp": [
+          "#001300",
+          "#00300f",
+          "#005028",
+          "#207343",
+          "#479563",
+          "#73b788",
+          "#9edaaf",
+          "#c9fed8"
+        ]
+      },
+      "positive-dark": {
+        "role": "primary",
+        "displayName": "Positive (dark)",
+        "purpose": "--sw-positive, dark",
+        "canonical": "#5fd59a",
+        "oklch": "oklch(79.0% 0.137 159.0)",
+        "tonalRamp": [
+          "#001400",
+          "#003211",
+          "#00532a",
+          "#007645",
+          "#1f9965",
+          "#5cbb8a",
+          "#8ddeb1",
+          "#bcffd9"
+        ]
+      },
+      "gold": {
+        "role": "secondary",
+        "displayName": "Vermilion Text",
+        "purpose": "--sw-gold: vermilion text, money leaving",
+        "canonical": "#b3301a",
+        "oklch": "oklch(51.0% 0.171 32.1)",
+        "tonalRamp": [
+          "#2b0000",
+          "#530000",
+          "#7d1000",
+          "#aa2f1b",
+          "#d1553f",
+          "#f27f6a",
+          "#ffa994",
+          "#ffd4c0"
+        ]
+      },
+      "gold-dark": {
+        "role": "secondary",
+        "displayName": "Vermilion Text (dark)",
+        "purpose": "--sw-gold, dark",
+        "canonical": "#ff8f73",
+        "oklch": "oklch(76.5% 0.142 35.0)",
+        "tonalRamp": [
+          "#260000",
+          "#4c0400",
+          "#74210c",
+          "#9f3e26",
+          "#c56148",
+          "#e68871",
+          "#ffb09b",
+          "#ffd9c6"
+        ]
+      },
+      "gold-fill": {
+        "role": "secondary",
+        "displayName": "Vermilion Fill",
+        "purpose": "--sw-gold-fill: vermilion surfaces",
+        "canonical": "#e34222",
+        "oklch": "oklch(61.1% 0.203 33.0)",
+        "tonalRamp": [
+          "#2f0000",
+          "#590000",
+          "#860000",
+          "#b51800",
+          "#dd4729",
+          "#fe765a",
+          "#ffa288",
+          "#ffceb6"
+        ]
+      },
+      "gold-deep": {
+        "role": "secondary",
+        "displayName": "Vermilion Deep",
+        "purpose": "--sw-gold-deep: foil edge, rules",
+        "canonical": "#c4361a",
+        "oklch": "oklch(54.6% 0.183 32.9)",
+        "tonalRamp": [
+          "#2d0000",
+          "#550000",
+          "#800400",
+          "#ae280c",
+          "#d65036",
+          "#f67c63",
+          "#ffa78f",
+          "#ffd2bc"
+        ]
+      },
+      "gold-soft": {
+        "role": "secondary",
+        "displayName": "Vermilion Wash",
+        "purpose": "--sw-gold-soft",
+        "canonical": "#fadccf",
+        "oklch": "oklch(91.6% 0.038 44.9)",
+        "tonalRamp": [
+          "#140804",
+          "#31211a",
+          "#513d34",
+          "#735b51",
+          "#967c71",
+          "#b79f95",
+          "#dac4ba",
+          "#fdeae1"
+        ]
+      },
+      "gold-soft-dark": {
+        "role": "secondary",
+        "displayName": "Vermilion Wash (dark)",
+        "purpose": "--sw-gold-soft, dark",
+        "canonical": "#3a1a12",
+        "oklch": "oklch(26.2% 0.053 35.1)",
+        "tonalRamp": [
+          "#170603",
+          "#361e18",
+          "#573932",
+          "#7b574e",
+          "#9e786e",
+          "#bf9c92",
+          "#e1c1b8",
+          "#ffe7df"
+        ]
+      },
+      "on-gold": {
+        "role": "secondary",
+        "displayName": "On Vermilion",
+        "purpose": "--sw-on-gold",
+        "canonical": "#fffaf2",
+        "oklch": "oklch(98.7% 0.012 79.8)",
+        "tonalRamp": [
+          "#0d0b08",
+          "#272520",
+          "#45413c",
+          "#65615a",
+          "#86827b",
+          "#a8a49e",
+          "#ccc9c3",
+          "#f1eee9"
+        ]
+      },
+      "danger": {
+        "role": "secondary",
+        "displayName": "Poster Vermilion Statement",
+        "purpose": "--sw-danger: overspend, destructive, errors, poster statement text",
+        "canonical": "#b3301a",
+        "oklch": "oklch(51.0% 0.171 32.1)",
+        "tonalRamp": [
+          "#2b0000",
+          "#530000",
+          "#7d1000",
+          "#aa2f1b",
+          "#d1553f",
+          "#f27f6a",
+          "#ffa994",
+          "#ffd4c0"
+        ]
+      },
+      "danger-dark": {
+        "role": "secondary",
+        "displayName": "Statement Vermilion (dark)",
+        "purpose": "--sw-danger, dark",
+        "canonical": "#ff8466",
+        "oklch": "oklch(74.6% 0.156 34.8)",
+        "tonalRamp": [
+          "#280000",
+          "#4f0000",
+          "#791b01",
+          "#a4381d",
+          "#cb5b41",
+          "#eb846b",
+          "#ffad96",
+          "#ffd7c1"
+        ]
+      },
+      "danger-soft": {
+        "role": "secondary",
+        "displayName": "Danger Wash",
+        "purpose": "--sw-danger-soft",
+        "canonical": "#f8d6c8",
+        "oklch": "oklch(90.1% 0.043 43.7)",
+        "tonalRamp": [
+          "#150703",
+          "#322018",
+          "#533c32",
+          "#765a4f",
+          "#987b6f",
+          "#ba9e93",
+          "#dcc3b9",
+          "#ffe9e0"
+        ]
+      },
+      "danger-soft-dark": {
+        "role": "secondary",
+        "displayName": "Danger Wash (dark)",
+        "purpose": "--sw-danger-soft, dark",
+        "canonical": "#3b1a12",
+        "oklch": "oklch(26.4% 0.054 34.7)",
+        "tonalRamp": [
+          "#170603",
+          "#361e18",
+          "#583931",
+          "#7c574d",
+          "#9f786e",
+          "#c09b92",
+          "#e2c0b8",
+          "#ffe7df"
+        ]
+      },
+      "warning": {
+        "role": "secondary",
+        "displayName": "Warning Amber",
+        "purpose": "--sw-warning",
+        "canonical": "#7f4a08",
+        "oklch": "oklch(46.2% 0.101 63.6)",
+        "tonalRamp": [
+          "#1c0300",
+          "#3d1a00",
+          "#613601",
+          "#87541d",
+          "#ab7541",
+          "#cb9a6c",
+          "#edbf96",
+          "#ffe6c2"
+        ]
+      },
+      "warning-dark": {
+        "role": "secondary",
+        "displayName": "Warning Amber (dark)",
+        "purpose": "--sw-warning, dark",
+        "canonical": "#f2b657",
+        "oklch": "oklch(81.4% 0.131 76.5)",
+        "tonalRamp": [
+          "#1d0200",
+          "#3e1a00",
+          "#623700",
+          "#885500",
+          "#ac760c",
+          "#cc9b4f",
+          "#edc17f",
+          "#ffe8af"
+        ]
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "purpose": "--sw-border",
+        "canonical": "#e6d2b4",
+        "oklch": "oklch(87.2% 0.046 78.0)",
+        "tonalRamp": [
+          "#120901",
+          "#2e2311",
+          "#4d402a",
+          "#6f5e45",
+          "#918065",
+          "#b3a38a",
+          "#d6c7b1",
+          "#faedd9"
+        ]
+      },
+      "border-dark": {
+        "role": "neutral",
+        "displayName": "Hairline (dark)",
+        "purpose": "--sw-border, dark",
+        "canonical": "#1f3a2c",
+        "oklch": "oklch(32.2% 0.042 160.2)",
+        "tonalRamp": [
+          "#020f07",
+          "#172a20",
+          "#31483c",
+          "#4e685a",
+          "#6e8a7a",
+          "#93ac9e",
+          "#b9d0c2",
+          "#e0f4e8"
+        ]
+      },
+      "border-strong": {
+        "role": "neutral",
+        "displayName": "Rim",
+        "purpose": "--sw-border-strong: the 3:1 component border",
+        "canonical": "#7a6c52",
+        "oklch": "oklch(53.7% 0.042 82.8)",
+        "tonalRamp": [
+          "#110a01",
+          "#2d2413",
+          "#4b402c",
+          "#6c5f47",
+          "#8e8167",
+          "#b0a38c",
+          "#d3c8b3",
+          "#f7eddb"
+        ]
+      },
+      "border-strong-dark": {
+        "role": "neutral",
+        "displayName": "Rim (dark)",
+        "purpose": "--sw-border-strong, dark",
+        "canonical": "#7d9a87",
+        "oklch": "oklch(65.8% 0.043 156.3)",
+        "tonalRamp": [
+          "#030f07",
+          "#182a1f",
+          "#32483a",
+          "#4e6858",
+          "#6f8a78",
+          "#93ac9c",
+          "#b9d0c1",
+          "#e1f4e7"
+        ]
+      },
+      "extrude": {
+        "role": "primary",
+        "displayName": "Extrusion Depth",
+        "purpose": "--sw-extrude: the side of the extruded lettering",
+        "canonical": "#0b2a1c",
+        "oklch": "oklch(25.7% 0.045 161.0)",
+        "tonalRamp": [
+          "#010f07",
+          "#152a20",
+          "#2f493b",
+          "#4b6959",
+          "#6c8b7a",
+          "#91ad9d",
+          "#b7d0c2",
+          "#def5e8"
+        ]
+      },
+      "extrude-dark": {
+        "role": "primary",
+        "displayName": "Extrusion Depth (dark)",
+        "purpose": "--sw-extrude, dark",
+        "canonical": "#046a38",
+        "oklch": "oklch(46.1% 0.116 153.6)",
+        "tonalRamp": [
+          "#001300",
+          "#00300f",
+          "#005028",
+          "#207343",
+          "#479563",
+          "#73b788",
+          "#9edaaf",
+          "#c9fed8"
+        ]
+      },
+      "glass": {
+        "role": "neutral",
+        "displayName": "Ivory Glass",
+        "purpose": "--sw-glass: chrome tier",
+        "canonical": "rgb(253 246 236 / 0.62)"
+      },
+      "glass-dark": {
+        "role": "neutral",
+        "displayName": "Night Glass",
+        "purpose": "--sw-glass, dark",
+        "canonical": "rgb(16 40 28 / 0.66)"
+      },
+      "glass-strong": {
+        "role": "neutral",
+        "displayName": "Thick Ivory Glass",
+        "purpose": "--sw-glass-strong",
+        "canonical": "rgb(253 246 236 / 0.82)"
+      },
+      "glass-strong-dark": {
+        "role": "neutral",
+        "displayName": "Thick Night Glass",
+        "purpose": "--sw-glass-strong, dark",
+        "canonical": "rgb(12 32 22 / 0.84)"
+      },
+      "glass-sunken": {
+        "role": "neutral",
+        "displayName": "Sunken Glass",
+        "purpose": "--sw-glass-sunken: input wells, hover",
+        "canonical": "rgb(242 225 199 / 0.70)"
+      },
+      "glass-sunken-dark": {
+        "role": "neutral",
+        "displayName": "Sunken Night Glass",
+        "purpose": "--sw-glass-sunken, dark",
+        "canonical": "rgb(4 14 9 / 0.45)"
+      },
+      "glass-solid": {
+        "role": "neutral",
+        "displayName": "Solid Glass Fallback",
+        "purpose": "--sw-glass-solid",
+        "canonical": "#fdf6ec",
+        "oklch": "oklch(97.6% 0.015 77.1)",
+        "tonalRamp": [
+          "#0d0b07",
+          "#28241f",
+          "#46413a",
+          "#666058",
+          "#878179",
+          "#aaa49c",
+          "#cdc8c1",
+          "#f2eee7"
+        ]
+      },
+      "glass-solid-dark": {
+        "role": "neutral",
+        "displayName": "Solid Night Fallback",
+        "purpose": "--sw-glass-solid, dark",
+        "canonical": "#10271b",
+        "oklch": "oklch(25.0% 0.037 159.2)",
+        "tonalRamp": [
+          "#030e08",
+          "#192920",
+          "#34473c",
+          "#50685a",
+          "#71897b",
+          "#95ab9e",
+          "#bbcfc3",
+          "#e2f4e9"
+        ]
+      },
+      "brand-ivory": {
+        "role": "tertiary",
+        "displayName": "Brand Ivory",
+        "purpose": "--sw-brand-ivory: printed objects only, constant",
+        "canonical": "#f9ebd7",
+        "oklch": "oklch(94.6% 0.031 77.0)",
+        "tonalRamp": [
+          "#100a03",
+          "#2b2419",
+          "#4a4033",
+          "#6b5f4f",
+          "#8c806f",
+          "#aea393",
+          "#d2c8b9",
+          "#f6ede0"
+        ]
+      },
+      "brand-emerald": {
+        "role": "tertiary",
+        "displayName": "Brand Emerald",
+        "purpose": "--sw-brand-emerald: printed objects only",
+        "canonical": "#046a38",
+        "oklch": "oklch(46.1% 0.116 153.6)",
+        "tonalRamp": [
+          "#001300",
+          "#00300f",
+          "#005028",
+          "#207343",
+          "#479563",
+          "#73b788",
+          "#9edaaf",
+          "#c9fed8"
+        ]
+      },
+      "brand-emerald-deep": {
+        "role": "tertiary",
+        "displayName": "Brand Emerald Deep",
+        "purpose": "--sw-brand-emerald-deep",
+        "canonical": "#03522b",
+        "oklch": "oklch(38.6% 0.095 154.1)",
+        "tonalRamp": [
+          "#001201",
+          "#002e14",
+          "#164e2e",
+          "#317049",
+          "#549269",
+          "#7cb48e",
+          "#a6d7b4",
+          "#d0fbdc"
+        ]
+      },
+      "brand-vermilion": {
+        "role": "tertiary",
+        "displayName": "Brand Vermilion",
+        "purpose": "--sw-brand-vermilion: bills, orbits, sparks",
+        "canonical": "#e34222",
+        "oklch": "oklch(61.1% 0.203 33.0)",
+        "tonalRamp": [
+          "#2f0000",
+          "#590000",
+          "#860000",
+          "#b51800",
+          "#dd4729",
+          "#fe765a",
+          "#ffa288",
+          "#ffceb6"
+        ]
+      },
+      "brand-vermilion-deep": {
+        "role": "tertiary",
+        "displayName": "Brand Vermilion Deep",
+        "purpose": "--sw-brand-vermilion-deep: bill labels",
+        "canonical": "#b3301a",
+        "oklch": "oklch(51.0% 0.171 32.1)",
+        "tonalRamp": [
+          "#2b0000",
+          "#530000",
+          "#7d1000",
+          "#aa2f1b",
+          "#d1553f",
+          "#f27f6a",
+          "#ffa994",
+          "#ffd4c0"
+        ]
+      },
+      "plot-line": {
+        "role": "primary",
+        "displayName": "Series Emerald",
+        "purpose": "--sw-plot-line",
+        "canonical": "#046a38",
+        "oklch": "oklch(46.1% 0.116 153.6)",
+        "tonalRamp": [
+          "#001300",
+          "#00300f",
+          "#005028",
+          "#207343",
+          "#479563",
+          "#73b788",
+          "#9edaaf",
+          "#c9fed8"
+        ]
+      },
+      "plot-line-dark": {
+        "role": "primary",
+        "displayName": "Series Emerald (dark)",
+        "purpose": "--sw-plot-line, dark",
+        "canonical": "#5fd59a",
+        "oklch": "oklch(79.0% 0.137 159.0)",
+        "tonalRamp": [
+          "#001400",
+          "#003211",
+          "#00532a",
+          "#007645",
+          "#1f9965",
+          "#5cbb8a",
+          "#8ddeb1",
+          "#bcffd9"
+        ]
+      },
+      "plot-gold": {
+        "role": "secondary",
+        "displayName": "Peak Vermilion",
+        "purpose": "--sw-plot-gold: running total, peaks",
+        "canonical": "#c4361a",
+        "oklch": "oklch(54.6% 0.183 32.9)",
+        "tonalRamp": [
+          "#2d0000",
+          "#550000",
+          "#800400",
+          "#ae280c",
+          "#d65036",
+          "#f67c63",
+          "#ffa78f",
+          "#ffd2bc"
+        ]
+      },
+      "plot-gold-dark": {
+        "role": "secondary",
+        "displayName": "Peak Vermilion (dark)",
+        "purpose": "--sw-plot-gold, dark",
+        "canonical": "#ff8f73",
+        "oklch": "oklch(76.5% 0.142 35.0)",
+        "tonalRamp": [
+          "#260000",
+          "#4c0400",
+          "#74210c",
+          "#9f3e26",
+          "#c56148",
+          "#e68871",
+          "#ffb09b",
+          "#ffd9c6"
+        ]
+      },
+      "cat-1": {
+        "role": "category",
+        "displayName": "Category band 1",
+        "purpose": "--sw-cat-1, frozen (SW-ADR-092)",
+        "canonical": "#4a7c59",
+        "oklch": "oklch(54.1% 0.077 152.7)",
+        "tonalRamp": [
+          "#001103",
+          "#092d17",
+          "#244c31",
+          "#3f6d4d",
+          "#608f6d",
+          "#86b192",
+          "#aed5b8",
+          "#d7f9df"
+        ]
+      },
+      "cat-2": {
+        "role": "category",
+        "displayName": "Category band 2",
+        "purpose": "--sw-cat-2, frozen (SW-ADR-092)",
+        "canonical": "#b5543b",
+        "oklch": "oklch(56.2% 0.132 35.5)",
+        "tonalRamp": [
+          "#250000",
+          "#4a0900",
+          "#712511",
+          "#9b422b",
+          "#c1644c",
+          "#e28b74",
+          "#ffb29d",
+          "#ffdbc8"
+        ]
+      },
+      "cat-3": {
+        "role": "category",
+        "displayName": "Category band 3",
+        "purpose": "--sw-cat-3, frozen (SW-ADR-092)",
+        "canonical": "#3e6b8f",
+        "oklch": "oklch(51.1% 0.076 244.2)",
+        "tonalRamp": [
+          "#000c1e",
+          "#07273e",
+          "#214562",
+          "#3b6687",
+          "#5c87ab",
+          "#83aacb",
+          "#abceec",
+          "#d4f3ff"
+        ]
+      },
+      "cat-4": {
+        "role": "category",
+        "displayName": "Category band 4",
+        "purpose": "--sw-cat-4, frozen (SW-ADR-092)",
+        "canonical": "#9c7a2f",
+        "oklch": "oklch(59.8% 0.101 84.1)",
+        "tonalRamp": [
+          "#170700",
+          "#362000",
+          "#573d00",
+          "#7b5c0e",
+          "#9d7d38",
+          "#bea165",
+          "#e0c691",
+          "#ffecbe"
+        ]
+      },
+      "cat-5": {
+        "role": "category",
+        "displayName": "Category band 5",
+        "purpose": "--sw-cat-5, frozen (SW-ADR-092)",
+        "canonical": "#2e7d8a",
+        "oklch": "oklch(54.7% 0.078 210.3)",
+        "tonalRamp": [
+          "#001017",
+          "#002c35",
+          "#004b55",
+          "#216c79",
+          "#478e9b",
+          "#73b1bc",
+          "#9dd4de",
+          "#c9f8ff"
+        ]
+      },
+      "cat-6": {
+        "role": "category",
+        "displayName": "Category band 6",
+        "purpose": "--sw-cat-6, frozen (SW-ADR-092)",
+        "canonical": "#7b4b94",
+        "oklch": "oklch(49.9% 0.123 313.0)",
+        "tonalRamp": [
+          "#160022",
+          "#341344",
+          "#552e69",
+          "#784b90",
+          "#9b6cb4",
+          "#bc92d4",
+          "#deb8f4",
+          "#ffe0ff"
+        ]
+      },
+      "cat-7": {
+        "role": "category",
+        "displayName": "Category band 7",
+        "purpose": "--sw-cat-7, frozen (SW-ADR-092)",
+        "canonical": "#a04c72",
+        "oklch": "oklch(53.3% 0.120 353.5)",
+        "tonalRamp": [
+          "#20000e",
+          "#430c28",
+          "#692746",
+          "#914366",
+          "#b66488",
+          "#d78aaa",
+          "#f8b2ce",
+          "#ffdaf2"
+        ]
+      },
+      "cat-8": {
+        "role": "category",
+        "displayName": "Category band 8",
+        "purpose": "--sw-cat-8, frozen (SW-ADR-092)",
+        "canonical": "#7d8471",
+        "oklch": "oklch(60.2% 0.029 123.8)",
+        "tonalRamp": [
+          "#090c05",
+          "#23271b",
+          "#3f4436",
+          "#5e6453",
+          "#7f8573",
+          "#a2a897",
+          "#c6ccbd",
+          "#ecf1e3"
+        ]
+      },
+      "cat-uncat": {
+        "role": "category",
+        "displayName": "Uncategorised band",
+        "purpose": "--sw-cat-uncat, equals the server UNCATEGORISED_COLOR",
+        "canonical": "#928a85",
+        "oklch": "oklch(63.9% 0.012 54.4)",
+        "tonalRamp": [
+          "#0e0a08",
+          "#292421",
+          "#47413d",
+          "#67605b",
+          "#88817c",
+          "#aaa39f",
+          "#cec8c4",
+          "#f3edea"
+        ]
+      },
+      "cat-1-dark": {
+        "role": "category",
+        "displayName": "Category band 1 (dark)",
+        "purpose": "--sw-cat-1, dark",
+        "canonical": "#6fae82",
+        "oklch": "oklch(69.6% 0.092 153.1)",
+        "tonalRamp": [
+          "#001101",
+          "#002e14",
+          "#1a4e2e",
+          "#356f49",
+          "#579269",
+          "#7fb48e",
+          "#a8d7b4",
+          "#d2fbdc"
+        ]
+      },
+      "cat-2-dark": {
+        "role": "category",
+        "displayName": "Category band 2 (dark)",
+        "purpose": "--sw-cat-2, dark",
+        "canonical": "#e08a6f",
+        "oklch": "oklch(71.7% 0.113 38.2)",
+        "tonalRamp": [
+          "#210000",
+          "#451101",
+          "#6b2c18",
+          "#934931",
+          "#b86a52",
+          "#d99079",
+          "#fab7a2",
+          "#ffdfcc"
+        ]
+      },
+      "cat-3-dark": {
+        "role": "category",
+        "displayName": "Category band 3 (dark)",
+        "purpose": "--sw-cat-3, dark",
+        "canonical": "#74a6cc",
+        "oklch": "oklch(70.4% 0.077 241.9)",
+        "tonalRamp": [
+          "#000c1e",
+          "#04283e",
+          "#1e4662",
+          "#396687",
+          "#5a88ab",
+          "#81abcb",
+          "#a9cfec",
+          "#d2f3ff"
+        ]
+      },
+      "cat-4-dark": {
+        "role": "category",
+        "displayName": "Category band 4 (dark)",
+        "purpose": "--sw-cat-4, dark",
+        "canonical": "#d4ae5e",
+        "oklch": "oklch(76.8% 0.108 84.3)",
+        "tonalRamp": [
+          "#180600",
+          "#372000",
+          "#583c00",
+          "#7c5b00",
+          "#9f7d30",
+          "#c0a05f",
+          "#e2c58c",
+          "#ffecba"
+        ]
+      },
+      "cat-5-dark": {
+        "role": "category",
+        "displayName": "Category band 5 (dark)",
+        "purpose": "--sw-cat-5, dark",
+        "canonical": "#62b8c4",
+        "oklch": "oklch(73.3% 0.085 207.3)",
+        "tonalRamp": [
+          "#001017",
+          "#002d35",
+          "#004c55",
+          "#116e79",
+          "#3e909b",
+          "#6cb2bc",
+          "#99d5de",
+          "#c5faff"
+        ]
+      },
+      "cat-6-dark": {
+        "role": "category",
+        "displayName": "Category band 6 (dark)",
+        "purpose": "--sw-cat-6, dark",
+        "canonical": "#b48ecb",
+        "oklch": "oklch(70.4% 0.096 312.3)",
+        "tonalRamp": [
+          "#14021d",
+          "#31193e",
+          "#513461",
+          "#735187",
+          "#9572aa",
+          "#b796ca",
+          "#d9bceb",
+          "#fde3ff"
+        ]
+      },
+      "cat-7-dark": {
+        "role": "category",
+        "displayName": "Category band 7 (dark)",
+        "purpose": "--sw-cat-7, dark",
+        "canonical": "#d883a6",
+        "oklch": "oklch(71.0% 0.112 354.1)",
+        "tonalRamp": [
+          "#1f000d",
+          "#420e28",
+          "#672945",
+          "#8f4565",
+          "#b36687",
+          "#d48ca9",
+          "#f5b3cd",
+          "#ffdbf2"
+        ]
+      },
+      "cat-8-dark": {
+        "role": "category",
+        "displayName": "Category band 8 (dark)",
+        "purpose": "--sw-cat-8, dark",
+        "canonical": "#a8b09c",
+        "oklch": "oklch(74.5% 0.029 124.9)",
+        "tonalRamp": [
+          "#090d05",
+          "#23271b",
+          "#3f4436",
+          "#5d6453",
+          "#7e8673",
+          "#a1a897",
+          "#c6ccbd",
+          "#ebf1e3"
+        ]
+      },
+      "cat-uncat-dark": {
+        "role": "category",
+        "displayName": "Uncategorised band (dark)",
+        "purpose": "--sw-cat-uncat, dark",
+        "canonical": "#9aa096",
+        "oklch": "oklch(69.8% 0.016 132.5)",
+        "tonalRamp": [
+          "#0a0c08",
+          "#232620",
+          "#3f443c",
+          "#5e635a",
+          "#7f847b",
+          "#a2a79e",
+          "#c6cbc3",
+          "#ecf0e9"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "The dashboard total only: Big Shoulders 900, extruded, emerald, tabular lining figures. ₹ falls through to Geist (weight 800)."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Landing headline and gate title: Big Shoulders 900, uppercase, extruded emerald."
+      },
+      "title": {
+        "displayName": "Poster Statement",
+        "purpose": "Landing vermilion statement (and the dashboard total label at 1.75rem): Big Shoulders 800, uppercase."
+      },
+      "figure": {
+        "displayName": "Figure",
+        "purpose": "Statement-card values: Geist 600, tabular lining figures."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "All running text: Geist 400."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Chips, segmented controls, card labels, field errors; sentence case."
+      }
+    },
+    "shadows": [
+      {
+        "name": "shadow-sm",
+        "value": "0 1px 1px rgb(24 40 30 / 0.06), 0 2px 6px rgb(24 40 30 / 0.06)",
+        "dark": "0 1px 1px rgb(0 6 4 / 0.45), 0 2px 6px rgb(0 6 4 / 0.45)",
+        "purpose": "Chips, tracks, quiet buttons, selected knobs."
+      },
+      {
+        "name": "shadow-md",
+        "value": "0 1px 2px rgb(24 40 30 / 0.06), 0 10px 28px -8px rgb(24 40 30 / 0.16)",
+        "dark": "0 1px 2px rgb(0 6 4 / 0.50), 0 10px 28px -8px rgb(0 6 4 / 0.60)",
+        "purpose": "Cards and default glass."
+      },
+      {
+        "name": "shadow-lg",
+        "value": "0 2px 4px rgb(24 40 30 / 0.06), 0 28px 64px -16px rgb(24 40 30 / 0.24)",
+        "dark": "0 2px 4px rgb(0 6 4 / 0.50), 0 28px 64px -16px rgb(0 6 4 / 0.70)",
+        "purpose": "Gate card and expense panel (also --sw-shadow-panel)."
+      },
+      {
+        "name": "shadow-pine",
+        "value": "0 1px 2px rgb(8 84 58 / 0.25), 0 8px 20px -6px rgb(11 107 74 / 0.40)",
+        "dark": "0 1px 2px rgb(0 6 4 / 0.50), 0 8px 24px -6px rgb(43 212 154 / 0.35)",
+        "purpose": "Under the primary button only."
+      },
+      {
+        "name": "shadow-card",
+        "value": "0 2px 6px rgb(6 20 15 / 0.18), 0 30px 60px -18px rgb(6 20 15 / 0.45)",
+        "dark": "0 2px 6px rgb(0 0 0 / 0.40), 0 34px 70px -18px rgb(0 0 0 / 0.70)",
+        "purpose": "The bank card component."
+      },
+      {
+        "name": "highlight",
+        "value": "inset 0 1px 0 rgb(255 255 255 / 0.80), inset 0 0 0 1px rgb(255 255 255 / 0.40)",
+        "dark": "inset 0 1px 0 rgb(249 235 215 / 0.10), inset 0 0 0 1px rgb(249 235 215 / 0.06)",
+        "purpose": "The inner light edge every glass and content surface wears."
+      },
+      {
+        "name": "extruded-lettering",
+        "value": "0.01em 0.01em 0 var(--sw-extrude), 0.02em 0.02em 0 var(--sw-extrude), 0.03em 0.03em 0 var(--sw-extrude), 0.04em 0.04em 0 var(--sw-extrude), 0.05em 0.05em 0 var(--sw-extrude), 0.08em 0.12em 0.22em rgb(11 42 28 / 0.18)",
+        "purpose": "text-shadow of .sw-extruded: display lettering only, never boxes."
+      },
+      {
+        "name": "glass-blur",
+        "value": "blur(var(--sw-blur-sm|md|lg)) saturate(var(--sw-glass-saturate))",
+        "purpose": "Chrome tier backdrop-filter: 8px tracks/quiet buttons, 20px rail/bars/tree pool, 32px gate card/panel; saturate 150% light, 140% dark."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.23, 1, 0.32, 1)",
+        "purpose": "Default for entrances, presses, sheen slide."
+      },
+      {
+        "name": "ease-in-out",
+        "value": "cubic-bezier(0.77, 0, 0.175, 1)",
+        "purpose": "On-screen movement."
+      },
+      {
+        "name": "ease-drawer",
+        "value": "cubic-bezier(0.32, 0.72, 0, 1)",
+        "purpose": "Phone rail drawer."
+      },
+      {
+        "name": "ease-exit",
+        "value": "cubic-bezier(0.4, 0, 1, 1)",
+        "purpose": "Exits only."
+      },
+      {
+        "name": "spring",
+        "value": "linear(...) computed damped oscillator, peak 1.028",
+        "purpose": "Use with --sw-dur-spring 650ms."
+      },
+      {
+        "name": "durations",
+        "value": "press 120 · hover 180 · small 240 · enter 320 · route 400 · hero 450 · spring 650 · count 900 · roll 520 ms · drift 90s · stagger 40ms",
+        "purpose": "--sw-dur-* tokens."
+      },
+      {
+        "name": "money-tree-spawn",
+        "value": "every 3.4s, max 18 live (dashboard) · every 1.9s, max 30 (landing)",
+        "purpose": "Ambient falling bills."
+      },
+      {
+        "name": "money-tree-featured-drop",
+        "value": "size 2.2x, max fall 38px/s, rests ~2.2s, 7-spark burst fading over 0.9s",
+        "purpose": "One bill per confirmed new expense."
+      },
+      {
+        "name": "money-tree-atmosphere",
+        "value": "gust every 7–13s lasting 2.6–4s · mist 28s/34s/41s · orbits 46s/58s · spark twinkle 5.5s",
+        "purpose": "Landing variant only."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "durations 0.01ms; entrance animations removed; money tree draws nothing",
+        "purpose": "Instant, not slower (SW-ADR-117)."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "landing-narrow",
+        "value": "1100px",
+        "note": "viewport: three-column poster becomes two rows"
+      },
+      {
+        "name": "shell-drawer",
+        "value": "900px",
+        "note": "viewport: rail becomes a drawer, mobile top bar appears"
+      },
+      {
+        "name": "landing-phone",
+        "value": "640px",
+        "note": "viewport: single column"
+      },
+      {
+        "name": "dash-wide",
+        "value": "880px",
+        "note": "container (dash pane): two-column hero, orbit arc and sparks shown"
+      },
+      {
+        "name": "dash-phone",
+        "value": "560px",
+        "note": "container (dash pane): one column, figures stacked"
+      },
+      {
+        "name": "min-width",
+        "value": "375px",
+        "note": "no sideways scroll, no box past the edge"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Emerald pill with a sliding emerald-to-vermilion sheen; the one primary action per intent.",
+      "html": "<button class=\"ds-btn\">Add expense</button>",
+      "css": ".ds-btn { position: relative; isolation: isolate; overflow: hidden; min-height: var(--sw-target-min, 44px); padding: 0 var(--sw-space-5, 1.25rem); border: 1px solid transparent; border-radius: var(--sw-radius-full, 999px); background: var(--sw-pine, #046a38); color: var(--sw-on-pine, #fff); box-shadow: var(--sw-highlight), var(--sw-shadow-pine); font-family: var(--sw-font-body, Geist, system-ui, sans-serif); font-size: 1rem; font-weight: 600; cursor: pointer; transition: transform 120ms cubic-bezier(0.23,1,0.32,1), background-color 180ms ease; } .ds-btn::before { content: ''; position: absolute; inset: 0 -40%; z-index: -1; pointer-events: none; background: linear-gradient(110deg, transparent 20%, color-mix(in srgb, var(--sw-sheen-a, #2f9e63) 18%, transparent) 44%, color-mix(in srgb, var(--sw-sheen-b, #e34222) 18%, transparent) 60%, transparent 80%); transform: translateX(-14%); transition: transform 450ms cubic-bezier(0.23,1,0.32,1); } .ds-btn:hover { background: var(--sw-pine-deep, #03522b); } .ds-btn:hover::before { transform: translateX(14%); } .ds-btn:active { transform: scale(0.97); } .ds-btn:focus-visible { outline: 2px solid var(--sw-pine, #046a38); outline-offset: 2px; }"
+    },
+    {
+      "name": "Quiet Button",
+      "kind": "button",
+      "refersTo": "button-quiet",
+      "description": "A glass pill in ink for secondary actions.",
+      "html": "<button class=\"ds-btn-quiet\">Sign out</button>",
+      "css": ".ds-btn-quiet { min-height: 44px; padding: 0 1.25rem; border: 1px solid var(--sw-glass-edge, rgb(11 42 28 / 0.12)); border-radius: 999px; background: var(--sw-glass-strong, rgb(253 246 236 / 0.82)); color: var(--sw-ink, #0b2a1c); box-shadow: var(--sw-highlight), var(--sw-shadow-sm); backdrop-filter: blur(8px) saturate(150%); font-family: var(--sw-font-body, Geist, system-ui, sans-serif); font-size: 1rem; font-weight: 500; cursor: pointer; transition: background-color 180ms ease, box-shadow 180ms ease; } .ds-btn-quiet:hover { background: var(--sw-paper-raised, #fdf6ec); box-shadow: var(--sw-highlight), var(--sw-shadow-md); } .ds-btn-quiet:focus-visible { outline: 2px solid var(--sw-pine, #046a38); outline-offset: 2px; }"
+    },
+    {
+      "name": "Danger Button",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Solid vermilion danger, no sheen; always behind a confirm.",
+      "html": "<button class=\"ds-btn-danger\">Delete entry</button>",
+      "css": ".ds-btn-danger { min-height: 44px; padding: 0 1.25rem; border: 1px solid transparent; border-radius: 999px; background: var(--sw-danger, #b3301a); color: var(--sw-on-pine, #fff); box-shadow: var(--sw-highlight), var(--sw-shadow-sm); font-family: var(--sw-font-body, Geist, system-ui, sans-serif); font-size: 1rem; font-weight: 600; cursor: pointer; } .ds-btn-danger:hover { filter: brightness(0.94); } .ds-btn-danger:focus-visible { outline: 2px solid var(--sw-pine, #046a38); outline-offset: 2px; }"
+    },
+    {
+      "name": "Period Track",
+      "kind": "chip",
+      "refersTo": "chip-selected",
+      "description": "Glass track of chips; the selected one is a raised paper knob.",
+      "html": "<div class=\"ds-track\"><button class=\"ds-chip\" aria-pressed=\"true\">This month</button><button class=\"ds-chip\" aria-pressed=\"false\">Last month</button><button class=\"ds-chip\" aria-pressed=\"false\">Last 30 days</button></div>",
+      "css": ".ds-track { display: inline-flex; flex-wrap: wrap; gap: 0.25rem; width: fit-content; max-width: 100%; padding: 0.25rem; border: 1px solid var(--sw-glass-edge, rgb(11 42 28 / 0.12)); border-radius: calc(22px + 0.25rem); background: var(--sw-glass, rgb(253 246 236 / 0.62)); box-shadow: var(--sw-highlight), var(--sw-shadow-sm); backdrop-filter: blur(8px) saturate(150%); } .ds-chip { min-height: 44px; padding: 0 1rem; border: 0; border-radius: 999px; background: transparent; color: var(--sw-ink-muted, #3c5446); font-family: var(--sw-font-body, Geist, system-ui, sans-serif); font-size: 0.8125rem; font-weight: 500; white-space: nowrap; cursor: pointer; transition: background-color 180ms ease, color 180ms ease, transform 120ms cubic-bezier(0.23,1,0.32,1); } .ds-chip:hover { background: var(--sw-glass-sunken, rgb(242 225 199 / 0.70)); color: var(--sw-ink, #0b2a1c); } .ds-chip:active { transform: scale(0.97); } .ds-chip[aria-pressed='true'] { background: var(--sw-paper-raised, #fdf6ec); color: var(--sw-ink, #0b2a1c); font-weight: 600; box-shadow: var(--sw-highlight), var(--sw-shadow-sm); } .ds-chip:focus-visible { outline: 2px solid var(--sw-pine, #046a38); outline-offset: 2px; }"
+    },
+    {
+      "name": "Statement Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Opaque content card with a vermilion hairline across the top; figures read as statement lines.",
+      "html": "<div class=\"ds-card\"><dl class=\"ds-figs\"><div class=\"ds-fig\"><dt>Entries</dt><dd class=\"ds-val\">32</dd></div><div class=\"ds-fig\"><dt>Daily average</dt><dd class=\"ds-val\">₹3,617.15</dd></div><div class=\"ds-fig\"><dt>On track for</dt><dd class=\"ds-val ds-proj\">₹1,12,131.65</dd></div></dl></div>",
+      "css": ".ds-card { padding: 0.5rem 1.25rem; background-color: var(--sw-paper-raised, #fdf6ec); background-image: linear-gradient(90deg, transparent, var(--sw-gold-deep, #c4361a) 18%, var(--sw-gold-fill, #e34222) 50%, var(--sw-gold-deep, #c4361a) 82%, transparent); background-size: 100% 1px; background-repeat: no-repeat; border: 1px solid var(--sw-glass-edge, rgb(11 42 28 / 0.12)); border-radius: 20px; box-shadow: var(--sw-highlight), var(--sw-shadow-md); color: var(--sw-ink, #0b2a1c); font-family: var(--sw-font-body, Geist, system-ui, sans-serif); } .ds-figs { margin: 0; } .ds-fig { display: grid; gap: 0.25rem; padding: 1rem 0; border-top: 1px solid var(--sw-border, #e6d2b4); } .ds-fig:first-child { border-top: 0; } .ds-fig dt { font-size: 0.8125rem; font-weight: 500; color: var(--sw-ink-muted, #3c5446); } .ds-val { margin: 0; font-size: 2.25rem; font-weight: 600; line-height: 1.1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums lining-nums; } .ds-proj { color: var(--sw-gold, #b3301a); }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Sunken glass well; focus lifts to paper with an emerald halo.",
+      "html": "<label class=\"ds-field\"><span>Email</span><input class=\"ds-input\" type=\"email\" placeholder=\"you@example.com\"></label>",
+      "css": ".ds-field { display: grid; gap: 0.25rem; font-family: var(--sw-font-body, Geist, system-ui, sans-serif); font-size: 0.8125rem; font-weight: 500; color: var(--sw-ink, #0b2a1c); } .ds-input { width: 100%; min-height: 44px; padding: 0 0.75rem; border: 1px solid var(--sw-border, #e6d2b4); border-radius: 10px; background: var(--sw-glass-sunken, rgb(242 225 199 / 0.70)); color: var(--sw-ink, #0b2a1c); font: inherit; font-size: 1rem; font-weight: 400; box-shadow: inset 0 1px 2px var(--sw-glass-edge, rgb(11 42 28 / 0.12)); transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease; } .ds-input:hover { border-color: var(--sw-border-strong, #7a6c52); } .ds-input:focus { border-color: var(--sw-pine, #046a38); background: var(--sw-paper-raised, #fdf6ec); box-shadow: 0 0 0 4px var(--sw-pine-soft, #e1e8cf); } .ds-input:focus-visible { outline: 2px solid var(--sw-pine, #046a38); outline-offset: 2px; } .ds-input[aria-invalid='true'] { border-color: var(--sw-danger, #b3301a); }"
+    },
+    {
+      "name": "Rail Navigation",
+      "kind": "nav",
+      "refersTo": "rail-item-selected",
+      "description": "Glass rail; the current page is a raised paper knob with an emerald icon.",
+      "html": "<nav class=\"ds-rail\"><a class=\"ds-rail-item\" aria-current=\"page\" href=\"#\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><path d=\"M7 15l3-3 3 2 4-5\"/></svg>Dashboard</a><a class=\"ds-rail-item\" href=\"#\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" aria-hidden=\"true\"><ellipse cx=\"12\" cy=\"6\" rx=\"8\" ry=\"3\"/><path d=\"M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6\"/></svg>Categories</a></nav>",
+      "css": ".ds-rail { display: flex; flex-direction: column; gap: 0.25rem; width: 16.5rem; padding: 1.25rem 0.75rem; background: var(--sw-glass, rgb(253 246 236 / 0.62)); border: 1px solid var(--sw-glass-edge, rgb(11 42 28 / 0.12)); box-shadow: var(--sw-highlight), var(--sw-shadow-md); backdrop-filter: blur(20px) saturate(150%); } .ds-rail-item { display: flex; align-items: center; gap: 0.75rem; min-height: 44px; padding: 0 0.75rem; border-radius: 14px; color: var(--sw-ink-muted, #3c5446); font-family: var(--sw-font-body, Geist, system-ui, sans-serif); font-weight: 500; text-decoration: none; transition: background-color 180ms ease, color 180ms ease; } .ds-rail-item:hover { background: var(--sw-glass-sunken, rgb(242 225 199 / 0.70)); color: var(--sw-ink, #0b2a1c); } .ds-rail-item:active { transform: scale(0.98); } .ds-rail-item[aria-current='page'] { background: var(--sw-paper-raised, #fdf6ec); color: var(--sw-ink, #0b2a1c); font-weight: 600; box-shadow: var(--sw-highlight), var(--sw-shadow-sm); } .ds-rail-item[aria-current='page'] svg { color: var(--sw-pine, #046a38); } .ds-rail-item:focus-visible { outline: 2px solid var(--sw-pine, #046a38); outline-offset: 2px; }"
+    },
+    {
+      "name": "Extruded Total",
+      "kind": "custom",
+      "refersTo": "dashboard-total",
+      "description": "The poster headline: vermilion condensed label over extruded emerald display numerals, set on the page, never on glass.",
+      "html": "<div class=\"ds-headline\"><p class=\"ds-total-label\">Total spent, this month</p><p class=\"ds-total\"><span class=\"ds-cur\">₹</span>72,343.00</p></div>",
+      "css": ".ds-headline { display: flex; flex-direction: column; gap: 0.5rem; } .ds-total-label { margin: 0; font-family: 'Big Shoulders Display', Geist, system-ui, sans-serif; font-size: 1.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; color: var(--sw-danger, #b3301a); } .ds-total { margin: 0; font-family: var(--sw-font-display, 'Big Shoulders Display', Geist, system-ui, sans-serif); font-size: clamp(3rem, 8vw, 5.5rem); font-weight: 900; line-height: 0.95; letter-spacing: 0.015em; color: var(--sw-pine, #046a38); font-variant-numeric: tabular-nums lining-nums; text-shadow: 0.01em 0.01em 0 var(--sw-extrude, #0b2a1c), 0.02em 0.02em 0 var(--sw-extrude, #0b2a1c), 0.03em 0.03em 0 var(--sw-extrude, #0b2a1c), 0.04em 0.04em 0 var(--sw-extrude, #0b2a1c), 0.05em 0.05em 0 var(--sw-extrude, #0b2a1c), 0.08em 0.12em 0.22em rgb(11 42 28 / 0.18); } .ds-cur { font-family: Geist, system-ui, sans-serif; font-weight: 800; }"
+    },
+    {
+      "name": "Orbit and Spark",
+      "kind": "custom",
+      "refersTo": "brand-vermilion",
+      "description": "The poster motif: a thin vermilion orbit ellipse and four-point spark stars; decoration only, aria-hidden.",
+      "html": "<svg class=\"ds-orbit\" viewBox=\"0 0 1000 600\" aria-hidden=\"true\"><ellipse cx=\"500\" cy=\"300\" rx=\"470\" ry=\"150\" transform=\"rotate(-11 500 300)\"/><ellipse class=\"ds-dash\" cx=\"500\" cy=\"300\" rx=\"430\" ry=\"210\" transform=\"rotate(14 500 300)\"/><path class=\"ds-spark\" d=\"M150 108L154 126L172 130L154 134L150 152L146 134L128 130L146 126Z\"/><path class=\"ds-spark\" d=\"M830 128L834 146L852 150L834 154L830 172L826 154L808 150L826 146Z\"/></svg>",
+      "css": ".ds-orbit { width: 100%; max-width: 420px; overflow: visible; } .ds-orbit ellipse { fill: none; stroke: var(--sw-brand-vermilion, #e34222); stroke-width: 1.4; vector-effect: non-scaling-stroke; opacity: 0.6; } .ds-orbit .ds-dash { stroke-dasharray: 2 10; } .ds-spark { fill: var(--sw-brand-vermilion, #e34222); transform-box: fill-box; transform-origin: 50% 50%; animation: ds-twinkle 5.5s ease-in-out infinite; } @keyframes ds-twinkle { 0%, 100% { transform: scale(0.55); opacity: 0.55; } 50% { transform: scale(1); opacity: 1; } } @media (prefers-reduced-motion: reduce) { .ds-spark { animation: none; } }"
+    },
+    {
+      "name": "Category Coin",
+      "kind": "chip",
+      "refersTo": "cat-3",
+      "description": "A category token: a round band swatch with a 3:1 rim, then the name.",
+      "html": "<span class=\"ds-coin\" style=\"--coin: var(--sw-cat-3, #3e6b8f)\">Transport</span>",
+      "css": ".ds-coin { display: inline-flex; align-items: center; gap: 0.5rem; min-height: 28px; padding: 0 0.75rem 0 0.25rem; border-radius: 999px; background: var(--sw-paper-sunken, #f2e1c7); color: var(--sw-ink, #0b2a1c); font-family: var(--sw-font-body, Geist, system-ui, sans-serif); font-size: 0.8125rem; font-weight: 500; white-space: nowrap; } .ds-coin::before { content: ''; flex: none; width: 18px; height: 18px; border-radius: 999px; background: radial-gradient(circle at 35% 30%, rgb(255 255 255 / 0.35), transparent 45%), var(--coin, var(--sw-cat-uncat, #928a85)); box-shadow: 0 0 0 1px var(--sw-border-strong, #7a6c52), inset 0 0 0 2px rgb(255 255 255 / 0.22), inset 0 -1px 1px rgb(0 0 0 / 0.20); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Festival Poster",
+    "overview": "SpendWise reads your month like a screen-printed festival poster. The headline act is the period total, set in chunky extruded emerald numerals; the centrepiece is the money tree, a risograph-print bonsai whose leaves are banknotes, dropping bills that say what was spent. Around them the sheet is warm ivory paper with fine grain, crossed by thin vermilion orbit lines and small four-point spark stars. The palette is the owner's own poster reference (SW-ADR-156): Warm Ivory, Emerald, Vermilion, and nothing else carries brand weight.\n\nDensity is calm in the poster band and ordinary below it. The first viewport is composed, not tiled: tree and headline share the space, then the screen settles into opaque paper cards for charts, the category ribbon and the entry list. Glass is the chrome, not the content: frosted ivory panes (night-green in the dark theme) hold the navigation rail, the top bar, the period track, the sign-in card and the tree's ground; every real figure sits on opaque paper or directly on the page.\n\nThe system is two-themed. Dark is primary in the token file's own words (a night-green sheet with ivory ink), light is the ivory poster; both carry measured contrast for every text pair. It is built in plain CSS on React with no UI framework (SW-ADR-016), every colour flows through a `--sw-*` custom property, and every contrast figure is computed by `tools/contrast.py` from token values, never by eye.",
+    "keyCharacteristics": [
+      "Emerald is the ink and the action; vermilion is money leaving; ivory is the paper.",
+      "Display type is a condensed block face, extruded in a deeper green, uppercase only on poster lines.",
+      "Two surface tiers: content opaque, chrome glass. Real money never sits on translucent glass.",
+      "One signature object: the money tree, a still print plus a canvas of printed bills.",
+      "Motion is decorative and ambient, never in the path of a figure; reduced motion is instant."
+    ],
+    "rules": [
+      {
+        "name": "The Three Inks Rule",
+        "body": "Emerald acts, vermilion spends, ivory holds. No violet, purple or pink anywhere; no fourth brand hue.",
+        "section": "colors"
+      },
+      {
+        "name": "The No Raw Hex Rule",
+        "body": "Components reference `--sw-*` tokens only; tokens hold the hex. `npm run lint:tokens` greps the client for a raw hex and fails the build. Edit `docs/05 B DesignSystem/tokens.css`, then regenerate `client/src/styles/tokens.css` with `py client/sync_tokens.py`; never edit the generated copy.",
+        "section": "colors"
+      },
+      {
+        "name": "The Measured Contrast Rule",
+        "body": "Every text pair is computed by `tools/contrast.py` from the token values (light 26/26, dark 26/26 at this revision). A value is never changed by eye; changing a glass alpha, the orb or guilloché opacity needs a re-run.",
+        "section": "colors"
+      },
+      {
+        "name": "The Printed Object Rule",
+        "body": "The `--sw-brand-*` inks are for printed things on the poster (bills, orbits, sparks). Themed tokens carry text and its guarantees.",
+        "section": "colors"
+      },
+      {
+        "name": "The Poster Voice Rule",
+        "body": "Big Shoulders and uppercase belong to poster lines only: the headline, the statement, the total and its label. Buttons, chips, entry metadata and every body line stay Geist in sentence case, never text-transformed.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tabular Money Rule",
+        "body": "Every number uses tabular figures (`.sw-num`, and every numeric class). Money is formatted en-IN (₹12,34,567.89) by `lib/money.js` and nothing else.",
+        "section": "typography"
+      },
+      {
+        "name": "The 375px Rule",
+        "body": "Nothing crosses the window edge at 375px: no sideways scroll and no box past the right edge, clipped or not. Decorative layers (the tree's glow, mist, orbits) are sized so they never widen the page; `overflow-x: hidden` on the body is never the fix.",
+        "section": "layout"
+      },
+      {
+        "name": "The Two Tiers Rule",
+        "body": "CONTENT (`.card`, `.entries`, `.table-wrap`, `.state`, `.sw-bankcard-solid`) is opaque `--sw-paper-raised`; SW-ADR-154 and a browser test require the first `.card`'s computed background alpha to be 1. CHROME (`.glass`, `.rail`, `.topbar-mobile`, `.gate-card`, `.panel`, the period/filter/segmented/tab tracks, `.btn-quiet`, `.banner`, the landing bar, the tree's ground) is translucent `--sw-glass*` with `backdrop-filter: blur() saturate()`. Glass thicknesses: `--sw-blur-sm` 8px for tracks and quiet buttons, `-md` 20px for rail, bars and the tree pool, `-lg` 32px for the gate card and panel. Saturate is `--sw-glass-saturate` (150% light, 140% dark).",
+        "section": "elevation"
+      },
+      {
+        "name": "The Opaque Fallback Rule",
+        "body": "Without backdrop-filter support, or under `prefers-reduced-transparency: reduce` or `prefers-contrast: more`, every chrome surface becomes `--sw-glass-solid`; under `prefers-contrast: more` every edge is drawn in `--sw-border-strong`. Contrast figures only rise. No credit is ever taken for blur.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Extrusion Is Lettering Rule",
+        "body": "The poster's hard offset depth lives on display type only (`.sw-extruded`), never on boxes, buttons or cards. Surfaces use the soft shadow vocabulary above.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do take every colour from a `--sw-*` token, and change values only in `docs/05 B DesignSystem/tokens.css`, then regenerate the client copy and re-run `tools/contrast.py`.",
+      "Do keep emerald for action and positive money, and vermilion (`--sw-gold*`, `--sw-plot-gold`) for money leaving: totals, projections, peaks, falling bills.",
+      "Do put real figures on opaque paper (`--sw-paper-raised`) or directly on the page; keep glass for chrome.",
+      "Do set the total and poster headlines in Big Shoulders Display with `.sw-extruded`, and let `₹` fall through to Geist.",
+      "Do use tabular lining figures for every number and format money only through `lib/money.js`.",
+      "Do carry the poster motif with the orbit line and the four-point spark in `--sw-brand-vermilion`, as decoration that is `aria-hidden` and hidden on narrow panes.",
+      "Do make reduced motion instant: durations collapse, entrance animations are removed, and the money tree draws nothing.",
+      "Do keep every interactive target at least 44px and every layout free of sideways scroll at 375px."
+    ],
+    "donts": [
+      "Don't add a UI framework, component library or animation dependency; the stack is React with plain CSS (SW-ADR-016), and the tree is an image, a canvas and CSS.",
+      "Don't write a raw hex in a component stylesheet or edit the generated `client/src/styles/tokens.css`.",
+      "Don't make a content card translucent; the first `.card` must compute to alpha 1 (SW-ADR-154).",
+      "Don't print the total or any real figure on translucent glass.",
+      "Don't use `--sw-brand-*` inks for page text; they are for printed objects.",
+      "Don't introduce violet, purple, pink or a fourth brand hue.",
+      "Don't uppercase or switch to the display face for buttons, chips, labels or entry metadata.",
+      "Don't put hard offset shadows on boxes; the extrusion belongs to lettering only.",
+      "Don't paint a bare category band on sunken or glass surfaces; use the rimmed coin or swatch.",
+      "Don't set `outline: none` or add a second `:focus-visible` rule; the one focus rule lives in tokens.css (SW-ADR-117).",
+      "Don't render animated figures as DOM text mid-animation; moving money is canvas pixels, and readable figures are always final."
+    ]
+  }
+}

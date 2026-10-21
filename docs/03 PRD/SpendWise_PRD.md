@@ -20,7 +20,7 @@ Every `P-` row carries **two** references: a `[SRC:]` tag (where the requirement
 a **BRD row** (which business requirement it satisfies). A row missing either is a defect:
 no `[SRC:]` means invented, no BRD row means scope creep.
 
-Citations resolve against **currently APPROVED** records only. 23 of the 155 ADRs are
+Citations resolve against **currently APPROVED** records only. 24 of the 160 ADRs are
 superseded or withdrawn and are not authority.
 
 **Status:** `RULED` (decided, cited) · `PROVISIONAL` (buildable, a dependency outstanding) ·
@@ -233,9 +233,9 @@ The client shows a distinct first-run state for a brand-new account and a distin
 "nothing in this period" state for an empty filter — **and never renders zeros for a failed
 request**, which in a money app is indistinguishable from a true zero `[SRC: SW-ADR-057]`.
 
-**`P-UND-07` Money formatting** — BRD `R-UND-11` · `[SRC: SRC-001 §9.4, SW-ADR-056]`
-Every amount renders through **one shared formatter** in the `en-IN` convention — ₹12,34,567.89,
-not ₹1,234,567.89. Same money; an Indian reader scanning the second reads the wrong magnitude.
+**`P-UND-07` Money formatting** — BRD `R-UND-11` · `[SRC: SRC-001 §9.4, SW-ADR-157]`
+Every amount renders through **one shared formatter** in US dollars, `en-US` grouping —
+$1,234,567.89 (the owner, 2026-10-20; `SW-ADR-056`'s rupees and lakh grouping are superseded).
 Numbers use tabular figures so columns align. No component formats money itself.
 
 ### E4 — Receipts

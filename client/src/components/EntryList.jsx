@@ -1,4 +1,5 @@
-import { longDate, rupees, shortDate } from '../lib/money.js'
+import { useEffect, useRef } from 'react'
+import { longDate, dollars, shortDate } from '../lib/money.js'
 import { Money, staggerStyle } from '../lib/motion.js'
 
 /**
@@ -14,9 +15,26 @@ import { Money, staggerStyle } from '../lib/motion.js'
  * with the date, a dotted leader and the day's subtotal; each row is a coin,
  * the note and category, then the amount on one shared right-hand edge.
  * Every figure renders through <Money>, whose innerText is exactly what
- * rupees() returns, so nothing a test or a screen reader reads has changed.
+ * dollars() returns, so nothing a test or a screen reader reads has changed.
+ *
+ * `freshId` is the expense just added (SW-ADR-156): its row carries a "New"
+ * tag until it has been on screen for a moment, then `onSeen` clears it.
  */
-export default function EntryList({ items, colorFor, onEdit, onDelete, busyId }) {
+export default function EntryList({ items, colorFor, onEdit, onDelete, busyId, freshId = null, onSeen }) {
+  const rootRef = useRef(null)
+  useEffect(() => {
+    if (freshId == null || !onSeen) return undefined
+    const row = rootRef.current?.querySelector(`[data-testid="entry-${freshId}"]`)
+    if (!row) return undefined
+    let timer = 0
+    const io = new IntersectionObserver(([e]) => {
+      clearTimeout(timer)
+      if (e.isIntersecting) timer = setTimeout(onSeen, 2400)
+    }, { threshold: 0.6 })
+    io.observe(row)
+    return () => { clearTimeout(timer); io.disconnect() }
+  }, [freshId, onSeen, items])
+
   const groups = []
   for (const item of items) {
     const last = groups[groups.length - 1]
@@ -29,7 +47,7 @@ export default function EntryList({ items, colorFor, onEdit, onDelete, busyId })
   let row = 0
 
   return (
-    <div className="entries ledger" data-testid="entries">
+    <div className="entries ledger" data-testid="entries" ref={rootRef}>
       {groups.map((g) => {
         const subtotal = g.items.reduce((s, i) => s + i.amount_paise, 0)
         return (
@@ -41,7 +59,8 @@ export default function EntryList({ items, colorFor, onEdit, onDelete, busyId })
             </h3>
             <ul className="ledger-rows">
               {g.items.map((e) => (
-                <li className="entry sw-enter" key={e.id} data-testid={`entry-${e.id}`}
+                <li className={`entry sw-enter${e.id === freshId ? ' is-fresh' : ''}`}
+                    key={e.id} data-testid={`entry-${e.id}`}
                     style={staggerStyle(row++)}>
                   {/* The coin repeats the ribbon's colour so a row can be
                       traced back to its band. It is `aria-hidden` because the
@@ -57,6 +76,7 @@ export default function EntryList({ items, colorFor, onEdit, onDelete, busyId })
                     <div className="entry-desc">{e.description || 'No note'}</div>
                     <div className="entry-meta">
                       {e.category_name || 'Uncategorised'}
+                      {e.id === freshId && <span className="entry-fresh">New</span>}
                     </div>
                   </div>
                   <Money paise={e.amount_paise} className="entry-amount sw-neg" />
@@ -66,7 +86,7 @@ export default function EntryList({ items, colorFor, onEdit, onDelete, busyId })
                       className="icon-btn"
                       data-testid={`edit-${e.id}`}
                       onClick={() => onEdit(e)}
-                      aria-label={`Edit ${rupees(e.amount_paise)} on ${longDate(e.spent_on)}`}
+                      aria-label={`Edit ${dollars(e.amount_paise)} on ${longDate(e.spent_on)}`}
                     >
                       <PencilIcon />
                     </button>
@@ -76,7 +96,7 @@ export default function EntryList({ items, colorFor, onEdit, onDelete, busyId })
                       data-testid={`delete-${e.id}`}
                       aria-disabled={busyId === e.id ? 'true' : undefined}
                       onClick={() => onDelete(e)}
-                      aria-label={`Delete ${rupees(e.amount_paise)} on ${longDate(e.spent_on)}`}
+                      aria-label={`Delete ${dollars(e.amount_paise)} on ${longDate(e.spent_on)}`}
                     >
                       <TrashIcon />
                     </button>

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../lib/api.js'
-import { rupees } from '../lib/money.js'
+import { dollars } from '../lib/money.js'
 import { Money, staggerStyle } from '../lib/motion.js'
 import { PencilIcon, TrashIcon } from '../components/EntryList.jsx'
 import { monthOf, today } from '../lib/period.js'
@@ -106,7 +106,7 @@ export default function Categories() {
     // destructive act — and say what actually happens to the money, because
     // "delete" without that sentence sounds like it takes the expenses too.
     const scope = used
-      ? `${used.count} expense${used.count === 1 ? '' : 's'} worth ${rupees(used.total_paise)} this month`
+      ? `${used.count} expense${used.count === 1 ? '' : 's'} worth ${dollars(used.total_paise)} this month`
       : 'no expenses this month'
     if (!window.confirm(
       `Delete "${row.name}"?\n\nIt currently has ${scope}. Those expenses are KEPT. ` +

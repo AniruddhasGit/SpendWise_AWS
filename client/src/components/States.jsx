@@ -9,6 +9,9 @@
  * any of them, because a figure here would be read as a real one.
  */
 
+import MoneyTree from './MoneyTree.jsx'
+import Fog from './Fog.jsx'
+
 function Mark({ tone = 'gold', d }) {
   return (
     <span className={`state-mark state-mark-${tone}`} aria-hidden="true">
@@ -21,7 +24,6 @@ function Mark({ tone = 'gold', d }) {
 }
 
 // A receipt with a torn foot: the ledger nobody has written in yet.
-const RECEIPT = 'M6 3.5h12v17l-2-1.4-2 1.4-2-1.4-2 1.4-2-1.4-2 1.4zM9 8h6M9 11.5h6M9 15h3'
 // A lens over nothing.
 const SEARCH = 'M10.5 4.5a6 6 0 1 1 0 12 6 6 0 0 1 0-12zM15 15l4.5 4.5M8.5 10.5h4'
 // A line that breaks.
@@ -31,7 +33,13 @@ const BROKEN = 'M4 14l4-4 3 3M13 11l2-2 5 5M12 4v3M12 17v3'
 export function FirstRun({ onAdd }) {
   return (
     <div className="state state-first-run sw-enter" data-testid="state-first-run">
-      <Mark d={RECEIPT} />
+      {/* the tree carried in from the sign-in page (SW-ADR-160), bare of
+          falling bills: nothing has been spent yet */}
+      <div className="dash-tree first-run-tree">
+        <Fog className="gate-fog gate-fog-back" layer="back" pool stage=".dash-tree" />
+        <MoneyTree variant="dashboard" drops={false} alt="" />
+        <Fog className="gate-fog gate-fog-front" pool stage=".dash-tree" />
+      </div>
       <h2 className="state-title">Your ledger is empty</h2>
       <p className="state-body">
         Log what you spend and SpendWise shows you where it went, by category

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-label="SpendWise">
+  <!-- The SpendWise mark (owner's choice, option B, 2026-10-20): the landing's
+       money tree as a badge. An S-curved trunk, three bill leaves, one
+       vermilion bill falling. Brand inks: emerald #046a38, ivory #f9ebd7,
+       vermilion #e34222 (SW-ADR-156). -->
+  <circle cx="24" cy="24" r="22" fill="#046a38"/>
+  <path d="M24 40 C 22 34, 28 30, 25 25 C 23 21, 21 19, 24 15" fill="none" stroke="#f9ebd7" stroke-width="3.4" stroke-linecap="round"/>
+  <path d="M25 25 C 20 23, 16 23, 12 21 M24 19 C 28 17, 32 18, 36 16" fill="none" stroke="#f9ebd7" stroke-width="2" stroke-linecap="round"/>
+  <rect x="7.5" y="15.5" width="9" height="5.5" rx="1" fill="#f9ebd7" transform="rotate(-18 12 18)"/>
+  <rect x="31.5" y="10.5" width="9" height="5.5" rx="1" fill="#f9ebd7" transform="rotate(14 36 13)"/>
+  <rect x="19.5" y="7.5" width="9" height="5.5" rx="1" fill="#f9ebd7"/>
+  <rect x="29.5" y="30.5" width="7.5" height="4.5" rx="1" fill="#e34222" transform="rotate(24 33 33)"/>
+</svg>

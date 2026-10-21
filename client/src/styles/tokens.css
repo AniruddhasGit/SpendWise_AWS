@@ -10,6 +10,16 @@
 
 /* SOURCE OF TRUTH — docs/05 B DesignSystem/tokens.css
  *
+ * FESTIVAL POSTER, 2026-10-20. Sixth visual revision (SW-ADR-156). The owner's
+ * palette: Warm Ivory #F9EBD7, Emerald #046A38, Vermilion #E34222, from their
+ * "Change of Perspective" poster reference. The page paper is #FBF0E0, the
+ * same ivory lifted 2% so the frozen `--sw-cat-uncat` band keeps its 3:1 on
+ * it (it measured 2.89:1 on #F9EBD7); #F9EBD7 itself is `--sw-bg-1`, the
+ * ground the backdrop paints. The `--sw-gold*` names now carry VERMILION, the
+ * second voice: money leaving, totals, the falling bills. Display type is Big
+ * Shoulders Display (self-hosted, OFL). Values only; every name is unchanged.
+ *
+ * Previous header, kept for the record:
  * NEW MONEY, 2026-10-18. Fifth visual revision. Supersedes the same-day violet
  * "liquid glass" draft after owner feedback: "it's a spending app about money,
  * make a design about that." Emerald + champagne gold, DARK FIRST.
@@ -43,28 +53,28 @@
 
 :root {
   /* surface + ink — LIGHT (secondary): warm ivory paper, emerald ink ------ */
-  --sw-paper: #f7f4ec;
-  --sw-paper-raised: #fffdf8;
-  --sw-paper-sunken: #efeadd;
-  --sw-ink: #0f1f18;
-  --sw-ink-muted: #4a5a51;
-  --sw-ink-faint: #8e9a92;        /* placeholder and disabled ONLY — never content */
-  --sw-pine: #0b6b4a;             /* emerald: accent, links, primary, focus */
-  --sw-pine-deep: #08543a;        /* primary hover */
-  --sw-pine-soft: #dcefe5;
-  --sw-border: #e2dccb;
-  --sw-border-strong: #7a7663;
-  --sw-positive: #0b6b4a;
-  --sw-warning: #8a520c;
-  --sw-danger: #b3261e;           /* overspend + destructive ONLY */
-  --sw-danger-soft: #f8e1dc;
+  --sw-paper: #fbf0e0;
+  --sw-paper-raised: #fdf6ec;
+  --sw-paper-sunken: #f2e1c7;
+  --sw-ink: #0b2a1c;
+  --sw-ink-muted: #3c5446;
+  --sw-ink-faint: #8b8a76;        /* placeholder and disabled ONLY — never content */
+  --sw-pine: #046a38;             /* emerald: accent, links, primary, focus */
+  --sw-pine-deep: #03522b;        /* primary hover */
+  --sw-pine-soft: #e1e8cf;
+  --sw-border: #e6d2b4;
+  --sw-border-strong: #7a6c52;
+  --sw-positive: #046a38;
+  --sw-warning: #7f4a08;
+  --sw-danger: #b3301a;           /* overspend + destructive ONLY */
+  --sw-danger-soft: #f8d6c8;
 
   /* champagne gold — totals, highlights, foil ------------------------------ */
-  --sw-gold: #7a5810;             /* gold TEXT. 5.21:1 worst case on light glass */
-  --sw-gold-fill: #e2c276;        /* gold SURFACE (chips, foil, the gold button) */
-  --sw-gold-deep: #c9a24e;        /* foil edge, rules, the chip's shadow side */
-  --sw-gold-soft: #f4e9cc;
-  --sw-on-gold: #1a1305;
+  --sw-gold: #b3301a;             /* gold TEXT. 5.21:1 worst case on light glass */
+  --sw-gold-fill: #e34222;        /* gold SURFACE (chips, foil, the gold button) */
+  --sw-gold-deep: #c4361a;        /* foil edge, rules, the chip's shadow side */
+  --sw-gold-soft: #fadccf;
+  --sw-on-gold: #fffaf2;
 
   /* category bands — UNCHANGED, SW-ADR-092 ------------------------------ */
   --sw-cat-1: #4a7c59;
@@ -79,40 +89,40 @@
 
   /* the ground the glass sits on ----------------------------------------- */
   /* bg-1 IS the paper. bg-2/3 are background-image stops only. */
-  --sw-bg-1: #f7f4ec;
-  --sw-bg-2: #f1ecdf;
-  --sw-bg-3: #eae3d2;
-  --sw-wash-1: rgb(30 140 99 / 0.10);    /* emerald light pool, top-left */
-  --sw-wash-2: rgb(217 180 96 / 0.12);   /* champagne pool, top-right */
+  --sw-bg-1: #f9ebd7;
+  --sw-bg-2: #f5e3c9;
+  --sw-bg-3: #efdabd;
+  --sw-wash-1: rgb(4 106 56 / 0.08);    /* emerald light pool, top-left */
+  --sw-wash-2: rgb(227 66 34 / 0.06);   /* champagne pool, top-right */
   --sw-grain: url("/assets/bg/grain-256.webp");
-  --sw-grain-opacity: 0.05;
+  --sw-grain-opacity: 0.07;
   --sw-grain-blend: soft-light;
 
   /* banknote guilloché — DECORATION ONLY. Measured in §2.4 at these values */
-  --sw-guilloche: #8a6a1f;
-  --sw-guilloche-opacity: 0.08;
-  --sw-guilloche-card-opacity: 0.14;
+  --sw-guilloche: #046a38;
+  --sw-guilloche-opacity: 0.06;
+  --sw-guilloche-card-opacity: 0.10;
 
   /* the liquid orb — molten emerald -> gold. DECORATION ONLY ------------- */
-  --sw-orb-deep: #1e8c63;
-  --sw-orb-emerald: #3ccb97;
-  --sw-orb-gold: #d9b460;
+  --sw-orb-deep: #046a38;
+  --sw-orb-emerald: #2f9e63;
+  --sw-orb-gold: #e34222;
   --sw-orb-opacity: 0.40;         /* measured — §2.4. Raising it needs a re-run */
   --sw-blob-opacity: 0.40;        /* legacy name for the same value */
 
   /* metallic sheen on primary pills: emerald -> gold ----------------------- */
-  --sw-sheen-a: #3ccb97;
-  --sw-sheen-b: #d9b460;
+  --sw-sheen-a: #2f9e63;
+  --sw-sheen-b: #e34222;
   --sw-sheen-alpha: 0.18;         /* measured: on-pine stays >= 5.16:1. Cap 0.18 */
   --sw-specular: rgb(255 255 255 / 0.12);
 
   /* glass — CHROME tier. Alpha is load-bearing: see §2.4 ---------------- */
-  --sw-glass: rgb(255 253 247 / 0.70);
-  --sw-glass-strong: rgb(255 253 247 / 0.84);
-  --sw-glass-sunken: rgb(239 234 221 / 0.80);
-  --sw-glass-solid: #fffdf8;      /* the fallback: no backdrop-filter, or reduced transparency */
-  --sw-glass-border: rgb(255 255 255 / 0.55);
-  --sw-glass-edge: rgb(40 52 30 / 0.12);    /* the outer hairline that separates glass from glass */
+  --sw-glass: rgb(253 246 236 / 0.62);
+  --sw-glass-strong: rgb(253 246 236 / 0.82);
+  --sw-glass-sunken: rgb(242 225 199 / 0.70);
+  --sw-glass-solid: #fdf6ec;      /* the fallback: no backdrop-filter, or reduced transparency */
+  --sw-glass-border: rgb(255 255 255 / 0.60);
+  --sw-glass-edge: rgb(11 42 28 / 0.12);    /* the outer hairline that separates glass from glass */
   --sw-glass-blur: 20px;
   --sw-glass-saturate: 150%;
   --sw-blur-sm: 8px;
@@ -121,25 +131,59 @@
   --sw-highlight: inset 0 1px 0 rgb(255 255 255 / 0.80), inset 0 0 0 1px rgb(255 255 255 / 0.40);
   --sw-glass-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.30), rgb(255 255 255 / 0) 42%);
   --sw-glare: rgb(255 255 255 / 0.40);
-  --sw-foil: linear-gradient(135deg, rgb(201 162 78 / 0.0) 20%, rgb(201 162 78 / 0.55) 48%, rgb(255 244 214 / 0.70) 52%, rgb(201 162 78 / 0.0) 80%);
+  --sw-foil: linear-gradient(135deg, rgb(227 66 34 / 0.0) 20%, rgb(227 66 34 / 0.40) 48%, rgb(255 236 220 / 0.70) 52%, rgb(227 66 34 / 0.0) 80%);
 
   /* the BANK CARD — one face in BOTH themes, like a real metal card ------ */
-  --sw-card-face-1: #0a271d;
-  --sw-card-face-2: #0e3226;
-  --sw-card-ink: #f3f0e6;
-  --sw-card-muted: #bccdc2;
-  --sw-card-gold: #e8c77a;
-  --sw-card-positive: #5fe6b0;
-  --sw-card-negative: #ffb0a2;
-  --sw-card-glass: rgb(255 253 247 / 0.55);     /* the translucent hero card, light */
-  --sw-card-glass-ink: #0f1f18;
-  --sw-card-glass-muted: #4a5a51;
-  --sw-card-glass-gold: #674a0a;      /* 5.17:1 worst case incl. the card guilloché */
+  --sw-card-face-1: #0b2a1c;
+  --sw-card-face-2: #0f3a26;
+  --sw-card-ink: #f9ebd7;
+  --sw-card-muted: #c9d6c4;
+  --sw-card-gold: #ff9a7f;
+  --sw-card-positive: #6fe0a4;
+  --sw-card-negative: #ffb09e;
+  --sw-card-glass: rgb(253 246 236 / 0.55);     /* the translucent hero card, light */
+  --sw-card-glass-ink: #0b2a1c;
+  --sw-card-glass-muted: #3c5446;
+  --sw-card-glass-gold: #b3301a;      /* 5.17:1 worst case incl. the card guilloché */
 
   --sw-on-pine: #ffffff;
 
+  /* the owner's brand inks, CONSTANT across themes (SW-ADR-156). For printed
+     objects only (the money tree's bills): paper is paper in either theme.
+     Never page text; the themed tokens above carry the contrast guarantees. */
+  --sw-brand-ivory: #f9ebd7;
+  --sw-brand-emerald: #046a38;
+  --sw-brand-emerald-deep: #03522b;
+  --sw-brand-vermilion: #e34222;
+  --sw-brand-vermilion-deep: #b3301a;
+  /* The signed-out scene (SW-ADR-159; recoloured by the owner's theme rule,
+     SW-ADR-160): emerald is the primary, warm ivory the secondary, vermilion
+     the hint. Dark: a deep emerald night (the app's own dark paper family, so
+     landing -> sign-in -> dashboard never changes colour), ivory type and fog.
+     Ivory on the darkest edge is past 15:1, the quiet ink past 9:1. */
+  --sw-dusk-sky: #07170f;         /* the darkest edge, deep emerald */
+  --sw-dusk-mid: #0e2a1c;         /* the app's dark paper, a shade richer */
+  --sw-dusk-haze: #5d7a6a;        /* fog lit from behind */
+  --sw-dusk-glow: #a9c2b3;        /* the brightest fog */
+  --sw-dusk-fog: 240 232 216;     /* the mist: warm ivory, as an rgb triple for alpha */
+  --sw-dusk-ink: #f9ebd7;         /* type on the scene: the brand ivory */
+  --sw-dusk-ink-quiet: #c4bba6;   /* the app's dark muted ink */
+  /* Light mode swaps them: the ivory is the ground, the emerald the ink. */
+  --sw-dawn-sky: #f2e1c7;         /* the edges: the app's sunken ivory */
+  --sw-dawn-mid: #f9ebd7;         /* the brand ivory */
+  --sw-dawn-fog: 104 132 116;     /* the mist on ivory: a soft emerald grey */
+  --sw-dawn-ink: #0b2a1c;         /* the app's ink: deepest emerald */
+  --sw-dawn-ink-quiet: #3c5446;   /* the app's muted ink */
+  /* the hint: vermilion, for accents only (the headline's depth, underlines,
+     the countdown's bar), never a surface */
+  --sw-ember: #b3301a;
+  --sw-ember-glow: #e34222;
+
+  /* the depth of the poster's extruded letters and numerals */
+  --sw-extrude: #0b2a1c;
+
   /* type — ONE family. Geist, variable 100–900, self-hosted (SW-ADR-020) */
-  --sw-font-display: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --sw-font-display: "Big Shoulders Display", "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --sw-font-body:    "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   /* The NAME is kept for every `.sw-num`; the face is Geist with tabular figures. */
   --sw-font-mono:    "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -189,14 +233,16 @@
   --sw-dur-press: 120ms;
   --sw-dur-hover: 180ms;
   --sw-dur-small: 240ms;
-  --sw-dur-enter: 320ms;
+  --sw-dur-enter: 320ms;           /* drawers, sheets, the rail sliding: movement, not reveal */
+  --sw-dur-reveal: 620ms;          /* the blur-in of anything arriving (owner's reel, SW-ADR-158) */
+  --sw-dur-focus: 760ms;           /* the blur-in of a hero piece */
   --sw-dur-route: 400ms;
   --sw-dur-hero: 450ms;
   --sw-dur-spring: 650ms;
   --sw-dur-count: 900ms;
   --sw-dur-roll: 520ms;
   --sw-dur-drift: 90s;            /* the guilloché's slow drift, one loop */
-  --sw-stagger: 40ms;
+  --sw-stagger: 70ms;
   /* legacy names, kept so app.css keeps resolving */
   --sw-motion-fast: 120ms; --sw-motion-base: 240ms;
   --sw-motion-ease: cubic-bezier(0.23, 1, 0.32, 1);
@@ -212,13 +258,13 @@
 
   --sw-target-min: 44px;
 
-  --sw-scrim: rgb(10 22 16 / 0.30);
+  --sw-scrim: rgb(11 30 20 / 0.32);
 
   /* charts — emerald is the series, gold the highlight / comparison */
-  --sw-plot-line: #0b6b4a;
-  --sw-plot-fill: rgb(11 107 74 / 0.12);
-  --sw-plot-gold: #a57c22;
-  --sw-plot-grid: rgb(15 31 24 / 0.08);
+  --sw-plot-line: #046a38;
+  --sw-plot-fill: rgb(4 106 56 / 0.12);
+  --sw-plot-gold: #c4361a;
+  --sw-plot-grid: rgb(11 42 28 / 0.08);
 }
 
 /* ── dark — PRIMARY ───────────────────────────────────────────────────────
@@ -228,28 +274,29 @@
    IDENTICAL — edit both. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --sw-paper: #06140f;
-    --sw-paper-raised: #0f2119;
-    --sw-paper-sunken: #04100b;
-    --sw-ink: #f3f0e6;
-    --sw-ink-muted: #a6b9ae;
-    --sw-ink-faint: #6b8277;
-    --sw-pine: #3fd9a2;
-    --sw-pine-deep: #72e8bd;
-    --sw-pine-soft: #0e3527;
-    --sw-border: #183429;
-    --sw-border-strong: #6a9783;
-    --sw-positive: #4be0a6;
+    --sw-paper: #0a1c13;
+    --sw-paper-raised: #10271b;
+    --sw-paper-sunken: #07140d;
+    --sw-ink: #f9ebd7;
+    --sw-ink-muted: #c4bba6;
+    --sw-ink-faint: #7f8a7b;
+    --sw-pine: #5fd59a;
+    --sw-pine-deep: #8ae6b6;
+    --sw-pine-soft: #12382a;
+    --sw-border: #1f3a2c;
+    --sw-border-strong: #7d9a87;
+    --sw-positive: #5fd59a;
     --sw-warning: #f2b657;
-    --sw-danger: #ff8b7b;
-    --sw-danger-soft: #3a1914;
-    --sw-on-pine: #04140d;
+    --sw-danger: #ff8466;
+    --sw-danger-soft: #3b1a12;
+    --sw-on-pine: #06140d;
+    --sw-extrude: #046a38;
 
-    --sw-gold: #e8c77a;
-    --sw-gold-fill: #e8c77a;
-    --sw-gold-deep: #b8913f;
-    --sw-gold-soft: #2a2414;
-    --sw-on-gold: #1a1305;
+    --sw-gold: #ff8f73;
+    --sw-gold-fill: #e34222;
+    --sw-gold-deep: #c4361a;
+    --sw-gold-soft: #3a1a12;
+    --sw-on-gold: #fffaf2;
 
     --sw-cat-1: #6fae82;
     --sw-cat-2: #e08a6f;
@@ -261,47 +308,47 @@
     --sw-cat-8: #a8b09c;
     --sw-cat-uncat: #9aa096;
 
-    --sw-bg-1: #06140f;
-    --sw-bg-2: #0b1f18;
-    --sw-bg-3: #0f2a20;
-    --sw-wash-1: rgb(43 212 154 / 0.10);
-    --sw-wash-2: rgb(232 199 122 / 0.07);
+    --sw-bg-1: #0a1c13;
+    --sw-bg-2: #0d2418;
+    --sw-bg-3: #112c1e;
+    --sw-wash-1: rgb(95 213 154 / 0.08);
+    --sw-wash-2: rgb(227 66 34 / 0.08);
     --sw-grain-opacity: 0.06;
     --sw-grain-blend: overlay;
 
-    --sw-guilloche: #e8c77a;
-    --sw-guilloche-opacity: 0.07;
-    --sw-guilloche-card-opacity: 0.10;
+    --sw-guilloche: #5fd59a;
+    --sw-guilloche-opacity: 0.06;
+    --sw-guilloche-card-opacity: 0.09;
 
-    --sw-orb-deep: #0e5a3f;
-    --sw-orb-emerald: #2bd49a;
-    --sw-orb-gold: #e8c77a;
+    --sw-orb-deep: #0a5a33;
+    --sw-orb-emerald: #2fbf7a;
+    --sw-orb-gold: #e34222;
     --sw-orb-opacity: 0.42;
     --sw-blob-opacity: 0.42;
 
-    --sw-sheen-a: #e8c77a;
-    --sw-sheen-b: #3fd9a2;
+    --sw-sheen-a: #e34222;
+    --sw-sheen-b: #5fd59a;
 
-    --sw-glass: rgb(14 36 28 / 0.70);
-    --sw-glass-strong: rgb(11 30 23 / 0.84);
-    --sw-glass-sunken: rgb(3 12 9 / 0.45);
-    --sw-glass-solid: #0f2119;
+    --sw-glass: rgb(16 40 28 / 0.66);
+    --sw-glass-strong: rgb(12 32 22 / 0.84);
+    --sw-glass-sunken: rgb(4 14 9 / 0.45);
+    --sw-glass-solid: #10271b;
     --sw-glass-border: rgb(255 255 255 / 0.08);
     --sw-glass-edge: rgb(0 0 0 / 0.45);
     --sw-glass-saturate: 140%;
-    --sw-highlight: inset 0 1px 0 rgb(255 240 210 / 0.10), inset 0 0 0 1px rgb(232 199 122 / 0.07);
+    --sw-highlight: inset 0 1px 0 rgb(249 235 215 / 0.10), inset 0 0 0 1px rgb(249 235 215 / 0.06);
     --sw-glass-sheen: none;
-    --sw-glare: rgb(255 244 214 / 0.07);
+    --sw-glare: rgb(249 235 215 / 0.07);
     --sw-scrim: rgb(0 6 4 / 0.60);
 
-    --sw-card-glass: rgb(10 30 23 / 0.58);
-    --sw-card-glass-ink: #f3f0e6;
-    --sw-card-glass-muted: #bccdc2;
-    --sw-card-glass-gold: #e8c77a;
+    --sw-card-glass: rgb(12 34 24 / 0.58);
+    --sw-card-glass-ink: #f9ebd7;
+    --sw-card-glass-muted: #c4bba6;
+    --sw-card-glass-gold: #ff8f73;
 
-    --sw-plot-line: #3fd9a2;
-    --sw-plot-fill: rgb(63 217 162 / 0.14);
-    --sw-plot-gold: #e8c77a;
+    --sw-plot-line: #5fd59a;
+    --sw-plot-fill: rgb(95 213 154 / 0.14);
+    --sw-plot-gold: #ff8f73;
     --sw-plot-grid: rgb(255 255 255 / 0.07);
 
     --sw-shadow-sm: 0 1px 1px rgb(0 6 4 / 0.45), 0 2px 6px rgb(0 6 4 / 0.45);
@@ -314,28 +361,29 @@
 }
 
 :root[data-theme="dark"] {
-  --sw-paper: #06140f;
-  --sw-paper-raised: #0f2119;
-  --sw-paper-sunken: #04100b;
-  --sw-ink: #f3f0e6;
-  --sw-ink-muted: #a6b9ae;
-  --sw-ink-faint: #6b8277;
-  --sw-pine: #3fd9a2;
-  --sw-pine-deep: #72e8bd;
-  --sw-pine-soft: #0e3527;
-  --sw-border: #183429;
-  --sw-border-strong: #6a9783;
-  --sw-positive: #4be0a6;
+  --sw-paper: #0a1c13;
+  --sw-paper-raised: #10271b;
+  --sw-paper-sunken: #07140d;
+  --sw-ink: #f9ebd7;
+  --sw-ink-muted: #c4bba6;
+  --sw-ink-faint: #7f8a7b;
+  --sw-pine: #5fd59a;
+  --sw-pine-deep: #8ae6b6;
+  --sw-pine-soft: #12382a;
+  --sw-border: #1f3a2c;
+  --sw-border-strong: #7d9a87;
+  --sw-positive: #5fd59a;
   --sw-warning: #f2b657;
-  --sw-danger: #ff8b7b;
-  --sw-danger-soft: #3a1914;
-  --sw-on-pine: #04140d;
+  --sw-danger: #ff8466;
+  --sw-danger-soft: #3b1a12;
+  --sw-on-pine: #06140d;
+  --sw-extrude: #046a38;
 
-  --sw-gold: #e8c77a;
-  --sw-gold-fill: #e8c77a;
-  --sw-gold-deep: #b8913f;
-  --sw-gold-soft: #2a2414;
-  --sw-on-gold: #1a1305;
+  --sw-gold: #ff8f73;
+  --sw-gold-fill: #e34222;
+  --sw-gold-deep: #c4361a;
+  --sw-gold-soft: #3a1a12;
+  --sw-on-gold: #fffaf2;
 
   --sw-cat-1: #6fae82;
   --sw-cat-2: #e08a6f;
@@ -347,47 +395,47 @@
   --sw-cat-8: #a8b09c;
   --sw-cat-uncat: #9aa096;
 
-  --sw-bg-1: #06140f;
-  --sw-bg-2: #0b1f18;
-  --sw-bg-3: #0f2a20;
-  --sw-wash-1: rgb(43 212 154 / 0.10);
-  --sw-wash-2: rgb(232 199 122 / 0.07);
+  --sw-bg-1: #0a1c13;
+  --sw-bg-2: #0d2418;
+  --sw-bg-3: #112c1e;
+  --sw-wash-1: rgb(95 213 154 / 0.08);
+  --sw-wash-2: rgb(227 66 34 / 0.08);
   --sw-grain-opacity: 0.06;
   --sw-grain-blend: overlay;
 
-  --sw-guilloche: #e8c77a;
-  --sw-guilloche-opacity: 0.07;
-  --sw-guilloche-card-opacity: 0.10;
+  --sw-guilloche: #5fd59a;
+  --sw-guilloche-opacity: 0.06;
+  --sw-guilloche-card-opacity: 0.09;
 
-  --sw-orb-deep: #0e5a3f;
-  --sw-orb-emerald: #2bd49a;
-  --sw-orb-gold: #e8c77a;
+  --sw-orb-deep: #0a5a33;
+  --sw-orb-emerald: #2fbf7a;
+  --sw-orb-gold: #e34222;
   --sw-orb-opacity: 0.42;
   --sw-blob-opacity: 0.42;
 
-  --sw-sheen-a: #e8c77a;
-  --sw-sheen-b: #3fd9a2;
+  --sw-sheen-a: #e34222;
+  --sw-sheen-b: #5fd59a;
 
-  --sw-glass: rgb(14 36 28 / 0.70);
-  --sw-glass-strong: rgb(11 30 23 / 0.84);
-  --sw-glass-sunken: rgb(3 12 9 / 0.45);
-  --sw-glass-solid: #0f2119;
+  --sw-glass: rgb(16 40 28 / 0.66);
+  --sw-glass-strong: rgb(12 32 22 / 0.84);
+  --sw-glass-sunken: rgb(4 14 9 / 0.45);
+  --sw-glass-solid: #10271b;
   --sw-glass-border: rgb(255 255 255 / 0.08);
   --sw-glass-edge: rgb(0 0 0 / 0.45);
   --sw-glass-saturate: 140%;
-  --sw-highlight: inset 0 1px 0 rgb(255 240 210 / 0.10), inset 0 0 0 1px rgb(232 199 122 / 0.07);
+  --sw-highlight: inset 0 1px 0 rgb(249 235 215 / 0.10), inset 0 0 0 1px rgb(249 235 215 / 0.06);
   --sw-glass-sheen: none;
-  --sw-glare: rgb(255 244 214 / 0.07);
+  --sw-glare: rgb(249 235 215 / 0.07);
   --sw-scrim: rgb(0 6 4 / 0.60);
 
-  --sw-card-glass: rgb(10 30 23 / 0.58);
-  --sw-card-glass-ink: #f3f0e6;
-  --sw-card-glass-muted: #bccdc2;
-  --sw-card-glass-gold: #e8c77a;
+  --sw-card-glass: rgb(12 34 24 / 0.58);
+  --sw-card-glass-ink: #f9ebd7;
+  --sw-card-glass-muted: #c4bba6;
+  --sw-card-glass-gold: #ff8f73;
 
-  --sw-plot-line: #3fd9a2;
-  --sw-plot-fill: rgb(63 217 162 / 0.14);
-  --sw-plot-gold: #e8c77a;
+  --sw-plot-line: #5fd59a;
+  --sw-plot-fill: rgb(95 213 154 / 0.14);
+  --sw-plot-gold: #ff8f73;
   --sw-plot-grid: rgb(255 255 255 / 0.07);
 
   --sw-shadow-sm: 0 1px 1px rgb(0 6 4 / 0.45), 0 2px 6px rgb(0 6 4 / 0.45);

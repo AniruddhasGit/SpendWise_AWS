@@ -1,4 +1,4 @@
-import { longDate, rupees } from '../lib/money.js'
+import { longDate, dollars } from '../lib/money.js'
 
 /**
  * The per-day bar chart.
@@ -26,16 +26,16 @@ export default function DayBars({ days }) {
             data-empty={d.total_paise === 0 ? 'true' : 'false'}
             data-peak={peak > 0 && d.total_paise === peak ? 'true' : undefined}
             // A day with spending never renders as nothing: 2% is the floor, so
-            // ₹5 on an otherwise ₹5,000 day is still a visible mark. A zero day
+            // $5 on an otherwise $5,000 day is still a visible mark. A zero day
             // renders as the 2% stub in the border colour, which reads as the
             // baseline rather than as a tiny amount.
             style={{ height: peak > 0 ? `${Math.max(2, (d.total_paise / peak) * 100)}%` : '2%' }}
-            title={`${longDate(d.date)}: ${rupees(d.total_paise)}`}
+            title={`${longDate(d.date)}: ${dollars(d.total_paise)}`}
           />
         ))}
       </div>
       <figcaption className="entry-meta">
-        Daily spending{peak > 0 ? `, tallest bar ${rupees(peak)}` : ''}
+        Daily spending{peak > 0 ? `, tallest bar ${dollars(peak)}` : ''}
       </figcaption>
     </figure>
   )

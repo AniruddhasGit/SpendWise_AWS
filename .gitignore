@@ -40,3 +40,8 @@ passwords.txt
 # point of view they are somebody else's working tree.
 /dev/
 /uat/
+
+# impeccable decision-page runtime files
+.impeccable/questions/
+.impeccable/decision-direction.json
+.impeccable/review/

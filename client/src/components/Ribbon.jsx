@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { rupees } from '../lib/money.js'
+import { dollars } from '../lib/money.js'
 
 /**
  * The category ribbon — **both the chart and the filter** (`SRC-001 §9.2`).
@@ -12,7 +12,7 @@ import { rupees } from '../lib/money.js'
  * - **one Tab stop for the whole ribbon** (roving tabindex); arrows move
  *   between bands, Home/End jump to the ends, Enter/Space toggles, Escape
  *   clears
- * - accessible name per band: `"{Category}: ₹{amount}, {pct}% of total"`
+ * - accessible name per band: `"{Category}: ${amount}, {pct}% of total"`
  * - `aria-pressed` reflects selection
  * - selection is **never colour-only** — the chosen band gains an inset marker
  *   AND the others dim (the CSS does this; both cues, so it survives colour
@@ -112,12 +112,12 @@ export default function Ribbon({ buckets, selected, onSelect }) {
             // The band is a rectangle of colour with no text inside it, so the
             // accessible name is the ONLY name it has. `DESIGN-SYSTEM.md §5.1`
             // specifies this string exactly.
-            aria-label={`${b.category_name}: ${rupees(b.total_paise)}, ${b.percent}% of total`}
+            aria-label={`${b.category_name}: ${dollars(b.total_paise)}, ${b.percent}% of total`}
             // TRUE PROPORTION. The percent the server computed, not one
             // recomputed here — the server's percentages sum to exactly 100 by
             // largest-remainder, and a second rounding would break that.
             style={{ width: `${b.percent}%`, background: b.color }}
-            title={`${b.category_name} — ${rupees(b.total_paise)} (${b.percent}%)`}
+            title={`${b.category_name} — ${dollars(b.total_paise)} (${b.percent}%)`}
             onFocus={() => setCursor(i)}
             onClick={() => onSelect(isSelected(b) ? null : key(b))}
           />
@@ -142,7 +142,7 @@ export default function Ribbon({ buckets, selected, onSelect }) {
 
       <p className="visually-hidden">
         {total > 0
-          ? `Total across ${buckets.length} categories: ${rupees(total)}.`
+          ? `Total across ${buckets.length} categories: ${dollars(total)}.`
           : 'No spending in this period.'}
       </p>
     </div>

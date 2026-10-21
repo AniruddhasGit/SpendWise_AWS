@@ -284,7 +284,7 @@
 }
 .panel .field select { cursor: pointer; }
 
-/* The amount, written like a cheque: a large tabular figure with the rupee
+/* The amount, written like a cheque: a large tabular figure with the dollar
    sign set beside it in gold. The sign is aria-hidden; the field's value is
    the plain decimal the server parses. */
 .amount-wrap { position: relative; }

@@ -1,5 +1,9 @@
 # SW-ADR-013 — Indian Rupees only; integer paise; currency snapshotted onto each expense
 
+> **⚠ AMENDED 2026-10-20 by `SW-ADR-157`, for display only.** Amounts are shown in US dollars.
+> Storage is unchanged: integer hundredths, the `*_paise` names, and the stored code `INR`, which
+> changes only with the owner's word (a migration of every row).
+
 | Field | Value |
 |---|---|
 | ADR | `SW-ADR-013` |

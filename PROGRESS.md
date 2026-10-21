@@ -754,3 +754,16 @@ the only thing proved by hand · dev-role `ecr:PutImage` could forge a `uat-ok` 
 revoked, so any future database work needs a temporary security-group rule.
 
 - **Session closed 2026-09-13_0707 by ani87** → handoff: handoffs/HANDOFF_2026-09-13_0707_ani87.md
+
+## 2026-10-20 — Coinfall premium loader shipped (autonomous)
+- framer-motion added (additive; SW-ADR-156). Coinfall money loader (gold-coin
+  intro → fling ₹ coins into vaults, live donut + count-up) LIVE on Render
+  (65bc2e4, bundle index-HemD1mjR.js; home+healthz 200). Skipped under
+  navigator.webdriver so CV-16 stays green.
+- Static-front cold-start page built READY in static-front/ (plan C, NOT deployed
+  — Cloudflare Pages per README).
+- AWS: identical client mirrored, builds green, staged on branch coinfall-premium
+  (dev/uat/main untouched; infra stays shut down).
+- Scope set by llm-council (loader-focused, no URL repoint overnight). Build done
+  main-thread (background Workflow crashed twice).
+- **Session closed 2026-10-20_0027 by ani87** → handoff: handoffs/HANDOFF_2026-10-20_0027_ani87.md

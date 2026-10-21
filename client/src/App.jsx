@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, onSessionEnded, startSession, stopSession } from './lib/api.js'
-import { apply, stored } from './lib/theme.js'
+import { apply, stored, switchTheme } from './lib/theme.js'
+import { carryAcross, paintScene, sceneTheme, scrollToTop, startSmoothScroll, useServerReady } from './lib/scene.js'
 import Sidebar from './components/Sidebar.jsx'
 import Admin from './screens/Admin.jsx'
 import Categories from './screens/Categories.jsx'
 import Dashboard from './screens/Dashboard.jsx'
 import Gate from './screens/Gate.jsx'
+import Landing from './screens/Landing.jsx'
 import Settings from './screens/Settings.jsx'
 
 /**
@@ -20,6 +22,18 @@ import Settings from './screens/Settings.jsx'
  * second set of conventions for expressing "which pane".
  */
 
+// A tab that has held a session goes straight to the sign-in form when it
+// reloads signed out (a revoked or expired session): that person wants the
+// form, not the landing page. One bit, per tab, nothing personal in it.
+// sessionStorage can throw (privacy modes), and then everyone gets the landing.
+const SEEN = 'spendwise.tab-signed-in'
+function tabHadSession() {
+  try { return sessionStorage.getItem(SEEN) === '1' } catch { return false }
+}
+function markTabSignedIn() {
+  try { sessionStorage.setItem(SEEN, '1') } catch { /* landing next time; harmless */ }
+}
+
 /** Drop `?from&to&category` so the next person does not inherit them. */
 function clearQuery() {
   if (window.location.search) {
@@ -31,11 +45,21 @@ export default function App() {
   const [principal, setPrincipal] = useState(null)
   const [checking, setChecking] = useState(true)
   const [mode, setMode] = useState('login')
+  // What a signed-out visitor sees: the landing page on a first visit
+  // (SW-ADR-156), the sign-in form once they ask for it. Anyone leaving the app
+  // (a sign-out, an ended session, a reload after one) goes straight to the
+  // form, where the reason banner and the focused email field are.
+  const [front, setFront] = useState(() => (tabHadSession() ? 'gate' : 'landing'))
   const [reason, setReason] = useState(null)
   const [view, setView] = useState('dashboard')
   const [animateRoute, setAnimateRoute] = useState(false)
   const [railOpen, setRailOpen] = useState(false)
   const [theme, setTheme] = useState(stored)
+  // The signed-out scene's theme: dark unless light was chosen (SW-ADR-160).
+  const [scene, setScene] = useState(sceneTheme)
+  // On the always-on front the server may be asleep: the landing shows its
+  // tree and fog at once and counts down until the server answers.
+  const { ready: serverReady, since } = useServerReady()
   const [signingOut, setSigningOut] = useState(false)
   const [gateFocus, setGateFocus] = useState(false)
   // A sign-out the server never confirmed. The session cookie is httpOnly, so
@@ -67,6 +91,7 @@ export default function App() {
   const resetShell = (nextReason) => {
     setPrincipal(null)
     setMode('login')
+    setFront('gate')
     setView('dashboard')
     setAnimateRoute(false)
     setRailOpen(false)
@@ -86,7 +111,19 @@ export default function App() {
     })
   }, [])
 
+  // Smooth scroll on every page (Lenis on GSAP's ticker).
+  useEffect(() => { startSmoothScroll() }, [])
+
+  // Signed out, the whole document wears the scene's theme, so the sign-in
+  // card and its inputs match the scene around them; signed in, the person's
+  // own choice (System, Light or Dark) comes back.
   useEffect(() => {
+    if (principal) apply(stored())
+    else paintScene(scene)
+  }, [principal, scene])
+
+  useEffect(() => {
+    if (!serverReady) return undefined
     // `GET /api/auth/me` is the only way to know: the session cookie is
     // httpOnly, so script cannot see whether one exists. A 401 here is the
     // NORMAL first-visit answer, not a session ending — `me` is an auth call,
@@ -94,11 +131,11 @@ export default function App() {
     // once a session is known to exist.
     let live = true
     api.me()
-      .then((p) => { if (live) { startSession(); setPrincipal(p) } })
+      .then((p) => { if (live) { startSession(); markTabSignedIn(); setPrincipal(p) } })
       .catch(() => { if (live) setPrincipal(null) })
       .finally(() => { if (live) setChecking(false) })
     return () => { live = false }
-  }, [])
+  }, [serverReady])
 
   useEffect(() => {
     // Escape closes the rail at phone width. It is an overlay there, and an
@@ -117,10 +154,14 @@ export default function App() {
     }
   }, [principal?.id])
 
-  const chooseTheme = (next) => { setTheme(next); apply(next) }
+  // A pointer press floods the page with the new theme from where it was
+  // pressed (lib/theme.js); a keyboard choice switches at once.
+  const chooseTheme = (next, event) => { setTheme(next); switchTheme(next, event) }
+  const chooseScene = (next, event) => { setScene(next); chooseTheme(next, event) }
 
   const signedIn = (p) => {
     startSession()
+    markTabSignedIn()
     const r = resume.current
     resume.current = null
     if (r && r.ownerId === p.id && r.search) {
@@ -134,9 +175,13 @@ export default function App() {
     }
     setDraft((d) => (d && d.ownerId === p.id ? d : null))
     focusMain.current = true
-    setGateFocus(false)
-    setReason(null)
-    setPrincipal(p)
+    // The tree is carried from the sign-in page to its place on the
+    // dashboard (SW-ADR-160): the morph waits for the dashboard to draw it.
+    carryAcross(() => {
+      setGateFocus(false)
+      setReason(null)
+      setPrincipal(p)
+    }, { arrive: '.dash-tree .mt-stage' })
   }
 
   /**
@@ -173,7 +218,9 @@ export default function App() {
     clearQuery()
     resume.current = null
     setDraft(null)
-    resetShell(null)
+    // and back: the dashboard's tree is carried to the sign-in page
+    scrollToTop()
+    carryAcross(() => resetShell(null), { arrive: '.gate-tree .mt-stage' })
     signingOutRef.current = false
     setSigningOut(false)
   }
@@ -187,6 +234,22 @@ export default function App() {
     // Keyboard navigation is never animated; a pointer gets the crossfade.
     setAnimateRoute(Boolean(byPointer))
     setView(next)
+  }
+
+  // The landing page is shown at once, while the session is still being
+  // checked: its tree and fog need nothing from the server, and the rest of
+  // it waits for `checking` to finish (see Landing).
+  const landing = front === 'landing' && !principal
+  const toGate = (m) => {
+    setMode(m); setReason(null); setGateFocus(true)
+    scrollToTop()
+    carryAcross(() => setFront('gate'))
+  }
+  if (landing) {
+    return (
+      <Landing ready={!checking} since={since} theme={scene} onTheme={chooseScene}
+               onSignIn={() => toGate('login')} onRegister={() => toGate('register')} />
+    )
   }
 
   if (checking) {
@@ -204,7 +267,8 @@ export default function App() {
   if (!principal) {
     return (
       <Gate mode={mode} onMode={(m) => { setMode(m); setReason(null) }} reason={reason}
-            autoFocus={gateFocus} onSignedIn={signedIn} />
+            autoFocus={gateFocus} onSignedIn={signedIn} theme={scene} onTheme={chooseScene}
+            onBack={() => { setReason(null); scrollToTop(); carryAcross(() => setFront('landing')) }} />
     )
   }
 
@@ -215,7 +279,7 @@ export default function App() {
   return (
     <div className="app">
       <Sidebar view={view} onView={go} principal={principal}
-               theme={theme} onTheme={chooseTheme} onSignOut={() => signOut()}
+               onSignOut={() => signOut()}
                signingOut={signingOut}
                open={railOpen} onClose={() => setRailOpen(false)} />
 

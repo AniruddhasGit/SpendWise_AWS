@@ -42,7 +42,8 @@ alembic upgrade head
 # limit is silently 1.5x what was ruled — nothing fails, nothing logs, and the
 # throttle is simply looser than the record says it is.
 WORKERS="${UVICORN_WORKERS:-2}"
-echo "[entrypoint] uvicorn on 0.0.0.0:8000, ${WORKERS} worker(s)"
+PORT="${PORT:-8000}"
+echo "[entrypoint] uvicorn on 0.0.0.0:${PORT}, ${WORKERS} worker(s)"
 
 # `exec` so uvicorn REPLACES this shell as the process tini supervises.
 # Without it the shell stays PID 2, tini signals the shell, the shell does not
@@ -50,6 +51,6 @@ echo "[entrypoint] uvicorn on 0.0.0.0:8000, ${WORKERS} worker(s)"
 # instead of drained and ECS waits out its stop timeout on every deploy.
 exec uvicorn app.main:app \
     --host 0.0.0.0 \
-    --port 8000 \
+    --port "${PORT}" \
     --workers "${WORKERS}" \
     --no-server-header

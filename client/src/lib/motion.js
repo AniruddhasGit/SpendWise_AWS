@@ -7,8 +7,8 @@
  *   prefersReducedMotion()      non-hook read, for handlers and effects
  *   staggerStyle(i, max=8)      style object for one item of a staggered list
  *   tokenMs(name)               a --sw-dur-* token in milliseconds, for JS
- *   splitMoney(text)            "₹7,581.00" -> { sign, cur, int, frac }
- *   <Money paise | text />      a figure with the rupee sign and paise styled
+ *   splitMoney(text)            "$7,581.00" -> { sign, cur, int, frac }
+ *   <Money paise | text />      a figure with the dollar sign and paise styled
  *   <CountUp value format />    counts to its value on mount / change
  *   <Odometer value format />   rolls each digit to its new value on change
  *   <RouteFade viewKey>         remounts + settles its child on navigation
@@ -26,7 +26,7 @@
  * This is a `.js` file, so components are built with createElement, not JSX.
  */
 import { createElement, useEffect, useRef, useSyncExternalStore } from 'react'
-import { rupees } from './money.js'
+import { dollars } from './money.js'
 
 const h = createElement
 const REDUCED = '(prefers-reduced-motion: reduce)'
@@ -87,12 +87,12 @@ export function tokenMs(name, fallback = 0) {
 }
 
 // ── money figures ───────────────────────────────────────────────────────────
-const MONEY_RE = /^(-?)(₹?)([\d,]+)(\.\d+)?$/
+const MONEY_RE = /^(-?)(\$?)([\d,]+)(\.\d+)?$/
 
 /**
  * Split a formatted figure into its parts, WITHOUT reformatting it:
- *   "₹7,581.00"  -> { sign: '',  cur: '₹', int: '7,581', frac: '.00' }
- *   "-₹12.50"    -> { sign: '-', cur: '₹', int: '12',    frac: '.50' }
+ *   "$7,581.00"  -> { sign: '',  cur: '$', int: '7,581', frac: '.00' }
+ *   "-$12.50"    -> { sign: '-', cur: '$', int: '12',    frac: '.50' }
  * Anything else (a percentage, "5 days") returns null: render it as is.
  * Concatenating the parts always gives back `text` exactly.
  */
@@ -117,13 +117,13 @@ function moneyParts(text) {
 }
 
 /**
- * <Money paise={758100} />            -> ₹7,581.00, rupee sign and paise styled
- * <Money text="₹7,581.00" />          -> the same, from an already-formatted string
- * <Money paise={n} sign />            -> "+₹…" for a positive amount (income)
+ * <Money paise={758100} />            -> $7,581.00, dollar sign and paise styled
+ * <Money text="$7,581.00" />          -> the same, from an already-formatted string
+ * <Money paise={n} sign />            -> "+$…" for a positive amount (income)
  * Extra props (className, data-testid, aria-*) go on the root span.
  */
 export function Money({ paise, text, sign = false, className = '', ...rest }) {
-  let shown = text ?? rupees(paise)
+  let shown = text ?? dollars(paise)
   if (shown == null) return null
   if (sign && typeof paise === 'number' && paise > 0) shown = `+${shown}`
   const parts = sign && shown.startsWith('+')
@@ -207,14 +207,14 @@ export function useCountUp(rootRef, tickerRef, value, { format = String, duratio
 }
 
 /**
- * <CountUp value={paise} format={rupees} data-testid="total" className="sw-total" />
+ * <CountUp value={paise} format={dollars} data-testid="total" className="sw-total" />
  *
  * Renders the FINAL formatted value as real text from the first frame (tests
  * and screen readers read that), and counts up visually over it. With a money
- * string the rupee sign and paise are styled (pass split={false} to opt out).
+ * string the dollar sign and paise are styled (pass split={false} to opt out).
  * Extra props (data-testid, aria-*, title) go on the root span.
  */
-export function CountUp({ value, format = rupees, duration, from = 0, split = true, className = '', ...rest }) {
+export function CountUp({ value, format = dollars, duration, from = 0, split = true, className = '', ...rest }) {
   const rootRef = useRef(null)
   const tickerRef = useRef(null)
   useCountUp(rootRef, tickerRef, value, { format, duration, from })
@@ -231,18 +231,18 @@ export function CountUp({ value, format = rupees, duration, from = 0, split = tr
 }
 
 /**
- * <Odometer value={paise} format={rupees} className="card-value" />
+ * <Odometer value={paise} format={dollars} className="card-value" />
  *
  * Each digit is a reel that ROLLS to its new value when `value` changes — a
  * mechanical counter, not a re-count from zero. Reels are keyed by place value
- * from the right, so ₹999 -> ₹1,000 rolls the units, tens and hundreds and
+ * from the right, so $999 -> $1,000 rolls the units, tens and hundreds and
  * grows a new thousands reel instead of shifting every digit sideways.
  * Nothing rolls on first render (pair with <CountUp> for an entrance).
  *
  * The real value is a visually-hidden text node: it IS the innerText and the
  * accessible name. The reels are empty, aria-hidden spans painted by CSS.
  */
-export function Odometer({ value, format = rupees, split = true, className = '', ...rest }) {
+export function Odometer({ value, format = dollars, split = true, className = '', ...rest }) {
   const text = typeof value === 'number' ? format(value) : String(value ?? '')
   const p = split ? splitMoney(text) : null
   const reelOf = (str, cls, offsetFromRight) => {

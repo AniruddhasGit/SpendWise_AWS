@@ -122,7 +122,7 @@ function Appearance({ theme, onTheme }) {
         {THEMES.map((t) => (
           <button key={t} type="button" role="radio" aria-checked={theme === t}
                   className="segment" data-testid={`settings-theme-${t}`}
-                  onClick={() => onTheme(t)}>
+                  onClick={(e) => onTheme(t, e)}>
             {t === 'system' ? 'System' : t === 'light' ? 'Light' : 'Dark'}
           </button>
         ))}

@@ -1,4 +1,4 @@
-import { rupees } from '../../lib/money.js'
+import { dollars } from '../../lib/money.js'
 import { Odometer } from '../../lib/motion.js'
 
 /**
@@ -64,7 +64,7 @@ export default function Donut({ buckets, selected, onSelect, total }) {
               role="button"
               tabIndex={-1}
               aria-pressed={isSelected(s)}
-              aria-label={`${s.category_name}: ${rupees(s.total_paise)}, ${s.percent}% of total`}
+              aria-label={`${s.category_name}: ${dollars(s.total_paise)}, ${s.percent}% of total`}
               onClick={() => onSelect(isSelected(s) ? null : key(s))}
             />
           ))}
@@ -72,7 +72,7 @@ export default function Donut({ buckets, selected, onSelect, total }) {
         <div className="donut-centre" aria-hidden="true">
           {/* Rolls digit by digit when a slice filters the total. */}
           <Odometer value={total} className="donut-total"
-                    style={{ '--donut-chars': rupees(total).length }} />
+                    style={{ '--donut-chars': dollars(total).length }} />
           <span className="entry-meta">
             {selected !== null ? 'filtered' : 'total'}
           </span>
@@ -98,7 +98,7 @@ export default function Donut({ buckets, selected, onSelect, total }) {
               <span className="legend-swatch sw-swatch" style={{ '--coin': b.color }}
                     aria-hidden="true" />
               <span className="legend-name">{b.category_name}</span>
-              <span className="legend-amount sw-num">{rupees(b.total_paise)}</span>
+              <span className="legend-amount sw-num">{dollars(b.total_paise)}</span>
               <span className="legend-pct sw-num">{b.percent}%</span>
             </button>
           </li>

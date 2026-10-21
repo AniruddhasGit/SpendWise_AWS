@@ -42,8 +42,10 @@
   to   { opacity: 1; }
 }
 
-/* ── 1. the wordmark: a gold coin and the name ───────────────────────────── */
-/* Repeats the legacy selectors so the square / tile marks are replaced. */
+/* ── 1. the wordmark: the bonsai mark and the name ───────────────────────── */
+/* The mark is the owner's choice (option B, 2026-10-20): the money tree as a
+   round badge, one file, the same in both themes. Repeats the legacy
+   selectors so the older marks are replaced. */
 .wordmark {
   display: inline-flex;
   align-items: center;
@@ -59,15 +61,11 @@
 :root[data-theme="dark"] .wordmark::before {
   content: "";
   flex: none;
-  width: 1.1em;
-  height: 1.1em;
+  width: 1.25em;
+  height: 1.25em;
   border-radius: var(--sw-radius-full);
-  background:
-    radial-gradient(circle at 34% 30%, var(--sw-specular), transparent 46%),
-    linear-gradient(140deg, var(--sw-gold-fill), var(--sw-gold-deep));
-  box-shadow:
-    inset 0 0 0 2px var(--sw-gold-soft),
-    0 0 0 1px var(--sw-gold-deep);
+  background: url("/assets/brand/mark.svg") center / contain no-repeat;
+  box-shadow: none;
 }
 
 /* ── 2. the gate ──────────────────────────────────────────────────────────── */
@@ -96,39 +94,39 @@
   gap: var(--sw-space-6);
   min-width: 0;
 }
-.gate-brand { align-self: flex-start; }
-
-.gate-stage {
-  min-height: clamp(340px, 52vh, 520px);
-  padding: var(--sw-space-8) 0;
-  /* The orb: wider than the card and centred below-right of it, so molten
-     metal shows past the card's right, top and bottom edges. It spills at
-     most a few dozen px below the stage, into the gap and the title (ink on
-     the orb: 5.65:1 worst case, dark gold).
-     It must never reach the lede: MUTED ink on the orb is only 3.12:1. */
-  --orb-r: 215px;
-  --orb-dx: 30px;
-  --orb-dy: 40px;
-  --orb-bleed: 112px;
+.gate-brandrow {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--sw-space-3) var(--sw-space-6);
 }
-.gate-stage > .sw-rosette { width: min(120%, 600px); }
-.gate-bankcard { width: min(100%, 400px); }
+.gate-brand { align-self: flex-start; }
+.gate-back { font-size: var(--sw-text-sm); }
+
+/* The money tree stands where the bank card used to (SW-ADR-156). */
+.gate-tree {
+  width: min(100%, 470px);
+  align-self: center;
+}
 
 .gate-copy {
   display: flex;
   flex-direction: column;
   gap: var(--sw-space-3);
 }
-/* Five words, two lines at most: big and tight, set in ink. */
+/* Five words, two lines at most: the poster's extruded block lettering,
+   the same voice as the landing page's headline. */
 .gate-title,
 .page-title.gate-title {
   margin: 0;
-  max-width: 13ch;
+  max-width: 14ch;
+  font-family: var(--sw-font-display);
+  letter-spacing: 0.015em;
   font-size: clamp(2.5rem, 4.4vw, 3.75rem);
-  font-weight: var(--sw-weight-semibold);
-  line-height: 1.02;
-  letter-spacing: var(--sw-track-display);
-  color: var(--sw-ink);
+  font-weight: 900;
+  text-transform: uppercase;
+  line-height: 0.95;
+  color: var(--sw-pine);
 }
 .gate-lede { margin: 0; }
 
@@ -183,20 +181,7 @@
     padding: var(--sw-space-5) var(--sw-space-4) var(--sw-space-10);
   }
   .gate-hero { gap: var(--sw-space-4); }
-  .gate-stage {
-    min-height: 0;
-    padding: var(--sw-space-8) 0;
-    /* The card nearly fills the width here, so the orb peeks out BELOW it
-       (the radius is capped to the stage width in LiquidBlob.jsx). It spills
-       ~35-45px under the stage, into the gap and the title, and never reaches
-       the lede (shown from 601px). */
-    --orb-r: 150px;
-    --orb-dx: 0px;
-    --orb-dy: 24px;
-    --orb-bleed: 100px;
-  }
-  .gate-stage > .sw-rosette { width: min(110%, 420px); }
-  .gate-bankcard { width: min(82%, 320px); }
+  .gate-tree { width: min(78%, 360px); }
   .gate-title,
   .page-title.gate-title { font-size: clamp(1.875rem, 7.4vw, 2.5rem); }
   .gate-card {
@@ -207,8 +192,70 @@
 /* A phone: keep the form near the fold. The lede is the first thing to go. */
 @media (max-width: 600px) {
   .gate-lede { display: none; }
-  .gate-bankcard { width: min(76%, 280px); }
+  .gate-tree { width: min(70%, 280px); }
 }
+
+/* The sign-in page in the signed-out scene (SW-ADR-160): the landing page's
+   dusk (or dawn) behind it, no guilloche, the tree carried in from the
+   landing page with its fog gathered round the base. */
+.gate.scene {
+  position: relative;
+  overflow-x: clip;
+  color: var(--sw-dusk-ink);
+  background:
+    radial-gradient(ellipse 72% 70% at 40% 46%, transparent 45%, var(--scene-vignette) 100%),
+    linear-gradient(180deg, var(--sw-dusk-sky) 0%, var(--sw-dusk-mid) 46%, var(--sw-dusk-mid) 70%, var(--sw-dusk-sky) 100%);
+}
+.gate.scene::before,
+.gate.scene::after { display: none; }
+.gate.scene { --sw-extrude: var(--sw-ember); }
+.gate.scene .gate-title { color: var(--sw-dusk-ink); }
+/* the card in the scene's own warm inks, not the app's green-dark paper */
+.gate.scene .gate-card {
+  background: color-mix(in srgb, var(--sw-dusk-mid) 86%, transparent);
+  border-color: var(--scene-bar-edge);
+  color: var(--sw-dusk-ink);
+}
+.gate.scene .gate-form-title { color: var(--sw-gold); }
+.gate.scene .gate-sub,
+.gate.scene .gate-footer,
+.gate.scene .gate-hint,
+.gate.scene .gate-card label { color: var(--sw-dusk-ink-quiet); }
+.gate.scene .gate-footer { border-top-color: var(--scene-bar-edge); }
+.gate.scene .gate-card input {
+  background: color-mix(in srgb, var(--sw-dusk-sky) 70%, transparent);
+  border-color: var(--scene-bar-edge);
+  color: var(--sw-dusk-ink);
+}
+.gate.scene[data-scene="light"] .gate-card input {
+  background: color-mix(in srgb, var(--sw-brand-ivory) 80%, white);
+}
+.gate.scene .gate-lede { color: var(--sw-gold); }
+.gate.scene .gate-brand { color: var(--sw-dusk-ink); }
+.gate-theme { margin-left: auto; }
+/* GSAP owns the scene's entrances (Gate.jsx): the card's CSS rise would race
+   it, and GSAP would read the rise's first frame as the card's resting state */
+.gate.scene .gate-card { animation: none; }
+.gate-tree { position: relative; isolation: isolate; }
+.gate-tree .mt { position: relative; z-index: 1; }
+.gate-tree .mt-stage { view-transition-name: sw-tree; }
+.gate-fog {
+  /* a canvas does not stretch between left and right like a box: size it */
+  position: absolute;
+  left: -70%;
+  top: 10%;
+  width: 240%;
+  height: 140%;
+  pointer-events: none;
+}
+/* on a phone the pool stays within the tree's own width: nothing may reach
+   past a 375px screen (E3-S8) */
+@media (max-width: 640px) {
+  .gate-fog,
+  .dash-tree .gate-fog { left: 0; width: 100%; }
+}
+.gate-fog-back { z-index: 0; view-transition-name: sw-fog-in-back; }
+.gate-fog-front { z-index: 2; view-transition-name: sw-fog-in; }
 
 /* ── 3. the app shell ─────────────────────────────────────────────────────── */
 .app-main { min-width: 0; }

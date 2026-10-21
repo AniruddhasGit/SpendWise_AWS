@@ -1,0 +1,480 @@
+/* The landing page (SW-ADR-156; the scene is SW-ADR-159).
+
+   An overcast dusk, the same in both themes. The money tree stands at the
+   centre on a glass floor seen from a raised camera: the owner chose 14cm up
+   on a tree 10cm tall (2026-10-20), so the floor dips about 22 degrees below
+   the eye and a round floor reads about 2.7 times wider than it is deep
+   (--floor-ratio). Mist lurks on the floor and drifts over everything on
+   the first screen, words included. Very little text sits beside the tree.
+   The details arrive further down, as they are scrolled into view.
+
+   Layers inside the scene, back to front: sky, stage (tree < floor < bills),
+   words, fog, the scroll cue. The bar is fixed above all of it. */
+
+.landing {
+  --tree: min(68svh, 44vw, 760px);
+  --floor-ratio: 0.37;
+  --mt-dust: var(--sw-dusk-ink);
+  --sw-extrude: var(--sw-ember);
+  position: relative;
+  isolation: isolate;
+  min-height: 100dvh;
+  overflow-x: clip;
+  background: var(--sw-dusk-sky);
+  color: var(--sw-dusk-ink);
+}
+/* risograph grain over the whole sheet: fixed, never repainted on scroll */
+.landing::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 8;
+  pointer-events: none;
+  background-image: var(--sw-grain);
+  opacity: calc(var(--sw-grain-opacity) * 2.2);
+  mix-blend-mode: overlay;
+}
+
+/* ── the bar: smoked glass, wordmark left, Sign in top right ───────────── */
+.landing-bar {
+  position: fixed;
+  top: var(--sw-space-4);
+  left: clamp(var(--sw-space-4), 3vw, var(--sw-space-10));
+  right: clamp(var(--sw-space-4), 3vw, var(--sw-space-10));
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sw-space-4);
+  padding: var(--sw-space-2) var(--sw-space-2) var(--sw-space-2) var(--sw-space-5);
+  border-radius: var(--sw-radius-full);
+  background: rgb(24 32 28 / 0.42);
+  border: 1px solid rgb(243 230 210 / 0.16);
+  box-shadow: inset 0 1px 0 rgb(243 230 210 / 0.10), 0 10px 30px -12px rgb(0 0 0 / 0.5);
+  -webkit-backdrop-filter: blur(var(--sw-blur-md)) saturate(120%);
+  backdrop-filter: blur(var(--sw-blur-md)) saturate(120%);
+}
+.landing-brand {
+  font-family: var(--sw-font-display);
+  font-weight: 800;
+  font-size: 1.5rem;
+  letter-spacing: 0.01em;
+  color: var(--sw-dusk-ink);
+}
+.landing-signin { border-radius: var(--sw-radius-full); padding-inline: var(--sw-space-5); }
+
+/* ── the scene ─────────────────────────────────────────────────────────── */
+.landing-scene {
+  position: relative;
+  min-height: 100svh;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--tree) minmax(0, 1fr);
+  align-items: center;
+  column-gap: clamp(var(--sw-space-4), 3vw, var(--sw-space-12));
+  padding: calc(4rem + var(--sw-space-4)) clamp(var(--sw-space-4), 4vw, 4rem) 4rem;
+  overflow: clip;
+  /* no glow behind the tree: the owner rejected the white halo (2026-10-20) */
+  background:
+    linear-gradient(180deg, var(--sw-dusk-sky) 0%, var(--sw-dusk-mid) 46%, var(--sw-dusk-mid) 70%, var(--sw-dusk-sky) 100%);
+}
+/* the vignette: the edges of the frame fall away into the gloom */
+.landing-scene::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse 72% 70% at 50% 46%, transparent 45%, rgb(8 12 10 / 0.55) 100%);
+}
+
+/* the words: few, either side of the tree, under the fog */
+.landing-title,
+.landing-side {
+  position: relative;
+  z-index: 3;
+}
+.landing-title {
+  justify-self: end;
+  margin: 0;
+  font-family: var(--sw-font-display);
+  font-weight: 900;
+  text-transform: uppercase;
+  text-align: right;
+  font-size: clamp(2rem, 3.1vw, 3.75rem);
+  line-height: 0.96;
+  color: var(--sw-dusk-ink);
+}
+.landing-title span { display: block; }
+
+.landing-side {
+  justify-self: start;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sw-space-5);
+  max-width: 20rem;
+}
+.landing-line {
+  margin: 0;
+  font-size: var(--sw-text-md);
+  line-height: 1.45;
+  color: var(--sw-dusk-ink-quiet);
+}
+.landing-start { white-space: nowrap; }
+
+/* ── the stage: tree, glass floor, reflection ──────────────────────────── */
+.landing-stage {
+  position: relative;
+  z-index: 2;
+  isolation: isolate;
+  width: var(--tree);
+  justify-self: center;
+}
+/* Let the floor slip between the tree picture (under it) and the falling
+   bills (over it): the tree's own stacking group is opened up here. */
+.landing-stage .mt { isolation: auto; }
+.landing-stage .mt-stage { z-index: 1; }
+.landing-stage .mt-bills { z-index: 3; }
+.landing-stage .mt-stage::before { display: none; }
+
+/* the floor: an ellipse of frosted glass, its top edge where the trunk
+   enters it, so the roots are seen blurred through the glass */
+.landing-floor {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--tree) * 0.715);
+  z-index: 2;
+  width: min(calc(100vw - 2 * var(--sw-space-5)), calc(var(--tree) * 2.4));
+  aspect-ratio: 1 / var(--floor-ratio);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.landing-floor-glass {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 50%;
+  /* the glass carries its own light: with no glow behind the tree any more
+     (2026-10-20), a clear pane over the dark sky would vanish */
+  background:
+    radial-gradient(ellipse 40% 34% at 50% 18%, rgb(255 255 255 / 0.26), transparent 70%),
+    radial-gradient(ellipse at 50% 40%, rgb(220 228 220 / 0.24), rgb(220 228 220 / 0.10) 60%, rgb(220 228 220 / 0.04) 80%, transparent 92%);
+  -webkit-backdrop-filter: blur(7px) saturate(115%);
+  backdrop-filter: blur(7px) saturate(115%);
+  box-shadow:
+    inset 0 2px 0 rgb(255 255 255 / 0.5),
+    inset 0 -14px 30px -18px rgb(255 255 255 / 0.3);
+  -webkit-mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, rgb(0 0 0) 80%, transparent 100%);
+  mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, rgb(0 0 0) 80%, transparent 100%);
+}
+/* the slab's front edge: the glass has thickness, lit along its lip */
+.landing-floor::after {
+  content: "";
+  position: absolute;
+  left: 2%;
+  right: 2%;
+  top: 6%;
+  bottom: -5%;
+  z-index: -1;
+  border-radius: 50%;
+  border-bottom: 2px solid rgb(255 255 255 / 0.3);
+  background: radial-gradient(ellipse at 50% 70%, rgb(8 12 10 / 0.55), transparent 70%);
+  filter: blur(1px);
+}
+/* the trunk caught in the glass: the picture mirrored about the ground line,
+   only the trunk kept, faint and soft */
+.landing-reflection {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--tree) * -0.715);
+  width: var(--tree);
+  height: var(--tree);
+  max-width: none;
+  transform: translateX(-50%) scaleY(-0.9);
+  transform-origin: 50% 73.5%;
+  opacity: 0.26;
+  filter: blur(2px);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 36%, rgb(0 0 0) 64%, rgb(0 0 0) 73%, transparent 74%);
+  mask-image: linear-gradient(to bottom, transparent 36%, rgb(0 0 0) 64%, rgb(0 0 0) 73%, transparent 74%);
+}
+
+/* the mist: one layer behind the tree, seen between the trunk and the lowest
+   branches, and one in front of everything */
+.landing-fog {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.landing-fog-back { z-index: 1; opacity: 0.85; }
+
+.landing-cue {
+  text-shadow: 0 1px 2px var(--scene-shade), 0 0 14px var(--scene-shade);
+  position: absolute;
+  left: 50%;
+  bottom: var(--sw-space-6);
+  z-index: 5;
+  transform: translateX(-50%);
+  font-size: var(--sw-text-xs);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--sw-dusk-ink-quiet);
+}
+.landing-cue::after {
+  content: "";
+  display: block;
+  width: 1px;
+  height: 28px;
+  margin: var(--sw-space-2) auto 0;
+  background: linear-gradient(var(--sw-dusk-ink-quiet), transparent);
+}
+
+/* ── further down: the details, arriving as they scroll in ─────────────── */
+.landing-details {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(var(--sw-space-8), 6vw, 4rem) clamp(var(--sw-space-6), 5vw, 4rem);
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: clamp(var(--sw-space-12), 10vw, 9rem) clamp(var(--sw-space-4), 4vw, var(--sw-space-10));
+}
+.landing-detail {
+  display: grid;
+  gap: var(--sw-space-3);
+  padding-top: var(--sw-space-5);
+  border-top: 1px solid rgb(243 230 210 / 0.14);
+}
+.landing-detail-n {
+  font-family: var(--sw-font-display);
+  font-weight: 800;
+  font-size: var(--sw-text-md);
+  color: var(--sw-brand-vermilion);
+}
+.landing-detail-title {
+  margin: 0;
+  font-family: var(--sw-font-display);
+  font-weight: 900;
+  text-transform: uppercase;
+  font-size: clamp(1.75rem, 2.6vw, 2.5rem);
+  line-height: 1;
+  color: var(--sw-dusk-ink);
+}
+.landing-detail-body {
+  margin: 0;
+  max-width: 34ch;
+  line-height: 1.55;
+  color: var(--sw-dusk-ink-quiet);
+}
+
+.landing-final {
+  display: grid;
+  justify-items: center;
+  gap: var(--sw-space-8);
+  padding: var(--sw-space-12) var(--sw-space-4) clamp(4rem, 12vw, 10rem);
+  text-align: center;
+}
+.landing-final-title {
+  margin: 0;
+  font-family: var(--sw-font-display);
+  font-weight: 900;
+  text-transform: uppercase;
+  font-size: clamp(2.25rem, 5vw, 4.5rem);
+  line-height: 0.96;
+  color: var(--sw-dusk-ink);
+}
+.landing-final-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--sw-space-3); }
+.landing .landing-final-signin {
+  background: transparent;
+  color: var(--sw-dusk-ink);
+  border-color: rgb(243 230 210 / 0.36);
+}
+.landing .landing-final-signin:hover:not([aria-disabled='true']) {
+  background: var(--sw-dusk-ink);
+  color: var(--sw-dusk-sky);
+}
+
+/* the details below the fold rise into view as they are scrolled to; GSAP's
+   ScrollTrigger runs it (Landing.jsx, SW-ADR-160) */
+
+/* ── narrower sheets ───────────────────────────────────────────────────── */
+@media (max-width: 860px) {
+  .landing {
+    --tree: min(84vw, 50svh);
+  }
+  .landing-scene {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    row-gap: var(--sw-space-4);
+    padding-top: calc(4rem + var(--sw-space-6));
+  }
+  .landing-title { justify-self: center; text-align: center; font-size: clamp(2.25rem, 10vw, 3.25rem); }
+  .landing-side { justify-self: center; align-items: center; text-align: center; }
+  .landing-details { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 640px) {
+  .landing-bar { padding-left: var(--sw-space-4); }
+  .landing-start { width: 100%; }
+  .landing-cue { display: none; }
+  /* on a phone the line and the action sit in the fog sea, so they ride
+     above it to stay readable */
+  .landing-side { z-index: 5; }
+  .landing-line { color: var(--sw-dusk-ink); text-shadow: 0 1px 2px var(--scene-shade), 0 0 18px var(--scene-shade); }
+}
+
+/* ── the signed-out scene: arrival, countdown, theme, carry-over (SW-ADR-160) ── */
+
+/* Light mode is the same scene at dawn: the dusk tokens are pointed at their
+   dawn counterparts, so every rule above works unchanged in both. */
+.scene[data-scene="light"] {
+  --sw-dusk-sky: var(--sw-dawn-sky);
+  --sw-dusk-mid: var(--sw-dawn-mid);
+  --sw-dusk-fog: var(--sw-dawn-fog);
+  --sw-dusk-ink: var(--sw-dawn-ink);
+  --sw-dusk-ink-quiet: var(--sw-dawn-ink-quiet);
+  --scene-bar: rgb(249 235 215 / 0.62);
+  --scene-bar-edge: rgb(11 42 28 / 0.14);
+  --scene-shade: rgb(249 235 215 / 0.9);
+  --scene-vignette: rgb(60 84 70 / 0.14);
+}
+.scene {
+  --scene-bar: rgb(10 28 19 / 0.5);
+  --scene-bar-edge: rgb(249 235 215 / 0.16);
+  --scene-shade: rgb(4 12 8 / 0.9);
+  --scene-vignette: rgb(4 12 8 / 0.55);
+}
+.landing-bar { background: var(--scene-bar); border-color: var(--scene-bar-edge); }
+.landing-scene::before {
+  background: radial-gradient(ellipse 72% 70% at 50% 46%, transparent 45%, var(--scene-vignette) 100%);
+}
+.landing-bar-actions { display: flex; align-items: center; gap: var(--sw-space-2); }
+
+/* the sun / moon switch */
+.scene-theme {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--sw-radius-full);
+  color: var(--sw-dusk-ink);
+  background: transparent;
+  border: 1px solid var(--scene-bar-edge);
+  transition: transform var(--sw-dur-small) var(--sw-ease-out), background var(--sw-dur-small);
+}
+.scene-theme:hover { background: var(--scene-bar); transform: rotate(-18deg); }
+.scene-theme svg { width: 1.15rem; height: 1.15rem; }
+
+/* the countdown while the server wakes */
+.scene-countdown {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(4rem, 12vh, 7rem);
+  z-index: 6;
+  transform: translateX(-50%);
+  display: grid;
+  justify-items: center;
+  gap: var(--sw-space-2);
+  color: var(--sw-dusk-ink);
+  text-shadow: 0 1px 2px var(--scene-shade), 0 0 18px var(--scene-shade);
+  pointer-events: none;
+}
+.scene-countdown-label {
+  font-size: var(--sw-text-xs);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--sw-dusk-ink-quiet);
+}
+.scene-countdown-time {
+  font-family: var(--sw-font-display);
+  font-weight: 900;
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  line-height: 1;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+}
+.scene-countdown-bar {
+  width: 9rem;
+  height: 2px;
+  overflow: hidden;
+  border-radius: var(--sw-radius-full);
+  background: var(--scene-bar-edge);
+}
+.scene-countdown-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--sw-dusk-ink);
+  transform-origin: left;
+  transform: scaleX(var(--p, 0));
+  transition: transform 250ms linear;
+}
+
+/* the headline's letters rise through 3D; give them room to turn */
+.landing-title { perspective: 600px; }
+
+/* What the browser carries from one page to the other (lib/scene.js): the
+   tree picture, the fog, and the floor, which fades away as the tree leaves
+   it. The rest of the page changes underneath. */
+/* The fog is not morphed (a full-screen snapshot shrinking to a small box
+   shows its hard edges): the old fog sinks and dissolves where it lies while
+   the new fog gathers in round the tree's base. */
+.landing-stage .mt-stage { view-transition-name: sw-tree; }
+.landing-fog-front { view-transition-name: sw-fog-out; }
+.landing-fog-back { view-transition-name: sw-fog-out-back; }
+.landing-floor { view-transition-name: sw-floor; }
+::view-transition-group(sw-tree),
+::view-transition-group(sw-floor) {
+  animation-duration: 950ms;
+  animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+}
+::view-transition-old(sw-fog-out),
+::view-transition-old(sw-fog-out-back) {
+  animation: sw-fog-recede 900ms cubic-bezier(0.65, 0, 0.35, 1) both;
+}
+::view-transition-new(sw-fog-in),
+::view-transition-new(sw-fog-in-back) {
+  animation: sw-fog-gather 950ms cubic-bezier(0.22, 1, 0.36, 1) 250ms both;
+}
+@keyframes sw-fog-recede {
+  to { opacity: 0; transform: translateY(6%); filter: blur(14px); }
+}
+@keyframes sw-fog-gather {
+  from { opacity: 0; transform: scale(1.35); filter: blur(12px); }
+}
+
+/* ── the scene's hint colour (SW-ADR-160) ─────────────────────────────── */
+/* Buttons are the app's own emerald (the primary); vermilion is only a hint:
+   link underlines, the countdown's bar, the switch on hover, the headline's
+   depth. Links stay in the scene's ink for contrast. */
+.scene .btn-quiet { color: var(--sw-dusk-ink); border-color: var(--scene-bar-edge); }
+.scene .btn-link {
+  color: var(--sw-dusk-ink);
+  text-decoration-color: var(--sw-ember-glow);
+  text-decoration-thickness: 2px;
+}
+.scene-countdown-bar > span { background: var(--sw-ember-glow); }
+.scene-theme:hover { color: var(--sw-ember-glow); }
+
+/* ── vermilion, the poster's second voice (owner, 2026-10-21) ─────────────── */
+/* As on the poster: the headline is the scene's ink with a vermilion depth,
+   the right-hand column is a block of vermilion display type, the orbit lines
+   and spark stars are vermilion (MoneyTree's orbits), and so are the numbers
+   and the closing line.
+   Text uses --sw-gold (vermilion tuned per theme: 5.3:1 on ivory, 6.9:1 or
+   more on the emerald); lines and stars use the brand #E34222. */
+.landing-line {
+  font-family: var(--sw-font-display);
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: clamp(1.25rem, 1.7vw, 1.75rem);
+  line-height: 1.05;
+  letter-spacing: 0.02em;
+  color: var(--sw-gold);
+}
+.landing-detail-n { color: var(--sw-gold); }
+.landing-detail-title { color: var(--sw-dusk-ink); }
+.landing-final-title { color: var(--sw-gold); --sw-extrude: var(--sw-dusk-sky); }
+.scene .btn-quiet {
+  color: var(--sw-gold);
+  border: 1.5px solid currentColor;
+  background: transparent;
+}

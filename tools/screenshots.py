@@ -154,7 +154,9 @@ async def main() -> int:
             ctx, page = await new_page(**desktop)
             await sign_in(page, made["A"])
             await page.wait_for_selector('[data-testid="daily-average"]')
-            await page.get_by_test_id("theme-dark").click()
+            await page.get_by_test_id("nav-settings").click()
+            await page.get_by_test_id("settings-theme-dark").click()
+            await page.get_by_test_id("nav-dashboard").click()
             await page.wait_for_timeout(500)
             await shot(page, "06-dashboard-dark")
 
@@ -162,9 +164,9 @@ async def main() -> int:
             await page.wait_for_selector('[data-testid="category-list"]')
             await shot(page, "07-categories-dark")
 
-            await page.get_by_test_id("theme-light").click()
-            await page.wait_for_timeout(400)
             await page.get_by_test_id("nav-settings").click()
+            await page.get_by_test_id("settings-theme-light").click()
+            await page.wait_for_timeout(400)
             await page.wait_for_selector('[data-testid="deactivate"]')
             await shot(page, "08-settings")
             await ctx.close()

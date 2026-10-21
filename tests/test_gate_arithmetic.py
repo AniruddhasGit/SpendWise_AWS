@@ -215,7 +215,7 @@ def test_a_float_amount_never_round_trips() -> None:
                                          (9999, "99.99"), (1, "0.01"), (0, "0.00"),
                                          (100, "1.00")])
 def test_display_strings(paise: int, shown: str) -> None:
-    """Trailing zeros kept — `758.10`, never `758.1`. No grouping: `en-IN` is
+    """Trailing zeros kept — `758.10`, never `758.1`. No grouping: `en-US` is
     the client's job at render time (`P-UND-07`)."""
     assert to_display(paise) == shown
 

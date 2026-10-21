@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../lib/api.js'
-import { days, rupees } from '../lib/money.js'
+import { days, dollars } from '../lib/money.js'
 import {
   foreignEntry, labelFor, monthOf, previousMonthOf, readCategory, readRange, today, writeState,
 } from '../lib/period.js'
@@ -12,13 +12,13 @@ import ExpensePanel from '../components/ExpensePanel.jsx'
 import PeriodPicker from '../components/PeriodPicker.jsx'
 import Ribbon from '../components/Ribbon.jsx'
 import { FirstRun, Loading, LoadFailed, NoMatches } from '../components/States.jsx'
-import LiquidBlob from '../components/LiquidBlob.jsx'
-import { BankCard } from '../components/TiltCard.jsx'
+import MoneyTree from '../components/MoneyTree.jsx'
+import Fog from '../components/Fog.jsx'
 import { CountUp, Odometer } from '../lib/motion.js'
 
 const UNCATEGORISED_COLOR = 'var(--sw-cat-uncat)'
 
-// The dashboard's entrance (the card rising, the total counting up from ₹0,
+// The dashboard's entrance (the card rising, the total counting up from $0,
 // the plots drawing, the bars growing) plays ONCE per person per page load.
 // The shell remounts this screen on every return from another pane, and
 // replaying the whole choreography there is noise; later visits just appear.
@@ -66,6 +66,11 @@ export default function Dashboard({ principal, draft, onDraft }) {
   const [panelOpen, setPanelOpen] = useState(false)
   const [editing, setEditing] = useState(null)
   const [busyId, setBusyId] = useState(null)
+  // The money tree (SW-ADR-156): an added expense drops a bill carrying its
+  // category and amount, and its row stays marked until the person has seen it.
+  const [dropRequest, setDropRequest] = useState(null)
+  const [freshId, setFreshId] = useState(null)
+  const clearFresh = useCallback(() => setFreshId(null), [])
 
   const answered = useRef(false)
   const loadSeq = useRef(0)
@@ -130,7 +135,7 @@ export default function Dashboard({ principal, draft, onDraft }) {
       if (announceNext.current !== null) {
         const n = s.count
         setAnnouncement(`${announceNext.current}${labelFor(range)}${category !== null ? ', filtered' : ''}: `
-          + `${rupees(s.total_paise)} across ${n} ${n === 1 ? 'entry' : 'entries'}.`)
+          + `${dollars(s.total_paise)} across ${n} ${n === 1 ? 'entry' : 'entries'}.`)
         announceNext.current = null
       }
     } catch (err) {
@@ -161,16 +166,25 @@ export default function Dashboard({ principal, draft, onDraft }) {
   }
 
   const submit = async (body) => {
+    let created = null
     if (editing) await api.updateExpense(editing.id, body)
-    else await api.createExpense(body)
+    else created = await api.createExpense(body)
     // Reload AFTER the server confirms. The list never shows a row the server
-    // has not accepted (E3-S5 AC5).
+    // has not accepted (E3-S5 AC5), and the tree never drops a bill for one.
     announceNext.current = editing ? 'Expense saved. ' : 'Expense added. '
+    if (created) {
+      setDropRequest({
+        id: created.id,
+        label: created.category_name || created.description || 'Uncategorised',
+        paise: created.amount_paise,
+      })
+      setFreshId(created.id)
+    }
     await load()
   }
 
   const remove = async (expense) => {
-    if (!window.confirm(`Delete ${rupees(expense.amount_paise)}? This cannot be undone.`)) return
+    if (!window.confirm(`Delete ${dollars(expense.amount_paise)}? This cannot be undone.`)) return
     setBusyId(expense.id)
     try {
       await api.deleteExpense(expense.id)
@@ -188,10 +202,17 @@ export default function Dashboard({ principal, draft, onDraft }) {
 
   // ── derived ──────────────────────────────────────────────────────────────
   const periodLabel = labelFor(range)
-  // The name embossed on the card. Display name first; an account that never
-  // set one shows the part of its email before the @, never the whole address.
-  const holderName = principal?.display_name || principal?.email?.split('@')[0] || null
   const accountIsNew = everAny === false
+  // The full view, whose poster carries the Add expense action.
+  const heroShown = !error && Boolean(whole) && !accountIsNew
+
+  // What the tree's bills say by default: this person's own recent spends.
+  const treeBills = useMemo(
+    () => (entries?.items ?? []).slice(0, 40).map((e) => ({
+      label: e.category_name || e.description || 'Uncategorised',
+      paise: e.amount_paise,
+    })),
+    [entries])
 
   const delta = useMemo(() => {
     if (!scoped || !previous || previous.total_paise === 0) return null
@@ -248,16 +269,20 @@ export default function Dashboard({ principal, draft, onDraft }) {
             announced. */}
         <p className="visually-hidden" role="status" aria-live="polite"
            data-testid="dash-announce">{announcement}</p>
-        <header className="page-head">
+        {/* The poster opens the screen (SW-ADR-156), not a page title: the
+            heading stays for screen readers and the outline, set quietly. */}
+        <header className="page-head dash-head sw-focus">
           <div>
-            <h1 className="page-title">Your spending</h1>
+            <h1 className="page-title dash-page-title">Your spending</h1>
             <p className="entry-meta" data-testid="period-label">
               {periodLabel} · {range.from} to {range.to}
             </p>
           </div>
-          <button type="button" className="btn" onClick={openAdd} data-testid="add-expense">
-            Add expense
-          </button>
+          {!heroShown && (
+            <button type="button" className="btn" onClick={openAdd} data-testid="add-expense">
+              Add expense
+            </button>
+          )}
         </header>
 
         <PeriodPicker range={range} onChange={changeRange} disabled={loading} />
@@ -270,92 +295,113 @@ export default function Dashboard({ principal, draft, onDraft }) {
           <FirstRun onAdd={openAdd} />
         ) : (
           <>
-            {/* The hero is its OWN full-width row, never a span inside a stat
-                grid: spanning clipped `₹3,790.49` at four columns, and a lakh
-                figure is four characters longer.
-
-                The total sits on the SOLID bank card (an opaque face; real
-                money is never printed on translucent glass), over the one
-                LiquidBlob this screen is allowed. `<CountUp>` keeps the
-                element's innerText the final figure on every frame, which is
-                what the browser tests and a screen reader read. */}
+            {/* The hero is a poster (SW-ADR-156): the money tree on the left,
+                the total as the headline on the right, set in extruded
+                numerals on the page itself, never on glass. `<CountUp>` keeps
+                the element's innerText the final figure on every frame, which
+                is what the browser tests and a screen reader read; the tree's
+                bills are canvas pixels and never part of any figure. */}
             <section className="dash-hero" aria-label="Total">
-              <div className="sw-stage dash-stage">
-                <LiquidBlob contained x={0.5} y={0.5} size={0.88} />
-                <span className="sw-rosette" aria-hidden="true" />
-                <BankCard
-                  variant="solid"
-                  className="dash-bankcard"
-                  data-testid="headline"
-                  label={category !== null ? 'Filtered total' : 'Total spent'}
-                  value={<CountUp value={scoped.total_paise} data-testid="total"
-                                  from={entered ? scoped.total_paise : 0} />}
-                  holder={holderName}
-                  meta={periodLabel}
-                >
-                  {delta && (
-                    <p className={`delta dash-delta${delta.up ? ' is-up' : ' is-down sw-pos'}`}
+              {/* The poster's orbit: one line from the canopy across to the
+                  total, and two sparks beside it. Decoration, wide panes only. */}
+              <svg className="dash-orbit sw-focus" style={{ '--sw-i': 4 }} viewBox="0 0 1000 300" preserveAspectRatio="none"
+                   aria-hidden="true" focusable="false">
+                <path d="M120 250 C 260 40, 560 -10, 760 70 S 900 150, 905 175" />
+              </svg>
+              <svg className="dash-sparks sw-focus" style={{ '--sw-i': 5 }} viewBox="0 0 100 60" aria-hidden="true" focusable="false">
+                <path d="M14 4L16 14L26 16L16 18L14 28L12 18L2 16L12 14Z" />
+                <path d="M84 34L85.2 40L91 41.2L85.2 42.4L84 48L82.8 42.4L77 41.2L82.8 40Z" />
+              </svg>
+              <div className="dash-tree sw-focus" style={{ '--sw-i': 1 }}>
+                <Fog className="gate-fog gate-fog-back" layer="back" pool stage=".dash-tree" />
+                <MoneyTree variant="dashboard" bills={treeBills} dropRequest={dropRequest} alt="" />
+                <Fog className="gate-fog gate-fog-front" pool stage=".dash-tree" />
+              </div>
+
+              <div className="dash-poster">
+                <div className="dash-headline" data-testid="headline">
+                  <p className="dash-total-label sw-focus" style={{ '--sw-i': 1 }}>
+                    {category !== null ? 'Filtered total' : 'Total spent'}, {periodLabel.toLowerCase()}
+                  </p>
+                  <p className="dash-total sw-extruded sw-money-lg sw-focus" style={{ '--sw-i': 2 }}>
+                    <CountUp value={scoped.total_paise} data-testid="total"
+                             from={entered ? scoped.total_paise : 0} />
+                  </p>
+                  {delta ? (
+                    <p className={`delta dash-delta sw-focus${delta.up ? ' is-up' : ' is-down sw-pos'}`}
+                       style={{ '--sw-i': 3 }}
                        data-testid="delta">
-                      <span aria-hidden="true">{delta.up ? '▲' : '▼'}</span>{' '}
+                      <svg className="dash-delta-icon" viewBox="0 0 24 24" fill="none"
+                           stroke="currentColor" strokeWidth="1.75" strokeLinecap="round"
+                           strokeLinejoin="round" aria-hidden="true">
+                        <path d={delta.up ? 'M12 19V5M5 12l7-7 7 7' : 'M12 5v14M5 12l7 7 7-7'} />
+                      </svg>
                       {delta.pct}%{' '}
                       <span className="dash-delta-words">
                         {delta.up ? 'more' : 'less'} than last month
                       </span>
                     </p>
-                  )}
-                </BankCard>
-              </div>
+                  ) : previous && previous.total_paise === 0 && range.from.endsWith('-01') ? (
+                    <p className="dash-delta dash-delta-first sw-focus" style={{ '--sw-i': 3 }}>Nothing logged last month to compare with.</p>
+                  ) : null}
+                  <button type="button" className="btn btn-lg dash-add sw-focus" style={{ '--sw-i': 4 }}
+                          onClick={openAdd}
+                          data-testid="add-expense">
+                    Add expense
+                  </button>
+                </div>
 
-              {/* The statement: three figures read like the lines of a bank
-                  statement, in one opaque card, rather than three equal tiles.
-                  `<Odometer>` rolls each digit when the period or filter
-                  changes; its innerText is always the real value. */}
-              <div className="card card-statement dash-figures">
-                <dl className="dash-figure-list">
-                  <div className="dash-figure">
-                    <dt className="card-label">Entries</dt>
-                    <dd className="card-value">
-                      <Odometer value={scoped.count} format={String} split={false}
-                                data-testid="count" />
-                    </dd>
-                    {biggest && (
-                      <dd className="entry-meta" data-testid="biggest">
-                        Largest {rupees(biggest.amount_paise)}
+                {/* The statement: three figures read like the lines of a bank
+                    statement, in one opaque card, rather than three equal tiles.
+                    `<Odometer>` rolls each digit when the period or filter
+                    changes; its innerText is always the real value. */}
+                <div className="card card-statement dash-figures sw-focus" style={{ '--sw-i': 5 }}>
+                  <dl className="dash-figure-list">
+                    <div className="dash-figure">
+                      <dt className="card-label">Entries</dt>
+                      <dd className="card-value">
+                        <Odometer value={scoped.count} format={String} split={false}
+                                  data-testid="count" />
                       </dd>
-                    )}
-                  </div>
+                      {biggest && (
+                        <dd className="entry-meta" data-testid="biggest">
+                          Largest {dollars(biggest.amount_paise)}
+                        </dd>
+                      )}
+                    </div>
 
-                  <div className="dash-figure">
-                    <dt className="card-label">Daily average</dt>
-                    {/* `null`, never 0.00, when no day has elapsed. A wholly
-                        future range has no average, and 0.00 reads as "spent
-                        nothing" on the first screen a new account sees
-                        (`SW-ADR-053`). */}
-                    <dd className="card-value">
-                      {scoped.daily_average_paise === null
-                        ? <span data-testid="daily-average">Not yet</span>
-                        : <Odometer value={scoped.daily_average_paise}
-                                    data-testid="daily-average" />}
-                    </dd>
-                    <dd className="entry-meta" data-testid="days-elapsed">
-                      over {days(scoped.days_elapsed)}
-                    </dd>
-                  </div>
+                    <div className="dash-figure">
+                      <dt className="card-label">Daily average</dt>
+                      {/* `null`, never 0.00, when no day has elapsed. A wholly
+                          future range has no average, and 0.00 reads as "spent
+                          nothing" on the first screen a new account sees
+                          (`SW-ADR-053`). */}
+                      <dd className="card-value">
+                        {scoped.daily_average_paise === null
+                          ? <span data-testid="daily-average">Not yet</span>
+                          : <Odometer value={scoped.daily_average_paise}
+                                      data-testid="daily-average" />}
+                      </dd>
+                      <dd className="entry-meta" data-testid="days-elapsed">
+                        over {days(scoped.days_elapsed)}
+                      </dd>
+                    </div>
 
-                  <div className="dash-figure">
-                    <dt className="card-label">On track for</dt>
-                    <dd className="card-value dash-projection">
-                      {projection === null
-                        ? <span data-testid="projection">—</span>
-                        : <Odometer value={projection} data-testid="projection" />}
-                    </dd>
-                    <dd className="entry-meta">
-                      {projection === null
-                        ? 'this period has finished'
-                        : 'estimate, if the rest matches so far'}
-                    </dd>
-                  </div>
-                </dl>
+                    <div className="dash-figure">
+                      <dt className="card-label">On track for</dt>
+                      <dd className="card-value dash-projection">
+                        {projection === null
+                          ? <span data-testid="projection">—</span>
+                          : <Odometer value={projection} data-testid="projection" />}
+                      </dd>
+                      <dd className="entry-meta">
+                        {projection === null
+                          ? 'this period has finished'
+                          : 'estimate, if the rest matches so far'}
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
               </div>
             </section>
 
@@ -417,7 +463,8 @@ export default function Dashboard({ principal, draft, onDraft }) {
               />
             ) : entries ? (
               <EntryList items={entries.items} colorFor={colorFor}
-                         onEdit={openEdit} onDelete={remove} busyId={busyId} />
+                         onEdit={openEdit} onDelete={remove} busyId={busyId}
+                         freshId={freshId} onSeen={clearFresh} />
             ) : null}
           </>
         )}

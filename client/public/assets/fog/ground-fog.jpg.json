@@ -1,0 +1,8 @@
+{
+  "asset": "ground-fog.jpg",
+  "purpose": "Landing ground fog texture (SW-ADR-159): a patchy, billowing fog surface seen from a raised camera, dense in front and thinning to a soft far edge, on black. Drawn by Fog.jsx with brightness as alpha, tiled in mirrored pairs, drifting right to left.",
+  "source": "Runway image generation, task 246e6d1f-2456-4bd9-b785-0f54d3be39c6, 21:9 at 1K (1584x672), 20 credits, owner-approved 2026-10-21. It replaces the earlier band texture (task 6daa70e3-a7bc-489f-94d6-413325e9f45f), which the owner rejected for its sharp bright line.",
+  "reference": "the owner's picture of patchy low ground fog on black, uploaded to Runway as the style reference",
+  "prompt": "Low ground fog in the style of @fog: a patchy, rolling surface of grey smoke lying on the ground, seen from a slightly raised camera looking down and across it, on a pure black background. The fog fills the lower two thirds of the frame and recedes into the distance: near the bottom edge it is thick, with large soft billowing clumps and dark dips and gaps between them; towards the back it becomes smaller, thinner and more broken, and its far edge melts into the black with small soft wisps, with no sharp line and no bright band anywhere. Uneven, patchy density throughout, soft and matte, quietly lit, not glowing. The top third is plain black. Grayscale only, realistic smoke, no ground, no objects, no horizon line, no text. Even across the width so it can tile left to right.",
+  "post_processing": "ffmpeg: converted to grayscale, saved as JPEG q3. Fog.jsx fades the far edge in softly at load time."
+}

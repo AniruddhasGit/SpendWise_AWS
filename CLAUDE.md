@@ -42,7 +42,7 @@ Numbered in dependency order. Each is derived from the ones above it and **cites
 | Folder | What it holds | State |
 |---|---|---|
 | `00 SourceOfTruth/` | `SRC-001` the client's requirements + `SRC-002` their rulings — **frozen and hashed**. **10 errata.** | **written** |
-| `01 ADR/` | **155 decision records** (132 live, 23 superseded or withdrawn) + the fail-closed ledger. | **written** |
+| `01 ADR/` | **160 decision records** (136 live, 24 superseded or withdrawn) + the fail-closed ledger. | **written** |
 | `02 BRD/` | 76 business requirements, each citing a source. | **written** |
 | `03 PRD/` | **42 specifications — the document the code is written from.** Plus the API contract and the §9 coverage map. | **written** |
 | `05 Bible/` | 48 stories, **195 binary acceptance criteria**. The scope arbiter. | **written** |
@@ -62,7 +62,8 @@ Numbered in dependency order. Each is derived from the ones above it and **cites
 
 **Backend** Python 3.12 · FastAPI + uvicorn · SQLAlchemy 2.0 async + asyncpg · Alembic ·
 Pydantic v2 · PyJWT · bcrypt · boto3
-**Frontend** React 18 + Vite · plain CSS · no UI framework
+**Frontend** React 18 + Vite · plain CSS · no UI framework · GSAP + Lenis for the signed-out scene's
+motion and smooth scroll (`SW-ADR-160`, client additions)
 **Tests** pytest · pytest-asyncio · httpx (ASGITransport) · Playwright for the browser-observed
 gate (`CV-16`) — locked on the same terms; do not substitute
 **Data** PostgreSQL on AWS RDS · S3 for receipt images only

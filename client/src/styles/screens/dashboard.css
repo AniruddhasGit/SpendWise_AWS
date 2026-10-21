@@ -1,12 +1,12 @@
 /* screens/dashboard.css — owned by the dashboard screen agent. Builds on tokens.css + glass.css + motion.css;
    see the contract in docs/05 B DesignSystem/DESIGN-SYSTEM.md §9. No raw hex, no :focus-visible rule. */
 
-/* The dashboard reads like a bank statement: the balance on a solid card over
-   the molten orb, a statement card of three figures beside it, then the charts
+/* The dashboard opens like a poster (SW-ADR-156): the money tree beside the
+   total, a statement card of three figures under it, then the charts
    on opaque content cards. Emerald draws the daily series and every primary
-   control; gold marks totals, the projection and each chart's peak; ink is
-   ordinary spending. Coral is never used here (nothing on this screen is an
-   overspend or destructive).
+   control; vermilion (the --sw-gold names, and --sw-danger for the poster's
+   statement line, SW-ADR-156) marks money leaving: totals, the projection,
+   each chart's peak and the total's label; ink is ordinary spending.
 
    Layout answers to the PANE's width, not the window's: the rail takes a
    different amount of room at each breakpoint, so a viewport media query
@@ -28,53 +28,160 @@
 .dash-pane > .page-head .page-title { margin: 0; }
 .dash-pane > .page-head .entry-meta { margin-top: var(--sw-space-1); }
 
-/* ── 1. the hero: bank card on the stage + the statement card ────────────── */
+/* ── 1. the hero: a poster (SW-ADR-156) ──────────────────────────────────── */
+/* The money tree on the left; on the right the total as the headline, in the
+   poster's extruded numerals set on the page (real money is never printed on
+   translucent glass), then the statement card. */
 .dash-hero {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: var(--sw-space-5);
-  align-items: stretch;
+  align-items: center;
 }
 
-.dash-stage {
-  min-height: 15rem;
-  /* The orb shows below the card (and a little right of it): the card takes
-     most of the stage's width. Below the stage it sits under the glass chart
-     cards, the composite §2.4's contrast table measured. */
-  --orb-r: 210px;
-  --orb-dx: 20px;
-  --orb-dy: 80px;
-  --orb-bleed: 172px;
-  padding: var(--sw-space-6) var(--sw-space-2);
-  border-radius: var(--sw-radius-xl);
+/* The tree stands on a feathered pool of frosted glass: CHROME tier
+   (SW-ADR-154), carrying the risograph grain, and with no edge, so the
+   poster's art is never boxed into an image card. Never a .card. */
+.dash-tree {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 560px);
+  justify-self: center;
   animation: sw-rise var(--sw-dur-hero) var(--sw-ease-out) backwards;
 }
-.dash-stage > .sw-rosette { width: min(120%, 560px); }
+/* no frosted disc or grain behind the tree: it read as a halo (owner) */
+.dash-tree::before,
+.dash-tree::after { display: none; }
+.dash-tree-unused::before {
+  content: "";
+  position: absolute;
+  inset: 4% 2% 2%;
+  pointer-events: none;
+  -webkit-mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, rgb(0 0 0) 40%, transparent 72%);
+  mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, rgb(0 0 0) 40%, transparent 72%);
+}
+.dash-tree::before {
+  z-index: -1;
+  background: var(--sw-glass);
+  -webkit-backdrop-filter: blur(var(--sw-blur-md)) saturate(var(--sw-glass-saturate));
+  backdrop-filter: blur(var(--sw-blur-md)) saturate(var(--sw-glass-saturate));
+}
+.dash-tree::after {
+  z-index: 4;
+  background-image: var(--sw-grain);
+  opacity: calc(var(--sw-grain-opacity) * 2.4);
+  mix-blend-mode: multiply;
+}
 
-.dash-bankcard { width: min(100%, 420px); }
+/* The poster's orbit, from the canopy across to the total, and two sparks
+   beside the figure. Wide panes only (section 9 hides them on narrower ones). */
+/* One open arc, above the tree and clear of the statement card: it leaves
+   the canopy, sweeps over the top and lands beside the total. */
+.dash-orbit {
+  position: absolute;
+  inset: 0 0 auto 0;
+  width: 100%;
+  height: 46%;
+  z-index: 2;
+  pointer-events: none;
+  overflow: visible;
+}
+.dash-orbit path {
+  fill: none;
+  stroke: var(--sw-brand-vermilion);
+  stroke-width: 1.6;
+  stroke-dasharray: 2 8;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.8;
+}
+.dash-sparks {
+  position: absolute;
+  top: 0;
+  right: 1%;
+  width: 7.5rem;
+  z-index: 0;
+  pointer-events: none;
+  fill: var(--sw-brand-vermilion);
+}
 
-/* The delta, printed on the card. Arrow + number + words, so the direction is
-   never carried by colour alone. Spending LESS than last month is the good
-   news and takes the card-safe emerald; spending more is stated plainly in
-   the card's own ink (more spending is not an error). */
-.sw-bankcard .dash-delta {
+.dash-poster {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sw-space-5);
+  min-width: 0;
+}
+
+.dash-headline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sw-space-2);
+  min-width: 0;
+  /* no entrance of its own: each line blurs in (.sw-focus, SW-ADR-158) */
+}
+/* The total: extruded emerald block numerals, the same lettering as the
+   landing page. The extrusion is offset copies in the deep green, so the
+   figure stays real text whose innerText is the final value. */
+.dash-total {
+  margin: 0;
+  font-family: var(--sw-font-display);
+  font-size: clamp(3rem, 8cqi, 5.5rem);
+  font-weight: 900;
+  line-height: 0.95;
+  color: var(--sw-pine);
+  font-variant-numeric: tabular-nums lining-nums;
+  overflow-wrap: anywhere;
+}
+/* the money spans default to the body face; here they take the poster's.
+   The poster face has a $ of its own; it is set heavy, to sit with the
+   900-weight digits rather than look spindly beside them. */
+.dash-total .sw-money { font-family: inherit; }
+.dash-total .sw-money-cur { font-weight: 800; }
+
+.dash-total-label {
+  margin: 0 0 var(--sw-space-1);
+  font-family: var(--sw-font-display);
+  font-size: var(--sw-text-xl);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--sw-danger);
+}
+
+/* The delta: arrow + number + words, so the direction is never carried by
+   colour alone. Spending less than last month is the good news (emerald);
+   more is stated plainly in ink (more spending is not an error). */
+.dash-delta {
   display: inline-flex;
   flex-wrap: wrap;
   align-items: baseline;
   gap: 0 0.35em;
-  margin: 1.5cqi 0 0;
+  margin: 0;
+  font-size: var(--sw-text-md);
+  font-weight: var(--sw-weight-semibold);
+  font-variant-numeric: tabular-nums lining-nums;
+  color: var(--sw-ink);
+}
+.dash-delta.is-down { color: var(--sw-positive); }
+.dash-delta-icon { width: 1em; height: 1em; align-self: center; }
+.dash-delta-first { font-weight: var(--sw-weight-regular); color: var(--sw-ink-muted); }
+.dash-add { align-self: flex-start; margin-top: var(--sw-space-3); }
+
+/* The page title stays in the outline and for screen readers, set quietly:
+   the poster, not a heading, opens the screen. */
+.dash-head .dash-page-title {
   font-family: var(--sw-font-body);
-  font-size: max(12px, 3.4cqi);
+  font-size: var(--sw-text-md);
   font-weight: var(--sw-weight-semibold);
   letter-spacing: 0;
-  text-transform: none;
-  font-variant-numeric: tabular-nums lining-nums;
+  color: var(--sw-ink-muted);
 }
-.sw-bankcard .dash-delta.is-up { color: var(--sw-card-ink); }
-.sw-bankcard .dash-delta.is-down { color: var(--sw-card-positive); }
-.sw-bankcard .dash-delta-words {
+.dash-delta-words {
   font-weight: var(--sw-weight-regular);
-  color: var(--sw-card-muted);
+  color: var(--sw-ink-muted);
 }
 
 /* The statement card: three figures in one opaque card. It is the first
@@ -85,8 +192,7 @@
   flex-direction: column;
   justify-content: center;
   padding: var(--sw-space-2) var(--sw-space-5);
-  animation: sw-rise var(--sw-dur-enter) var(--sw-ease-out) backwards;
-  animation-delay: calc(2 * var(--sw-stagger));
+  /* its entrance is .sw-focus in the markup (SW-ADR-158) */
 }
 .dash-figure-list {
   display: grid;
@@ -104,7 +210,7 @@
 .dash-figure dd { margin: 0; min-width: 0; }
 .dash-figure .card-label { margin-bottom: 0; }
 .dash-figure .card-value {
-  font-family: var(--sw-font-display);
+  font-family: var(--sw-font-body);
   font-size: var(--sw-text-2xl);
   font-weight: var(--sw-weight-semibold);
   line-height: 1.1;
@@ -118,9 +224,11 @@
 .dash-figure .dash-projection { color: var(--sw-gold); }
 
 /* Wide pane: card and statement side by side, the card given more room. */
+@container dash (max-width: 879.98px) {
+  .dash-orbit, .dash-sparks { display: none; }
+}
 @container dash (min-width: 880px) {
-  .dash-hero { grid-template-columns: minmax(0, 1.25fr) minmax(17rem, 1fr); }
-  .dash-stage { min-height: 21rem; }
+  .dash-hero { grid-template-columns: minmax(0, 1.2fr) minmax(19rem, 1fr); }
   .dash-figures { padding-block: var(--sw-space-3); }
 }
 /* Middle widths: the hero stacks, and the three figures sit in a row with
@@ -229,7 +337,7 @@
   font-family: var(--sw-font-display);
   /* Fitted to the hole. The ring's hole is ~110px at 11rem; Donut.jsx passes
      the label's character count, and a tabular figure is ~0.58em wide, so
-     the label stays inside ~92px whether it reads ₹962.25 or ₹1,23,45,678.90.
+     the label stays inside ~92px whether it reads $962.25 or $12,345,678.90.
      Never larger than the token, never below 11px. */
   font-size: clamp(11px, calc(5.75rem / (var(--donut-chars, 10) * 0.58)), var(--sw-text-md));
   font-weight: var(--sw-weight-semibold);
@@ -372,13 +480,16 @@
 
 /* ── 9. phone ────────────────────────────────────────────────────────────── */
 @container dash (max-width: 559.98px) {
-  .dash-stage { min-height: 0; padding: var(--sw-space-5) 0; --orb-r: 150px; --orb-dx: 0px; --orb-dy: 40px; --orb-bleed: 84px; }
-  /* Clipped decoration still has a bounding box, and the 375px test counts
-     any box past the window's right edge (test_the_shell.py:450). On a phone
-     the card is flush with the gutter, so both rosettes are pulled inside. */
-  .dash-stage > .sw-rosette { width: 100%; }
-  .dash-bankcard .sw-bankcard-guilloche { right: 0; top: -30cqi; width: 78cqi; }
-  .dash-bankcard { width: min(100%, 360px); }
+  /* Every box stays inside the window: the 375px test counts any box past
+     the right edge (test_the_shell.py:450), clipped or not. */
+  .dash-tree { width: min(78%, 300px); padding: var(--sw-space-2); }
+  .dash-pane > .periods {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+  }
+  .dash-pane > .periods > .chip { justify-content: center; padding-inline: var(--sw-space-1); }
+  .dash-total { font-size: clamp(2.5rem, 14cqi, 3.5rem); }
   .dash-figures { padding: var(--sw-space-1) var(--sw-space-4); }
   .dash-figure { padding: var(--sw-space-3) 0; }
   .dash-figure .card-value { font-size: var(--sw-text-xl); }
@@ -391,7 +502,8 @@
 /* Instant, not slow: tokens.css collapses durations, and this removes the
    delays and the movement so nothing waits invisibly. */
 @media (prefers-reduced-motion: reduce) {
-  .dash-stage,
+  .dash-tree,
+  .dash-headline,
   .dash-figures,
   .plot-draw,
   .plot-peak,
@@ -402,8 +514,60 @@
 /* ── 11. the entrance plays once ─────────────────────────────────────────── */
 /* Dashboard.jsx sets data-entered on a return visit by the same person. The
    pane then simply appears: no rise, no stagger, no plot wipe, no bar growth,
-   and the total starts at its value instead of counting up from ₹0. */
+   and the total starts at its value instead of counting up from $0. */
 .dash-pane[data-entered] :is(
-  .dash-stage, .dash-figures, .plot-draw, .plot-peak, .donut-svg, .bar-fill,
+  .dash-tree, .dash-headline, .dash-figures, .plot-draw, .plot-peak, .donut-svg, .bar-fill,
   .sw-enter, .sw-stagger > *
 ) { animation: none; }
+
+/* ── 12. the just-added entry (SW-ADR-156) ───────────────────────────────── */
+/* Marked until it has been on screen for a moment: a vermilion tag beside its
+   category, the colour of money leaving. 4.5:1+ on --sw-danger-soft both themes
+   (danger on its own soft tint, measured with the danger pair). */
+.entry-fresh {
+  display: inline-block;
+  margin-left: var(--sw-space-2);
+  padding: 0 var(--sw-space-2);
+  border-radius: var(--sw-radius-full);
+  background: var(--sw-danger-soft);
+  color: var(--sw-danger);
+  font-size: var(--sw-text-xs);
+  font-weight: var(--sw-weight-bold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  vertical-align: 1px;
+}
+
+/* The tree carried in from the sign-in page (SW-ADR-160). While it is being
+   carried, its own rise is off: the browser would capture it mid-entrance,
+   invisible. It is named so the browser morphs it into place. */
+.dash-tree .mt-stage { view-transition-name: sw-tree; }
+[data-carrying] .dash-tree,
+[data-carrying] .dash-tree.sw-focus,
+[data-carrying] .state-first-run,
+.sw-carried { animation: none; }
+/* a new account's first screen: the tree above the invitation to start */
+.first-run-tree {
+  width: min(78%, 380px);
+  margin: 0 auto var(--sw-space-4);
+}
+
+/* The dashboard's tree stands in the same pool of fog as on the sign-in page
+   (SW-ADR-160), and the sign-in fog glides into it (`sw-fog-in`, shell.css).
+   The fog follows the app's theme: the dawn ink on a light page. */
+.dash-tree .mt { position: relative; z-index: 1; }
+/* narrower than the sign-in page's pool: the side menu is close on the left */
+/* the pool may drift over the cards beside the tree (owner); it never takes
+   clicks, and it fades out long before its box ends, so nothing is cut */
+.dash-tree .gate-fog { left: -60%; width: 220%; top: 10%; height: 140%; z-index: 2; }
+@media (max-width: 640px) {
+  .dash-tree .gate-fog { left: 0; width: 100%; }   /* within a 375px screen */
+}
+:root[data-theme="light"] .dash-tree { --sw-dusk-fog: var(--sw-dawn-fog); }
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) .dash-tree { --sw-dusk-fog: var(--sw-dawn-fog); }
+}
+
+/* Vermilion, the poster's second voice (owner, 2026-10-21): the card headings
+   in vermilion type, as the poster sets its blocks of text. */
+.card-heading { color: var(--sw-gold); }

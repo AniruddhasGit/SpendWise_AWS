@@ -16,10 +16,29 @@ pytestmark = [pytest.mark.browser, pytest.mark.db]
 
 PASSWORD = "correct-horse-battery-staple"
 
+# Every `wait_for_function` predicate is a FUNCTION string, `"() => (" <expression> ")"`.
+# The app's CSP (`script-src 'self'`, app/core/headers.py, since 2026-10-18) refuses
+# the in-page `eval` Playwright uses to poll a bare EXPRESSION string, so an expression
+# that is false on the first check fails with an EvalError instead of waiting. A
+# function string is polled without `eval` (verified 2026-10-20). The expression inside
+# the wrapper is unchanged; do not "simplify" the wrapper away.
+
+
+async def _open_gate(page, *, register=False):
+    """The front door is the landing page on a fresh tab (SW-ADR-156); a tab
+    that has held a session reloads straight to the sign-in form. Either way,
+    end on the form, in the requested mode."""
+    await page.goto("/")
+    await page.wait_for_selector('[data-testid="landing-sign-in"], #email')
+    if await page.get_by_test_id("landing-sign-in").count():
+        await page.get_by_test_id("landing-start" if register else "landing-sign-in").click()
+        await page.wait_for_selector("#email")
+    elif register:
+        await page.get_by_test_id("gate-switch").click()
+
 
 async def _register(page, email, name="Test Person"):
-    await page.goto("/")
-    await page.get_by_test_id("gate-switch").click()
+    await _open_gate(page, register=True)
     await page.fill("#display_name", name)
     await page.fill("#email", email)
     await page.fill("#password", PASSWORD)
@@ -28,8 +47,7 @@ async def _register(page, email, name="Test Person"):
 
 
 async def _sign_in(page, who):
-    await page.goto("/")
-    await page.wait_for_selector("#email")
+    await _open_gate(page)
     await page.fill("#email", who["email"])
     await page.fill("#password", who["password"])
     await page.get_by_test_id("gate-submit").click()
@@ -94,9 +112,11 @@ async def test_dark_mode_changes_what_is_actually_painted(page, seeded) -> None:
     await _sign_in(page, seeded["A"])
     light = await _body_background(page)
 
-    await page.get_by_test_id("theme-dark").click()
+    # Appearance lives in Settings only (owner, 2026-10-20).
+    await page.get_by_test_id("nav-settings").click()
+    await page.get_by_test_id("settings-theme-dark").click()
     await page.wait_for_function(
-        f"getComputedStyle(document.body).backgroundColor !== {light!r}", timeout=5000)
+        "() => (" f"getComputedStyle(document.body).backgroundColor !== {light!r}" ")", timeout=5000)
 
     dark = await _body_background(page)
     assert dark != light
@@ -117,12 +137,22 @@ async def test_the_choice_survives_a_reload_and_system_is_the_absence_of_it(
     silently mean light."""
     await _sign_in(page, seeded["A"])
 
-    await page.get_by_test_id("theme-dark").click()
+    # Appearance lives in Settings only (owner, 2026-10-20).
+    await page.get_by_test_id("nav-settings").click()
+    await page.get_by_test_id("settings-theme-dark").click()
+    await page.wait_for_function(
+        "() => (" "document.documentElement.dataset.theme === 'dark'" ")", timeout=5000)
     await page.reload()
     await page.wait_for_selector('[data-testid="whoami"]')
     assert await page.evaluate("document.documentElement.dataset.theme") == "dark"
 
-    await page.get_by_test_id("theme-system").click()
+    await page.get_by_test_id("nav-settings").click()
+    await page.get_by_test_id("settings-theme-system").click()
+    # A pointer press now floods the new theme in through a view transition
+    # (SW-ADR-158), which applies the change on the next frame, not inside the
+    # click. Wait for it; the assertion below is unchanged.
+    await page.wait_for_function(
+        "() => (" "!document.documentElement.hasAttribute('data-theme')" ")", timeout=5000)
     assert await page.evaluate(
         "document.documentElement.hasAttribute('data-theme')") is False
 
@@ -152,7 +182,12 @@ async def test_text_stays_readable_on_the_card_in_both_themes(page, seeded) -> N
     await page.wait_for_selector('[data-testid="headline"]')
 
     for theme in ("light", "dark"):
-        await page.get_by_test_id(f"theme-{theme}").click()
+        # Appearance lives in Settings only (owner, 2026-10-20); the card
+        # measured is still the dashboard's.
+        await page.get_by_test_id("nav-settings").click()
+        await page.get_by_test_id(f"settings-theme-{theme}").click()
+        await page.get_by_test_id("nav-dashboard").click()
+        await page.wait_for_selector('[data-testid="headline"]')
         await page.wait_for_timeout(250)
         measured = await page.evaluate("""
             () => {
@@ -200,7 +235,7 @@ async def test_a_person_can_make_their_own_category_and_use_it(page, clean_db) -
     await page.fill('[data-testid="new-category-name"]', "Coffee")
     await page.get_by_test_id("create-category").click()
     await page.wait_for_function(
-        "document.querySelectorAll('.cat-row').length === 9", timeout=15000)
+        "() => (" "document.querySelectorAll('.cat-row').length === 9" ")", timeout=15000)
 
     # And it is immediately usable on an expense.
     await page.get_by_test_id("nav-dashboard").click()
@@ -241,7 +276,7 @@ async def test_renaming_a_category_keeps_its_colour(page, clean_db) -> None:
     await page.fill('[data-testid="rename-1"]', "Food shopping")
     await page.get_by_test_id("save-category-1").click()
     await page.wait_for_function(
-        "document.querySelector('[data-testid=category-1]').innerText.includes('Food shopping')",
+        "() => (" "document.querySelector('[data-testid=category-1]').innerText.includes('Food shopping')" ")",
         timeout=15000)
 
     after = await page.locator(".cat-row").first.locator(".cat-dot").evaluate(
@@ -269,7 +304,7 @@ async def test_deleting_a_category_names_the_blast_radius_and_keeps_the_money(
     page.once("dialog", accept)
     await page.get_by_test_id("delete-category-1").click()
     await page.wait_for_function(
-        "document.querySelectorAll('.cat-row').length === 7", timeout=15000)
+        "() => (" "document.querySelectorAll('.cat-row').length === 7" ")", timeout=15000)
 
     assert messages, "no confirmation before a destructive action"
     assert "KEPT" in messages[0], messages[0]
@@ -357,7 +392,7 @@ async def test_the_account_table_shows_counts_not_sums(page, seeded,
     b_row = await page.get_by_test_id(f"admin-user-{seeded['B']['id']}").inner_text()
     assert "4" in a_row and seeded["A"]["email"] in a_row
     assert "2" in b_row and seeded["B"]["email"] in b_row
-    assert "₹" not in a_row and "₹" not in b_row
+    assert "$" not in a_row and "$" not in b_row
 
 
 async def test_an_admin_can_sign_someone_out_and_it_actually_happens(
@@ -438,12 +473,12 @@ async def test_the_rail_is_an_overlay_at_phone_width(phone, seeded) -> None:
 
     await phone.get_by_test_id("rail-open").click()
     await phone.wait_for_function(
-        "document.querySelector('[data-testid=sidebar]').getBoundingClientRect().x >= 0",
+        "() => (" "document.querySelector('[data-testid=sidebar]').getBoundingClientRect().x >= 0" ")",
         timeout=5000)
 
     await phone.keyboard.press("Escape")
     await phone.wait_for_function(
-        "document.querySelector('[data-testid=sidebar]').getBoundingClientRect().x < 0",
+        "() => (" "document.querySelector('[data-testid=sidebar]').getBoundingClientRect().x < 0" ")",
         timeout=5000)
 
 
@@ -469,7 +504,7 @@ async def test_the_admin_charts_never_render_a_currency_symbol(page, seeded,
                                                                test_urls) -> None:
     """The signups plot reuses the dashboard's `LinePlot`, whose caption was
     hard-wired to the money formatter — so two new accounts rendered as
-    **"₹0.02"**. A currency symbol on a count, on the one screen in the product
+    **"$0.02"**. A currency symbol on a count, on the one screen in the product
     that must never show money.
 
     The component now takes the formatter from its caller, and this asserts the
@@ -480,7 +515,7 @@ async def test_the_admin_charts_never_render_a_currency_symbol(page, seeded,
     await page.wait_for_selector('[data-testid="admin-overview"]', timeout=20000)
 
     text = await page.inner_text("main")
-    assert "₹" not in text, f"a currency symbol reached the admin console: {text[:400]!r}"
+    assert "$" not in text, f"a currency symbol reached the admin console: {text[:400]!r}"
     assert "signups" in text
 
 
@@ -580,13 +615,13 @@ async def test_an_admin_opens_a_person_and_sees_their_spending_over_time(
     """**The grant, on screen.** `CR-001 §3`: a View action, a detail pane, a
     line plot, a total, a count and a daily average.
 
-    The two amounts are person A's day-one figures rendered `en-IN` by the one
-    shared formatter — ₹3,790.49 and ₹758.10. 758.10 is the gate number, so a
+    The two amounts are person A's day-one figures rendered `en-US` by the one
+    shared formatter — $3,790.49 and $758.10. 758.10 is the gate number, so a
     pane that computed its own average, or divided by the row count, fails here
     on a value `CONSTITUTION` Art IX.4 makes never-waivable.
 
     Asserted as **text on the screen**, not as a prop: the signups plot in this
-    same console once rendered two new accounts as "₹0.02" because a caption was
+    same console once rendered two new accounts as "$0.02" because a caption was
     hard-wired to the money formatter, and every test of that bug that read the
     props had passed.
     """
@@ -596,8 +631,8 @@ async def test_an_admin_opens_a_person_and_sees_their_spending_over_time(
     assert seeded["A"]["email"] in text, "the pane does not say whose figures these are"
     assert await pane.locator('[data-testid="line-plot"]').count() == 1, (
         "no line plot — the client asked for the line plot by name")
-    assert "₹3,790.49" in text, f"the total is not on the pane: {text[:400]!r}"
-    assert "₹758.10" in text, f"the daily average is not on the pane: {text[:400]!r}"
+    assert "$3,790.49" in text, f"the total is not on the pane: {text[:400]!r}"
+    assert "$758.10" in text, f"the daily average is not on the pane: {text[:400]!r}"
 
 
 async def test_the_detail_pane_shows_no_categories_at_any_granularity(
@@ -620,7 +655,7 @@ async def test_the_detail_pane_shows_no_categories_at_any_granularity(
 
     assert await pane.locator('[data-testid="donut"]').count() == 0, "a donut"
     assert await pane.locator('[data-testid="ribbon"]').count() == 0, "a ribbon"
-    # A legend row carries a category name AND its ₹ amount — the exact leak.
+    # A legend row carries a category name AND its $ amount — the exact leak.
     assert await pane.locator(".legend-amount").count() == 0
     assert "Spending by category" not in text
 
@@ -651,12 +686,12 @@ async def test_the_time_filter_changes_the_total_on_the_detail_pane(
     pane = await _open_the_detail_pane(page, seeded, test_urls)
     total = pane.get_by_test_id("admin-user-total")
     before = (await total.inner_text()).strip()
-    assert before == "₹3,790.49", before
+    assert before == "$3,790.49", before
 
     await pane.get_by_test_id("admin-period-last-month").click()
     # Waits for the total to SETTLE, not merely to change. The element is
     # replaced by "Loading…" while the new range is in flight, so a wait for
-    # "the text no longer says ₹3,790.49" is satisfied by the loading state and
+    # "the text no longer says $3,790.49" is satisfied by the loading state and
     # the assertion below then races it — which is how a correct filter fails a
     # test intermittently and gets "fixed" by loosening the assertion.
     await page.wait_for_function(
@@ -667,9 +702,9 @@ async def test_the_time_filter_changes_the_total_on_the_detail_pane(
 
     after = (await total.inner_text()).strip()
     assert after != before
-    assert after == "₹0.00", (
+    assert after == "$0.00", (
         f"July holds none of person A's expenses, so the total should read "
-        f"₹0.00, not {after!r}")
+        f"$0.00, not {after!r}")
 
 
 async def test_a_closed_account_shows_as_closed_and_can_be_restored(
@@ -705,5 +740,5 @@ async def test_a_closed_account_shows_as_closed_and_can_be_restored(
 
     await row.get_by_role("button", name=re.compile("restore", re.I)).click()
     await page.wait_for_function(
-        f"!document.querySelector('[data-testid=admin-user-{a}]')"
-        f".innerText.toLowerCase().includes('deleted')", timeout=20000)
+        "() => (" f"!document.querySelector('[data-testid=admin-user-{a}]')"
+        f".innerText.toLowerCase().includes('deleted')" ")", timeout=20000)
