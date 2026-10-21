@@ -29,23 +29,33 @@ export function paintScene(theme) {
 
 // ── is the server awake? ───────────────────────────────────────────────────
 // On the always-on front, the API sits behind a free server that sleeps.
-// `/healthz` touches no database (app/core/health.py), so asking it while the
-// visitor watches the countdown costs nothing on Neon. Asked only while a
-// visitor is waiting, and never again once it answers: no keep-awake ping.
+// The question is asked of `/api/auth/me`, the call the app makes first
+// anyway: any JSON answer (200 or the signed-out 401) means the server is up,
+// while a sleeping one answers through the front with the host's own HTML
+// page, or not at all. It is NOT asked of `/healthz`: ad-blockers (Brave's
+// Shields, uBlock lists) block URLs named like health checks, and a blocked
+// check left those visitors on "Almost there" for ever (2026-10-21). Asked only
+// while a visitor is waiting, and never again once it answers: no keep-awake
+// ping.
 const WAKE_EVERY_MS = 2500
 const ASK_TIMEOUT_MS = 12000
+// Requests that fail before any answer, and fast (blocked, offline, refused),
+// are not a sleeping server: after this many in a row the site opens anyway
+// and its own calls show any real error, rather than trapping the visitor.
+const GIVE_UP_AFTER = 3
 
 async function awake() {
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), ASK_TIMEOUT_MS)
   try {
-    const res = await fetch('/healthz', { cache: 'no-store', signal: ctrl.signal })
-    // A sleeping service answers with the host's own loading page, HTML. The
-    // app's health check answers 200 with no body.
+    const res = await fetch('/api/auth/me', {
+      cache: 'no-store', credentials: 'same-origin', signal: ctrl.signal,
+    })
     const type = res.headers.get('content-type') || ''
-    return res.ok && !type.includes('text/html')
-  } catch {
-    return false
+    return type.includes('application/json') ? 'up' : 'asleep'
+  } catch (err) {
+    // an abort is our own timeout: the server is still waking up
+    return err?.name === 'AbortError' ? 'asleep' : 'failed'
   } finally {
     clearTimeout(timer)
   }
@@ -58,8 +68,11 @@ export function useServerReady() {
   useEffect(() => {
     let live = true
     let timer = 0
+    let failures = 0
     const ask = async () => {
-      if (await awake()) { if (live) setReady(true); return }
+      const state = await awake()
+      failures = state === 'failed' ? failures + 1 : 0
+      if (state === 'up' || failures >= GIVE_UP_AFTER) { if (live) setReady(true); return }
       if (live) timer = setTimeout(ask, WAKE_EVERY_MS)
     }
     ask()

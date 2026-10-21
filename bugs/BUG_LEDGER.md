@@ -2365,3 +2365,17 @@ examined an empty list.
 > **Lesson.** Never let a CSS animation and a GSAP `from()` start on the same element in the same frame. GSAP reads the computed style, which mid-animation is the keyframe, not the resting state. One owner per element's entrance. A visible-in-the-DOM check does not prove a human can see it, so look at the screenshot.
 
 `client/src/screens/Gate.jsx · client/src/styles/glass.css (.gate-card) · client/src/styles/screens/shell.css`
+
+---
+
+### Ad-blockers kept the always-on front on "Almost there" for ever: the wake check asked a URL blockers block
+
+**Believed.** Polling `/healthz` from the landing page was a neutral, harmless way to learn when the sleeping server had woken (SW-ADR-160), and the only failure mode was a slow server.
+
+**Actually.** Brave's Shields, and the uBlock-style filter lists behind it, block requests to URLs named like health checks. Every `/healthz` call failed with `net::ERR_BLOCKED_BY_CLIENT`, the check never said "up", and the countdown sat on "Almost there" indefinitely. The site was unusable on the owner's brother's laptop (2026-10-21). The test suite could not see it, because a test browser has no blocker. The flow test's simulated sleep also failed the call *temporarily*, which hid that a *permanent* failure had no way out.
+
+**Caught by.** The owner, on another machine, with a DevTools screenshot. Fixed by asking `/api/auth/me` instead: any JSON answer means up, HTML means the host's waking page. After three fast network-level failures in a row the site opens anyway, rather than trapping the visitor. Verified for a normal visit (1.9s), a sleeping server (opens when it wakes) and a blocked check (6.2s).
+
+> **Lesson.** A loop that waits for a signal needs an exit for "the signal can never arrive", not just "it is late". And a request a page depends on must not have a name a privacy tool would block (`/healthz`, `/metrics`, `/track`, `/analytics`, `/ads`). Ask the endpoint the page needs anyway.
+
+`client/src/lib/scene.js`

@@ -135,6 +135,14 @@ reduced motion thing".
     - The fog pools fade with a long bell-shaped falloff and never show an edge. On the dashboard
       the pool may drift over neighbouring cards, by the owner's ruling. It never takes clicks.
 
+12. **The wake check, corrected** (2026-10-21, a bug the owner hit in Brave). Item 2's poll of
+    `/healthz` was blocked by ad-blockers (`ERR_BLOCKED_BY_CLIENT`), which left the visitor waiting
+    for ever.
+    - The check now asks `/api/auth/me`, the call the app makes first anyway. Any JSON answer means
+      the server is up, and HTML means the host's waking page. With no session cookie the 401 needs
+      no database.
+    - After three fast network-level failures in a row the site opens anyway (bug ledger).
+
 ## Consequences
 
 - The front lives at a new `*.onrender.com` address. The old address keeps working, but a visit
