@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
+import DatePicker from './DatePicker.jsx'
 import { createPortal } from 'react-dom'
 import { plain } from '../lib/money.js'
 import { today } from '../lib/period.js'
@@ -125,6 +126,8 @@ export default function ExpensePanel({ open, editing, categories, draft, onDraft
     if (!open) return
     const onEscape = (event) => {
       if (event.key !== 'Escape') return
+      // Escape inside the date field's calendar closes only the calendar
+      if (event.target?.closest?.('.date-pop')) return
       event.stopPropagation()
       tryCloseRef.current()
     }
@@ -247,14 +250,13 @@ export default function ExpensePanel({ open, editing, categories, draft, onDraft
           <div className="field-pair">
             <div className="field">
               <label htmlFor={`${id}-date`}>Date</label>
-              <input
+              <DatePicker
                 id={`${id}-date`}
                 name="spent_on"
-                type="date"
                 value={form.spent_on}
                 onChange={set('spent_on')}
-                aria-invalid={errorOn('spent_on') ? 'true' : undefined}
-                aria-describedby={errorOn('spent_on') ? `${id}-date-err` : undefined}
+                invalid={errorOn('spent_on')}
+                describedBy={errorOn('spent_on') ? `${id}-date-err` : undefined}
                 required
               />
               {errorOn('spent_on') && (
