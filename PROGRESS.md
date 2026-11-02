@@ -792,3 +792,22 @@ session) · delete the orphan RDS in account `545620235339`.
 - Scope set by llm-council (loader-focused, no URL repoint overnight). Build done
   main-thread (background Workflow crashed twice).
 - **Session closed 2026-10-20_0027 by ani87** → handoff: handoffs/HANDOFF_2026-10-20_0027_ani87.md
+
+## 2026-11-02 — the RDS instance had restarted itself; deleted with a final snapshot (OPS)
+
+- **Found running:** `spendwise-db` was `available` and billing. AWS restarts a stopped RDS instance
+  after seven days. Everything else was off: EC2 host stopped, the three ECS services at 0/0, no ALB,
+  NAT gateway, ASG or Lambda in ap-south-1, and no running EC2, RDS or NAT in any other region.
+- **Stopped it, then deleted it (owner's instruction)** with the final snapshot
+  `spendwise-db-final-2026-11-02` (observed `available`, 20 GB, encrypted). Config recorded first, to
+  `D:\Project\SpendWise\db-backups\rds-spendwise-db-config-2026-11-02.json`. The automated daily
+  backups went with the instance. `spendwise-db-manual-2026-09-13` is kept too.
+- **`infra/RESTART.md` rewritten for a restore:** every setting (security group and its one rule,
+  subnet group, KMS, parameter group, master user, the SSM parameter names), the exact restore
+  command with each flag checked against CLI help, and a post-restore check. Restore under the same
+  identifier and the endpoint, and therefore every SSM `DATABASE_URL`, stays valid. Estimate: 30–45
+  minutes from the start of the restore to a working app.
+- **Unverified:** the snapshot's master password equals SSM `/spendwise/rds/MASTER_PASSWORD`; and
+  the restore itself (not rehearsed, since a rehearsal would bill).
+- **Branches:** this doc change is on `main` only. `dev`/`uat` were left one commit behind on
+  purpose, because pushing either triggers a CD deploy into the shut-down environments.

@@ -24,6 +24,11 @@ Everything in here is applied to AWS. Nothing in here is read by the running app
 All three run as ECS services on **one** t3.micro host, and all three talk to **one** RDS
 instance — separate databases on it, with separate logins.
 
+> **Shut down.** The host is stopped, and since **2026-11-02 the RDS instance is deleted**; its data
+> is in the snapshot `spendwise-db-final-2026-11-02`. To bring everything back, follow
+> [`RESTART.md`](RESTART.md) exactly: it restores the database under the same name and placement,
+> so no secret or connection string changes.
+
 ---
 
 ## The rule: you cannot skip a step
