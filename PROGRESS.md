@@ -811,3 +811,8 @@ session) · delete the orphan RDS in account `545620235339`.
   the restore itself (not rehearsed, since a rehearsal would bill).
 - **Branches:** this doc change is on `main` only. `dev`/`uat` were left one commit behind on
   purpose, because pushing either triggers a CD deploy into the shut-down environments.
+- **The second account `545620235339` (orphan `spend-wise-dev-db`), checked by the owner in the
+  console:** no instance in us-east-1 or ap-south-1, but **four snapshots left in ap-south-1**
+  (two automated `rds:` ones from 2026-10-31/11-01, two manual). Cleanup steps, and how to check
+  every region at once (Tag Editor), are in `infra/RESTART.md` under "Two things worth a look".
+  **An all-regions zero has not been observed yet**: that is the one open item.

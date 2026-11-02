@@ -297,8 +297,36 @@ is a teardown with a restore step, not a pause.
   AWS_PROFILE=dynpro aws ecs describe-task-definition --task-definition spendwise \
     --query 'taskDefinition.containerDefinitions[0].image' --output text
   ```
-- **There is a second AWS account, `545620235339`**, holding an orphaned RDS instance
-  (`spend-wise-dev-db`) with storage autoscaling up to 1000 GB. It is not reachable from this
-  profile — the credentials for it are invalid — so **nothing in this session could see whether it
-  is costing you anything.** It has been flagged in three handoffs now. Log into that account
-  directly and check.
+- **There is a second AWS account, `545620235339`** ("Aniruddha_Personal"), which held an orphaned
+  RDS instance (`spend-wise-dev-db`, Mumbai `ap-south-1`, storage autoscaling up to 1000 GB). It
+  has nothing to do with the running project and none of its data is needed: the real data is in
+  `spendwise-db-final-2026-11-02` in account `944483082287`. The CLI cannot reach it (the
+  `default` profile's keys are invalid), so it is checked in the console only.
+
+  **State on 2026-11-02, observed by the owner in the console, not by the CLI:**
+  - RDS in **N. Virginia (us-east-1)**: 0 instances, 0 snapshots.
+  - Tag Editor, **Mumbai only**, types `AWS::RDS::DBInstance` + `AWS::RDS::DBSnapshot`: **no
+    instance**, but **four snapshots** that bill for storage:
+    `rds:spend-wise-dev-db-2026-10-31-17-18` and `rds:spend-wise-dev-db-2026-11-01-17-18`
+    (automated; the instance existed until at least 2026-11-01), plus the manual `snapshot` and
+    `spend-wise-dev-db-snapshot`.
+  - The owner was given the cleanup below. **That the account is now empty in every region has
+    not been observed yet.** Until a screenshot of the all-regions search reading **(0)** exists,
+    treat it as still billing.
+
+  **Cleanup, in the console of `545620235339`, region Mumbai:**
+  1. RDS → **Databases**: if `spend-wise-dev-db` is listed, Actions → Delete, untick *Create final
+     snapshot* and *Retain automated backups*, type `delete me`.
+  2. RDS → **Snapshots → Manual**: delete `snapshot` and `spend-wise-dev-db-snapshot`.
+  3. RDS → **Automated backups → Retained**: delete `spend-wise-dev-db` (this removes the two
+     `rds:` snapshots, which cannot be deleted from the Snapshots page).
+  4. IAM → Users → `AWS_CLI` → Security credentials: no access key should be **Active** (the one
+     that was on the laptop had `AdministratorAccess`).
+
+  **How to confirm an account is empty across every region:** RDS only ever shows one region.
+  Use **Tag Editor** (`https://console.aws.amazon.com/resource-groups/tag-editor/find-resources`;
+  not "Create Resource Group", which looks similar but has no Regions box) → Regions: **all** →
+  Resource types: `AWS::RDS::DBInstance`, `AWS::RDS::DBSnapshot` (or *All supported resource types*
+  for everything; default VPCs and security groups are free) → leave Tags empty → **Search
+  resources**. Results must read **(0)**. For what actually costs money, use Billing → **Bills** →
+  *Charges by service*, which breaks each service down by region (about a day behind).
